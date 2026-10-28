@@ -922,3 +922,14 @@ img[src*="hope-center.svg"]{filter:var(--logo)}
 .proofinline .mb>*{flex:none}
 .proofinline .mb>textarea{flex:1 1 56px}
 .proofinline .mf .proofgem{margin-inline-start:auto}
+/* Calendar day: a small window in the middle, as tall as its content */
+.daypop-back{position:fixed;inset:0;z-index:70;background:var(--backdrop);display:grid;place-items:center;padding:16px}
+.daypop{width:min(400px,100%);max-height:min(70vh,560px);display:flex;flex-direction:column;gap:10px;background:var(--card);color:var(--text);border:1px solid var(--line-soft);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:16px 18px;overflow:hidden;animation:popin .16s cubic-bezier(.2,.8,.2,1)}
+.daypop .bellhead{margin:0}
+.daypop .bellhead h2{font-size:17px}
+.daypop .btn-p{width:100%}
+.daypop .bellsec{margin:4px 0 0}
+.daypop .wlist{overflow-y:auto;min-height:0;margin:0 -6px;padding:0 6px}
+.daypop .sub{margin:0}
+@keyframes popin{from{transform:scale(.97);opacity:.6}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.daypop{animation:none}}

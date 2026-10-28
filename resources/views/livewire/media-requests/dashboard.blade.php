@@ -437,8 +437,9 @@
     @if ($pickedDay)
         @php($picked = \Illuminate\Support\Carbon::parse($pickedDay))
         @php($canAsk = $user->hasActivePermission('media-requests.create') && $picked->gte(today()) && app(\App\Support\MediaRequests\WorkCalendar::class)->isWorkDay($picked))
-        <div class="sheet-back reqpanel-back" wire:click.self="closeDay" x-data x-on:keydown.escape.window="$wire.closeDay()">
-            <div class="reqpanel bellpanel" role="dialog" aria-modal="true" aria-labelledby="day-t">
+        {{-- A small window, only as tall as what it holds. --}}
+        <div class="daypop-back" wire:click.self="closeDay" x-data x-on:keydown.escape.window="$wire.closeDay()">
+            <div class="daypop" role="dialog" aria-modal="true" aria-labelledby="day-t">
                 <div class="bellhead">
                     <h2 id="day-t"><x-ic n="cal" />{{ $picked->translatedFormat('l') }} <span class="num">{{ $picked->format('d-m-Y') }}</span></h2>
                     <button type="button" class="iconbtn" wire:click="closeDay" aria-label="{{ __('media.close') }}"><x-ic n="x" /></button>
