@@ -906,3 +906,8 @@ img[src*="hope-center.svg"]{filter:var(--logo)}
 @media (prefers-reduced-motion:reduce){.decide-track .dcard{animation:none!important}}
 @media (max-width:640px){.decide-track:not(.all) .dcard{grid-template-columns:minmax(0,1fr);grid-template-areas:"what" "name" "meta" "btn"}.decide-track:not(.all) .btn{justify-self:start;margin-top:8px}}
 .decide-track .dcard.off{display:none!important}
+.quickadd{margin-bottom:20px}
+.quickadd h2{display:flex;gap:8px;align-items:center}
+.madepw{margin-bottom:16px;align-items:center}
+.madepw>span{flex:1;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.madepw .pw{font-size:17px;letter-spacing:.04em;background:var(--soft);padding:2px 8px;border-radius:6px}

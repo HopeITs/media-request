@@ -64,7 +64,7 @@ return [
         'media-requests.pack' => ['requestFiles' => 'media-requests.create'],
         'media-requests.log' => ['exportCsv' => 'media-requests.export'],
         // Standalone only: managing people is for super-admin.
-        'people.index' => ['save' => 'people.manage', 'edit' => 'people.manage', 'toggleActive' => 'people.manage'],
+        'people.index' => ['save' => 'people.manage', 'edit' => 'people.manage', 'toggleActive' => 'people.manage', 'quickAdd' => 'people.manage'],
     ],
 
     'livewire_exempt' => [
@@ -91,6 +91,6 @@ return [
         'media-requests.stats' => [],
         'auth.login' => ['login'],
         'notifications.index' => ['markAllRead'],
-        'people.index' => ['create', 'cancel'],
+        'people.index' => ['create', 'cancel', 'forgetPassword'],
     ],
 ];

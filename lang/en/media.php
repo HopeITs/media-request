@@ -1130,4 +1130,13 @@ return [
     'decide.all' => 'Show all',
     'decide.one' => 'One at a time',
     'decide.pick' => 'Pick a decision',
+    'people.quick' => 'Add a person to try the app',
+    'people.quickLead' => 'Just an email, a name and a role. A password is made and shown once, for you to pass on; everything can be changed later in the list.',
+    'people.quickName' => 'Name',
+    'people.quickGo' => 'Add and make a password',
+    'people.qr.media' => 'Media team',
+    'people.qr.staff' => 'Team (asks for work)',
+    'people.qr.pm' => 'Program manager',
+    'people.made' => ':email was added. Password:',
+    'people.madeOnce' => 'It is shown this time only. Copy it and pass it on.',
 ];

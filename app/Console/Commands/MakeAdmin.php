@@ -13,10 +13,12 @@ use Illuminate\Support\Facades\Validator;
  * (people, roles, the Media team) is then set on the People page.
  *
  *   php artisan media:admin
+ *   php artisan media:admin --email=fares.badawi@hcsyria.org --name="Fares Badawi" --media-manager
  */
 class MakeAdmin extends Command
 {
-    protected $signature = 'media:admin {--email= : Sign-in email} {--name= : Name in English} {--name-ar= : Name in Arabic}';
+    protected $signature = 'media:admin {--email= : Sign-in email} {--name= : Name in English} {--name-ar= : Name in Arabic}
+        {--media-manager : Also the media manager (approves, assigns and checks the work of the team)}';
 
     protected $description = 'Create or update an administrator who can sign in and manage people';
 
@@ -47,11 +49,16 @@ class MakeAdmin extends Command
         $user = User::where('email', $email)->first();
         $employee = $user?->profile ?? Employee::create(['first_name_en' => $name, 'first_name_ar' => $nameAr, 'username' => strstr($email, '@', true)]);
 
+        if ($this->option('media-manager')) {
+            $employee->update(['media_role' => 'manager', 'position_title' => $employee->position_title ?: 'Communication manager', 'is_active' => true]);
+            app(\App\Support\MediaRequests\MediaTeam::class)->flush();
+        }
+
         User::updateOrCreate(['email' => $email], [
             'name' => $name, 'password' => $password, 'role' => 'super-admin', 'employee_id' => $employee->id,
         ]);
 
-        $this->info(($user ? 'Updated' : 'Created')." administrator {$email}. Sign in, then add people on the People page.");
+        $this->info(($user ? 'Updated' : 'Created')." administrator {$email}".($this->option('media-manager') ? ' (also the media manager)' : '').'. Sign in, then add people on the People page.');
 
         return self::SUCCESS;
     }

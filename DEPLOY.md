@@ -52,7 +52,9 @@ Then:
 ```bash
 php artisan migrate --force              # creates the tables
 php artisan db:seed --force              # programs and governorates only (no sample people in production)
-php artisan media:admin                  # the first administrator; asks for the password, never shows it
+php artisan media:admin --email=fares.badawi@hcsyria.org --name="Fares Badawi" --media-manager
+                                         # the main administrator, also the media manager;
+                                         # asks for his Arabic name and a password, never shows it
 php artisan optimize                     # caches config, routes and views
 ```
 
@@ -63,7 +65,12 @@ chown -R www-data:www-data storage bootstrap/cache
 chmod -R ug+rwX storage bootstrap/cache
 ```
 
-Sign in with the administrator, then add people on the **People** page: their role, whether they
+**Fares Badawi** (fares.badawi@hcsyria.org) is the main administrator and the media manager. He signs in,
+then adds people on the **People** page. To try the app quickly, **Add a person to try the app** takes an
+email, a name and one role (Media team with a specialty, Team who asks for work, or Program manager with
+its programs) and makes a password shown once, to pass on.
+
+For real accounts, the full form on the same page sets each person's role, whether they
 are on the Media team (member or manager), their position title (the specialty is read from it:
 "Communication team member / Photographer", "… / Videographer", "… / Designer"), and which
 programs they manage.

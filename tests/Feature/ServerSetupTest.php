@@ -47,4 +47,55 @@ class ServerSetupTest extends TestCase
 
         $this->assertSame(0, User::count());
     }
+
+    public function test_the_main_administrator_can_also_be_the_media_manager(): void
+    {
+        $this->artisan('media:admin', ['--email' => 'fares.badawi@hcsyria.org', '--name' => 'Fares Badawi', '--name-ar' => 'فارس', '--media-manager' => true])
+            ->expectsQuestion('Password (at least 10 characters)', 'a-long-secret')
+            ->expectsQuestion('Password again', 'a-long-secret')
+            ->assertSuccessful();
+
+        $fares = User::where('email', 'fares.badawi@hcsyria.org')->sole();
+        $team = app(\App\Support\MediaRequests\MediaTeam::class);
+        $team->flush();
+        $this->assertSame('super-admin', $fares->role);
+        $this->assertTrue($team->canActAsMediaManager($fares));
+        $this->assertTrue($team->isManager($fares->profile));
+    }
+
+    public function test_an_administrator_adds_people_to_try_the_app(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+        $admin = User::where('email', 'admin@example.test')->sole();
+        $disc = Program::where('slug', 'DISC')->value('id');
+        $team = app(\App\Support\MediaRequests\MediaTeam::class);
+
+        $people = \Livewire\Livewire::actingAs($admin)->test(\App\Livewire\People\Index::class);
+
+        $people->set('quickRole', 'media')->set('quickEmail', 'photo@hcsyria.org')->set('quickName', 'Photo')->set('quickSpecialty', 'Photographer')
+            ->call('quickAdd')->assertHasNoErrors()->assertSet('madeEmail', 'photo@hcsyria.org');
+        $password = $people->get('madePassword');
+        $this->assertSame(12, strlen($password));
+        $photo = User::where('email', 'photo@hcsyria.org')->sole();
+        $this->assertTrue(Hash::check($password, $photo->password));
+        $team->flush();
+        $this->assertTrue($team->isMember($photo->profile));
+        $this->assertSame(['photo'], $team->skillsOf($photo->profile));
+
+        $people->set('quickRole', 'pm')->set('quickEmail', 'pm@hcsyria.org')->set('quickName', 'PM')->set('quickPrograms', [$disc])
+            ->call('quickAdd')->assertHasNoErrors();
+        $team->flush();
+        $this->assertSame([$disc], $team->managedProgramIds(User::where('email', 'pm@hcsyria.org')->sole()->profile));
+
+        $people->set('quickRole', 'staff')->set('quickEmail', 'staff@hcsyria.org')->set('quickName', 'Staff')->call('quickAdd')->assertHasNoErrors();
+        $this->assertTrue($team->isRequesterOnly(User::where('email', 'staff@hcsyria.org')->sole()));
+
+        // A program manager needs programs; an email can be used once.
+        $people->set('quickRole', 'pm')->set('quickEmail', 'pm2@hcsyria.org')->set('quickName', 'PM2')->set('quickPrograms', [])
+            ->call('quickAdd')->assertHasErrors('quickPrograms');
+        $people->set('quickRole', 'staff')->set('quickEmail', 'staff@hcsyria.org')->call('quickAdd')->assertHasErrors('quickEmail');
+
+        // Only someone who manages people can do it.
+        \Livewire\Livewire::actingAs(User::where('email', 'rami@example.test')->sole())->test(\App\Livewire\People\Index::class)->assertForbidden();
+    }
 }

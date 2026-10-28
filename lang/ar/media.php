@@ -1130,4 +1130,13 @@ return [
     'decide.all' => 'عرض الكل',
     'decide.one' => 'واحداً واحداً',
     'decide.pick' => 'اختر قراراً',
+    'people.quick' => 'إضافة شخص للتجربة',
+    'people.quickLead' => 'بريد واسم ودور فقط. تُنشأ كلمة سر تظهر مرة واحدة لتعطيها للشخص، ويمكن تعديل كل شيء لاحقاً من القائمة.',
+    'people.quickName' => 'الاسم',
+    'people.quickGo' => 'أضف وأنشئ كلمة سر',
+    'people.qr.media' => 'فريق الميديا',
+    'people.qr.staff' => 'موظف يطلب',
+    'people.qr.pm' => 'مدير برنامج',
+    'people.made' => 'أُضيف :email. كلمة السر:',
+    'people.madeOnce' => 'تظهر هذه المرة فقط. انسخها وأعطها للشخص.',
 ];

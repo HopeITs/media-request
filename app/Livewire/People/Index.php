@@ -47,6 +47,24 @@ class Index extends Component
 
     public array $programs = [];
 
+    // Quick add, for trying the app: email, name, one of three roles; a password is made and shown once.
+    public string $quickEmail = '';
+
+    public string $quickName = '';
+
+    /** media | staff | pm */
+    public string $quickRole = 'staff';
+
+    /** For the Media team: Designer, Photographer or Videographer (the specialty comes from it). */
+    public string $quickSpecialty = 'Designer';
+
+    public array $quickPrograms = [];
+
+    /** The password just made, shown once. */
+    public ?string $madePassword = null;
+
+    public ?string $madeEmail = null;
+
     public function mount(): void
     {
         $this->authorizeActivePermission('people.manage');
@@ -128,6 +146,57 @@ class Index extends Component
         });
 
         $this->resetForm();
+    }
+
+    /**
+     * Add someone to try the app with, in one step. Media team: a team member with a specialty.
+     * Team: an ordinary staff member who asks for work. Program manager: approves for the chosen programs.
+     */
+    public function quickAdd(): void
+    {
+        $this->authorizeActivePermission('people.manage');
+
+        $data = $this->validate([
+            'quickEmail' => ['required', 'email', 'max:190', Rule::unique('users', 'email')],
+            'quickName' => ['required', 'string', 'max:60'],
+            'quickRole' => ['required', Rule::in(['media', 'staff', 'pm'])],
+            'quickSpecialty' => ['required_if:quickRole,media', Rule::in(['Designer', 'Photographer', 'Videographer'])],
+            'quickPrograms' => ['required_if:quickRole,pm', 'array'],
+            'quickPrograms.*' => ['integer', 'exists:programs,id'],
+        ], [], [
+            'quickEmail' => __('media.login.email'), 'quickName' => __('media.people.firstEn'),
+            'quickPrograms' => __('media.people.manages'),
+        ]);
+
+        $password = \Illuminate\Support\Str::password(12, symbols: false);
+
+        DB::transaction(function () use ($data, $password): void {
+            $employee = Employee::create([
+                'username' => \Illuminate\Support\Str::before($data['quickEmail'], '@'),
+                'first_name_en' => $data['quickName'],
+                'first_name_ar' => $data['quickName'],
+                'media_role' => $data['quickRole'] === 'media' ? 'member' : null,
+                'position_title' => $data['quickRole'] === 'media' ? 'Communication team member / '.$data['quickSpecialty'] : null,
+            ]);
+            if ($data['quickRole'] === 'pm') {
+                $employee->managedPrograms()->sync($data['quickPrograms']);
+            }
+
+            User::create([
+                'email' => $data['quickEmail'], 'name' => $data['quickName'], 'password' => $password,
+                'role' => $data['quickRole'] === 'pm' ? 'manager' : 'employee', 'employee_id' => $employee->id,
+            ]);
+        });
+        app(\App\Support\MediaRequests\MediaTeam::class)->flush();
+
+        $this->madeEmail = $data['quickEmail'];
+        $this->madePassword = $password;
+        $this->reset(['quickEmail', 'quickName', 'quickPrograms']);
+    }
+
+    public function forgetPassword(): void
+    {
+        $this->reset(['madePassword', 'madeEmail']);
     }
 
     public function toggleActive(int $id): void

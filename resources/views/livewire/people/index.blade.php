@@ -11,6 +11,60 @@
         @endunless
     </div>
 
+    {{-- The password just made: shown once, to pass on to the person. --}}
+    @if ($madePassword)
+        <div class="banner soft madepw" role="status">
+            <x-ic n="check" />
+            <span>{{ __('media.people.made', ['email' => $madeEmail]) }}
+                <b class="ltr num pw">{{ $madePassword }}</b>
+                <button type="button" class="btn-q" x-data x-on:click="navigator.clipboard.writeText(@js($madeEmail.' / '.$madePassword)); $el.textContent = @js(__('media.proof.copied'))">{{ __('media.proof.copy') }}</button>
+                <small class="sub">{{ __('media.people.madeOnce') }}</small></span>
+            <button type="button" class="iconbtn" wire:click="forgetPassword" aria-label="{{ __('media.close') }}"><x-ic n="x" /></button>
+        </div>
+    @endif
+
+    {{-- Quick add, for trying the app: an email, a name and one of three roles. --}}
+    @unless ($editing)
+        <form wire:submit="quickAdd" class="card quickadd" x-data="{ role: @entangle('quickRole') }">
+            <h2><x-ic n="plus" />{{ __('media.people.quick') }}</h2>
+            <p class="sub">{{ __('media.people.quickLead') }}</p>
+            <div class="seg" role="radiogroup" aria-label="{{ __('media.people.role') }}">
+                @foreach (['media' => 'people.qr.media', 'staff' => 'people.qr.staff', 'pm' => 'people.qr.pm'] as $k => $label)
+                    <button type="button" role="radio" :aria-checked="role === @js($k)" :class="{ on: role === @js($k) }" x-on:click="role = @js($k)">{{ __('media.'.$label) }}</button>
+                @endforeach
+            </div>
+            <div class="fgrid" style="margin-top:12px">
+                <div class="field">
+                    <label for="q-email">{{ __('media.login.email') }}</label>
+                    <input id="q-email" class="inp" type="email" dir="ltr" wire:model="quickEmail" autocomplete="off" placeholder="name@hcsyria.org">
+                    @error('quickEmail')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
+                </div>
+                <div class="field">
+                    <label for="q-name">{{ __('media.people.quickName') }}</label>
+                    <input id="q-name" class="inp" dir="auto" wire:model="quickName" autocomplete="off">
+                    @error('quickName')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
+                </div>
+                <div class="field" x-show="role === 'media'" x-cloak>
+                    <label for="q-spec">{{ __('media.spec.title') }}</label>
+                    <select id="q-spec" class="inp" wire:model="quickSpecialty">
+                        <option value="Designer">{{ __('media.spec.design') }} (Designer)</option>
+                        <option value="Photographer">{{ __('media.spec.photo') }} (Photographer)</option>
+                        <option value="Videographer">{{ __('media.spec.video') }} + {{ __('media.spec.montage') }} (Videographer)</option>
+                    </select>
+                </div>
+                <fieldset class="field full" x-show="role === 'pm'" x-cloak style="border:0;padding:0;margin:0">
+                    <legend style="font-weight:700;margin-bottom:6px">{{ __('media.people.manages') }}</legend>
+                    <div class="row" style="gap:8px;flex-wrap:wrap">
+                        @foreach ($allPrograms as $p)
+                            <label class="check ltr"><input type="checkbox" value="{{ $p->id }}" wire:model="quickPrograms">{{ $p->code }} {{ $p->slug }}</label>
+                        @endforeach
+                    </div>
+                    @error('quickPrograms')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
+                </fieldset>
+            </div>
+            <button type="submit" class="btn btn-p" style="margin-top:12px"><x-ic n="plus" />{{ __('media.people.quickGo') }}</button>
+        </form>
+    @endunless
     @if ($editing)
         <form wire:submit="save" class="card" style="margin-bottom:20px">
             <h2>{{ $employeeId ? __('media.people.edit') : __('media.people.add') }}</h2>
