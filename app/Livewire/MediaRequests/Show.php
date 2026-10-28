@@ -240,5 +240,10 @@ class Show extends Component
             ->show();
 
         $this->dispatch('notification-created');
+
+        // Delivered: a short celebration for whoever delivered it.
+        if ($this->mediaRequest->status === \App\Enums\MediaRequestStatus::Delivered) {
+            $this->dispatch('media-celebrate', label: __('media.cel.delivered'));
+        }
     }
 }

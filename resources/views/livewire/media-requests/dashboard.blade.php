@@ -49,6 +49,18 @@
         </div>
     </section>
 
+    {{-- Past the needed-by date: a strip with a ringing clock, so it is not missed. --}}
+    @if ($late)
+        @php($oldest = $late['items']->first())
+        <section class="lateband" role="alert" aria-live="polite">
+            <span class="lb-ico"><x-ic n="clock" /></span>
+            <span class="lb-t">
+                <b>{{ trans_choice('media.late.'.$late['scope'], $late['items']->count(), ['n' => $late['items']->count()]) }}</b>
+                <span>{{ $late['items']->take(3)->map(fn ($r) => ($r->title ?: $r->item_code).($late['scope'] === 'team' && $r->assignee ? ' ('.$r->assignee->nameForLocale($locale).')' : ''))->implode($locale === 'ar' ? '، ' : ', ') }}@if ($late['items']->count() > 3) …@endif</span>
+            </span>
+            <button type="button" class="btn btn-p btn-sm" wire:click="openRequest({{ $oldest->id }})"><x-ic n="arrow" class="flip" />{{ __('media.late.open', ['days' => $oldest->needed_by->diffForHumans(null, true)]) }}</button>
+        </section>
+    @endif
     {{--
         Decisions waiting on you, oldest first. One card at a time with arrows and dots, so the oldest
         is in front; "Show all" lays them side by side instead. The choice is kept on this device.

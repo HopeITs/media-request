@@ -143,6 +143,33 @@ class ProcedureTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_late_work_shows_a_strip_to_the_assignee_and_the_media_manager(): void
+    {
+        $r = $this->toWork('001', 'edit', ['editWhat' => ['text']], 'fadi', 'DISC');
+        $r->forceFill(['needed_by' => today()->subWeekdays(2)->toDateString()])->saveQuietly();
+
+        $this->actingAs($this->user('fadi'))->get('/media-requests/home')
+            ->assertSee('lateband', false)->assertSee(trans_choice('media.late.mine', 1, ['n' => 1]));
+        $this->actingAs($this->user('maya'))->get('/media-requests/home')
+            ->assertSee(trans_choice('media.late.team', 1, ['n' => 1]));
+        $this->actingAs($this->user('sami'))->get('/media-requests/home')->assertDontSee('lateband', false);   // not his
+        $this->actingAs($this->user('rami'))->get('/media-requests/home')->assertDontSee('lateband', false);   // the requester
+    }
+
+    public function test_delivering_plays_the_celebration(): void
+    {
+        $r = $this->toWork('002', 'export', ['deliverWhat' => 'select'], 'sami');
+        $this->w->sendResult($this->user('sami'), $r, 'https://drive.google.com/drive/folders/p');
+
+        \Livewire\Livewire::actingAs($this->user('maya'))
+            ->test(\App\Livewire\MediaRequests\Show::class, ['mediaRequest' => $r->fresh()])
+            ->call('approveInternal')
+            ->assertDispatched('media-celebrate');
+
+        // The requester's first look at it plays it once (kept on their device).
+        $this->actingAs($this->user('rami'))->get('/media-requests/home?open='.$r->id)->assertSee('mr-cel-'.$r->id, false);
+    }
+
     private function toWork(string $service, string $type, array $answers, string $who, string $program = 'SZ', ?string $date = null): MediaRequest
     {
         $r = $this->submit($service, $type, $answers, $program, $date);

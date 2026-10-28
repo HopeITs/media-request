@@ -78,6 +78,8 @@ class DemoSeeder extends Seeder
         $w->approveMedia($u['maya'], $r, 'high', null, $fadi);
         $w->start($u['fadi'], $r);
         $w->comment($u['fadi'], $r, 'وصلتني قائمة الأسماء، شكراً. أرسل النسخة الأولى غداً.');
+        // Past its needed-by date, so the late strip shows.
+        $r->forceFill(['needed_by' => today()->subWeekdays(2)->toDateString()])->saveQuietly();
 
         $r = $this->ask('nour', '003', 'export', 'SZ', 'HMS', 'Promo', 9, ['editKind' => 'full', 'duration' => '3m', 'orientation' => 'horizontal']);
         $w->approveMedia($u['maya'], $r, 'normal', null, $sami);

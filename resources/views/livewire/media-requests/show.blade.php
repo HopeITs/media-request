@@ -43,6 +43,11 @@
         </div>
     </header>
 
+    {{-- The requester's first look at their delivered request: the same short celebration, once per request on this device. --}}
+    @if ($isRequester && $r->status === 'delivered')
+        <div hidden x-data x-init="try { if (! localStorage.getItem('mr-cel-{{ $r->id }}')) { localStorage.setItem('mr-cel-{{ $r->id }}', '1'); setTimeout(() => mrCelebrate(@js(__('media.cel.yours'))), 300) } } catch (e) {}"></div>
+    @endif
+
     {{-- For the requester and their program manager: who has it and what they are doing, in one sentence. --}}
     @if ($isRequester || app(\App\Support\MediaRequests\MediaTeam::class)->managesProgram(auth()->user()->profile, $r->program_id))
         <x-media.progress :r="$r" :for-requester="$isRequester" class="progress lg" />

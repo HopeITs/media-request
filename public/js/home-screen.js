@@ -504,3 +504,34 @@ window.mrConfirm = function (message, opts = {}) {
         no.focus();
     });
 };
+
+/*
+ * A short celebration when a request is delivered: a check drawn in a ring, with a
+ * small burst in the brand colours, then it fades (about 1.6 s). Click or Escape skips it.
+ * With "reduce motion" it is a still check that leaves quickly. Fired by the
+ * "media-celebrate" event (from Livewire), or called directly: mrCelebrate(label).
+ */
+window.mrCelebrate = function (label) {
+    if (document.querySelector('.celebrate')) return;
+    const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const el = document.createElement('div');
+    el.className = 'celebrate' + (still ? ' still' : '');
+    el.setAttribute('role', 'status');
+    let bits = '';
+    for (let i = 0; i < 14; i++) {
+        const a = (360 / 14) * i + (i % 2 ? 8 : -8);
+        const d = 70 + (i % 3) * 18;
+        bits += '<i style="--a:' + a + 'deg;--d:' + d + 'px;--t:' + (i % 3) + '"></i>';
+    }
+    el.innerHTML = '<div class="cel-box"><div class="cel-burst">' + bits + '</div>'
+        + '<svg viewBox="0 0 52 52" aria-hidden="true"><circle class="cel-ring" cx="26" cy="26" r="23"/><path class="cel-check" d="M15 27l7 7 15-16"/></svg>'
+        + (label ? '<b class="cel-label"></b>' : '') + '</div>';
+    if (label) el.querySelector('.cel-label').textContent = label;
+    document.body.appendChild(el);
+    const done = () => { el.classList.add('out'); setTimeout(() => el.remove(), 260); window.removeEventListener('keydown', esc); };
+    const esc = (e) => { if (e.key === 'Escape') done(); };
+    el.addEventListener('click', done);
+    window.addEventListener('keydown', esc);
+    setTimeout(done, still ? 900 : 1600);
+};
+window.addEventListener('media-celebrate', (e) => window.mrCelebrate(e.detail && e.detail.label));

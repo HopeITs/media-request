@@ -1144,4 +1144,9 @@ return [
     'ev.dueSoon' => 'Reminder: due tomorrow (:date)',
     'ev.dueToday' => 'Reminder: due today (:date)',
     'ev.overdue' => 'Late: past its needed-by date (:date)',
+    'cel.delivered' => 'Delivered',
+    'cel.yours' => 'Your request is delivered',
+    'late.mine' => '{1} You have a request past its deadline|[2,*] You have :n requests past their deadline',
+    'late.team' => '{1} One request with the team is past its deadline|[2,*] :n requests with the team are past their deadline',
+    'late.open' => 'Open the oldest (:days late)',
 ];

@@ -178,6 +178,7 @@ class Dashboard extends Component
             'mine' => in_array('mine', $keys, true) ? $this->mine($user) : collect(),
             'flow' => in_array('flow', $keys, true) ? app(\App\Support\MediaRequests\RequestFlow::class)->for($user) : null,
             'bell' => in_array('bell', $keys, true) || $this->bellOpen ? $this->notificationGroups($user) : null,
+            'late' => $this->late($user),
             'openRequest' => $this->open ? MediaRequest::find($this->open) : null,
             'dayRequests' => $this->pickedDay ? MediaRequest::query()->visibleTo($user)->whereDate('needed_by', $this->pickedDay)
                 ->whereNotIn('status', [S::Rejected, S::Cancelled])->with(['assignee'])->orderBy('status')->get() : collect(),
@@ -224,6 +225,29 @@ class Dashboard extends Component
             'more' => $groups->count() > $shown->count(),
             'sections' => $shown->groupBy($section)->all(),
         ];
+    }
+
+    /**
+     * Past their needed-by date: for the media manager the whole team's, for a team member their own.
+     * Paused requests (on hold) are left out. Oldest deadline first.
+     *
+     * @return array{scope: string, items: Collection}|null
+     */
+    private function late(User $user): ?array
+    {
+        $team = app(MediaTeam::class);
+        $manager = $team->canActAsMediaManager($user);
+        if (! $manager && ! $team->isMember($user->profile)) {
+            return null;
+        }
+
+        $items = MediaRequest::query()
+            ->whereIn('status', [S::ToClaim, S::Assigned, S::InProgress, S::InternalReview, S::Production, S::Delivery])
+            ->whereNotNull('needed_by')->whereDate('needed_by', '<', today())
+            ->when(! $manager, fn ($q) => $q->where('assignee_id', $user->employee_id))
+            ->with('assignee')->orderBy('needed_by')->limit(50)->get();
+
+        return $items->isEmpty() ? null : ['scope' => $manager ? 'team' : 'mine', 'items' => $items];
     }
 
     /** The person's own requests: open ones first, then the latest finished. */
