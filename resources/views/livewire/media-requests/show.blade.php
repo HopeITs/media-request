@@ -58,6 +58,19 @@
         <div class="banner soft" style="margin-bottom:18px"><x-ic n="alert" /><span>{{ $isRequester ? __('media.quote.mine') : __('media.quote.banner') }}</span></div>
     @endif
 
+    {{-- A shoot: which team covers the place, or that a service agreement does. --}}
+    @if ($team->onSite($r) && $r->city && $r->isOpen())
+        @php($teams = \App\Models\City::whereIn('slug', $team->areaTeams($r))->get()->sortBy(fn ($c) => array_search($c->slug, $team->areaTeams($r)))->map(fn ($c) => $locale === 'ar' ? $c->name_ar : $c->name_en)->implode(' / '))
+        @php($cityName = $locale === 'ar' ? $r->city->name_ar : $r->city->name_en)
+        @if ($team->underAgreement($r))
+            <div class="banner soft" style="margin-bottom:14px"><x-ic n="alert" /><span>{{ __('media.cov.agreement', ['city' => $cityName]) }}</span></div>
+        @elseif ($members->isNotEmpty() && $members->doesntContain(fn ($m) => $team->coversArea($m, $r)))
+            <div class="banner soft" style="margin-bottom:14px"><x-ic n="alert" /><span>{{ __('media.cov.none', ['city' => $cityName, 'teams' => $teams]) }}</span></div>
+        @elseif ($members->isNotEmpty() || $isRequester)
+            <p class="sub" style="margin:-6px 0 14px;display:flex;gap:6px;align-items:center"><x-ic n="camera" />{{ __('media.cov.note', ['city' => $cityName, 'teams' => $teams]) }}</p>
+        @endif
+    @endif
+
     {{-- Tracker: every stage and who holds it now --}}
     @if (in_array($r->status, [S::Rejected, S::Cancelled], true))
         <div class="banner stop" style="margin-bottom:20px"><x-ic n="x" /><div><b>{{ S::label($r->status) }}</b>
@@ -275,7 +288,7 @@
                                 <label for="mr-assignee">{{ __('media.fm.officer') }}</label>
                                 <select id="mr-assignee" class="inp" wire:model="assigneeId">
                                     <option value="">{{ __('media.fm.letClaim') }}</option>
-                                    @foreach ($members as $m)<option value="{{ $m->id }}">{{ $name($m) }}@if ($team->hasSkill($m, $specialty)) · {{ __('media.spec.'.$specialty) }}@endif</option>@endforeach
+                                    @include('livewire.media-requests.partials.assignee-options')
                                 </select>
                                 @error('assigneeId')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
                             </div>
@@ -294,7 +307,7 @@
                             <div style="display:flex;gap:8px">
                                 <select id="mr-assign" class="inp" wire:model="assigneeId">
                                     <option value="">{{ __('media.o.select') }}</option>
-                                    @foreach ($members as $m)<option value="{{ $m->id }}">{{ $name($m) }}@if ($team->hasSkill($m, $specialty)) · {{ __('media.spec.'.$specialty) }}@endif</option>@endforeach
+                                    @include('livewire.media-requests.partials.assignee-options')
                                 </select>
                                 <button type="submit" class="btn btn-o">{{ __('media.act.assign') }}</button>
                             </div>

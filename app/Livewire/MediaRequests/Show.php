@@ -224,8 +224,8 @@ class Show extends Component
             'catalog' => $catalog,
             'summary' => $catalog->summary($r->service, $r->type, $r->answers ?? []),
             'history' => $r->activities()->with('causer.profile')->limit(200)->get(),
-            // The request's specialists first, marked, then the rest of the team.
-            'members' => $can('assign') || $can('approveMedia') ? $team->membersFor($r->specialty()) : collect(),
+            // The request's specialists first, marked, then the rest of the team; for a shoot, the team of the place first.
+            'members' => $can('assign') || $can('approveMedia') ? $team->membersFor($r->specialty(), $r) : collect(),
             'specialty' => $r->specialty(),
             'team' => $team,
             'packFiles' => $r->isPack() ? $pack->find($r->pack_files ?? []) : collect(),

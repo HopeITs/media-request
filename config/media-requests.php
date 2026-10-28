@@ -132,6 +132,29 @@ return [
             'title' => 'videographer|video\s*editor|editor|montage|مونتاج|مونتير|محرر\s*فيديو|مصور\s*فيديو'],
     ],
 
+    /*
+    | Which team covers which governorate. Design and video editing are done by
+    | the whole Syria team for everyone; a photo or video shoot is done by the
+    | team of the place (a team member's governorate), unless the media manager
+    | sends someone from another place as an exception.
+    |
+    | "on_site":   the request types that need someone on the spot.
+    | "served_by": governorates covered by another place's team, nearest first.
+    |              Not listed: the governorate's own team.
+    | "agreement": governorates covered through a service agreement.
+    */
+    'coverage' => [
+        'on_site' => ['002' => ['shoot'], '003' => ['shoot']],
+        'served_by' => [
+            'TAR' => ['LAT'],                 // Tartus: the Latakia team
+            'HAM' => ['HMS', 'HAM'],          // Hama: mostly the Homs team
+            'IDL' => ['ALP'],                 // Idlib: the Aleppo team
+            'DMS' => ['DMS', 'HMS', 'LAT'],   // Damascus: its own team, sometimes Homs or Latakia
+            'RID' => ['DMS', 'HMS', 'LAT'],   // Damascus Countryside: as Damascus
+        ],
+        'agreement' => ['RQA', 'DZR', 'HSK'], // Al-Jazira
+    ],
+
     'priorities' => ['high', 'normal', 'low'],
 
     'delivery_channels' => ['telegram', 'email', 'folder', 'hand'],

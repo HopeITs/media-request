@@ -70,7 +70,8 @@ class MediaRequestPolicy
 
     public function claim(User $user, MediaRequest $r): bool
     {
-        return $r->status === S::ToClaim && $this->team->isMember($user->profile);
+        // A shoot is taken by the team of the place; someone else goes only when the media manager sends them.
+        return $r->status === S::ToClaim && $this->team->isMember($user->profile) && $this->team->coversArea($user->profile, $r);
     }
 
     public function start(User $user, MediaRequest $r): bool

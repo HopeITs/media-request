@@ -37,6 +37,9 @@ class DemoSeeder extends Seeder
         }
         $this->u['nour'] = $this->person('nour', 'Nour', 'نور', 'HMS');
         $this->u['omar'] = $this->person('omar', 'Omar', 'عمر', 'DMS');
+        // A photographer in Latakia: shoots in Latakia and Tartus are theirs.
+        $this->u['hadi'] = $this->person('hadi', 'Hadi', 'هادي', 'LAT');
+        $this->u['hadi']->profile->update(['media_role' => 'member', 'position_title' => 'Communication team member / Photographer']);
         app(MediaTeam::class)->flush();
 
         $this->requests();
@@ -64,6 +67,8 @@ class DemoSeeder extends Seeder
         // Approved, nobody has taken them yet.
         $r = $this->ask('omar', '001', 'new', 'LEAP', 'DMS', 'Open day', 8, ['format' => 'poster', 'versions' => ['print', 'story'], 'posterSize' => 'A2', 'langs' => ['ar'],
             'alsoPrint' => 'yes', 'printQty' => 30, 'printColor' => 'color', 'budget' => 'known', 'budgetAmount' => '150 USD']);
+        $w->approveMedia($u['maya'], $r, 'normal');
+        $r = $this->ask('omar', '002', 'shoot', 'LEAP', 'TAR', 'Beach clean-up', 10, ['coverage' => 'event', 'eventDate' => $this->day(7), 'place' => 'Tartus beach', 'children' => 'no', 'usage' => ['social']]);
         $w->approveMedia($u['maya'], $r, 'normal');
         $r = $this->ask('nour', '003', 'export', 'SZ', 'HMS', 'Testimonials', 12, ['editKind' => 'highlights', 'duration' => '60s', 'orientation' => 'vertical']);
         $w->approveMedia($u['maya'], $r, 'normal');

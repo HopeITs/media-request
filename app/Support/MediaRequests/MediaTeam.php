@@ -3,6 +3,7 @@
 namespace App\Support\MediaRequests;
 
 use App\Models\Employee;
+use App\Models\MediaRequest;
 use App\Models\Program;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -97,12 +98,56 @@ class MediaTeam
 
     /**
      * Team members for a request's field: its specialists first, then everyone else.
+     * For a shoot, the team of the place comes first (see coverage).
      *
      * @return Collection<int, Employee>
      */
-    public function membersFor(?string $specialty): Collection
+    public function membersFor(?string $specialty, ?MediaRequest $r = null): Collection
     {
-        return $this->members()->sortBy(fn (Employee $e) => $this->hasSkill($e, $specialty) ? 0 : 1)->values();
+        $area = $r !== null && $this->onSite($r) ? $this->areaTeams($r) : null;
+
+        return $this->members()->sortBy(fn (Employee $e) => [
+            $area === null ? 0 : $this->areaRank($e, $area),
+            $this->hasSkill($e, $specialty) ? 0 : 1,
+        ])->values();
+    }
+
+    /** A photo or video shoot: someone has to be there, so the team of the place does it. */
+    public function onSite(MediaRequest $r): bool
+    {
+        return in_array($r->type, config('media-requests.coverage.on_site.'.$r->service, []), true);
+    }
+
+    /**
+     * The governorates whose team covers the request's place, nearest first.
+     *
+     * @return array<int, string>
+     */
+    public function areaTeams(MediaRequest $r): array
+    {
+        $slug = $r->city?->slug;
+
+        return $slug === null ? [] : config('media-requests.coverage.served_by.'.$slug, [$slug]);
+    }
+
+    /** Covered through a service agreement (Al-Jazira), not by our own team. */
+    public function underAgreement(MediaRequest $r): bool
+    {
+        return $this->onSite($r) && in_array($r->city?->slug, config('media-requests.coverage.agreement', []), true);
+    }
+
+    /** Whether the member's own team covers the request; anyone does for work that is not a shoot. */
+    public function coversArea(?Employee $employee, MediaRequest $r): bool
+    {
+        return ! $this->onSite($r) || ($employee !== null && $this->areaRank($employee, $this->areaTeams($r)) < 99);
+    }
+
+    /** @param  array<int, string>  $area */
+    private function areaRank(Employee $e, array $area): int
+    {
+        $i = array_search($e->city?->slug, $area, true);
+
+        return $i === false ? 99 : $i;
     }
 
     public function isMember(?Employee $employee): bool
@@ -152,7 +197,7 @@ class MediaTeam
     public function members(): Collection
     {
         return $this->memo['members'] ??= Employee::query()
-            ->where('is_active', true)->whereIn('media_role', ['member', 'manager'])->with('account')->orderBy('first_name_en')->get();
+            ->where('is_active', true)->whereIn('media_role', ['member', 'manager'])->with(['account', 'city'])->orderBy('first_name_en')->get();
     }
 
     /** @return Collection<int, User> */
