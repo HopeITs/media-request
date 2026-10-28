@@ -40,6 +40,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/', MediaRequests\Index::class)->middleware('active_permission:media-requests.view-own')->name('index');
             Route::get('/approvals', MediaRequests\Approvals::class)->middleware('active_permission:media-requests.approve')->name('approvals');
             Route::get('/board', MediaRequests\Board::class)->middleware('active_permission:media-requests.work')->name('board');
+            Route::get('/stats', MediaRequests\Stats::class)->middleware('active_permission:media-requests.work')->name('stats');
             Route::get('/hc-pack', MediaRequests\Pack::class)->middleware('active_permission:media-requests.create')->name('pack');
             Route::get('/log', MediaRequests\Log::class)->middleware('active_permission:media-requests.view-log')->name('log');
             Route::get('/assistant', MediaRequests\AssistantLog::class)->middleware('active_permission:media-requests.view-log')->name('assistant');

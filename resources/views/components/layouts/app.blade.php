@@ -12,6 +12,7 @@
         ['media-requests.index', 'nav.my', 'inbox', $user->hasActivePermission('media-requests.view-own'), ['media-requests.index', 'media-requests.show']],
         ['media-requests.approvals', 'nav.approvals', 'shield', $managesPrograms && $user->hasActivePermission('media-requests.approve'), ['media-requests.approvals']],
         ['media-requests.board', 'nav.board', 'board', $isMediaTeam && $user->hasActivePermission('media-requests.work'), ['media-requests.board']],
+        ['media-requests.stats', 'nav.stats', 'chart', $isMediaTeam && $user->hasActivePermission('media-requests.work'), ['media-requests.stats']],
         ['media-requests.pack', 'nav.pack', 'box', $user->hasActivePermission('media-requests.create'), ['media-requests.pack']],
         ['media-requests.log', 'nav.log', 'list', $isMediaTeam && $user->hasActivePermission('media-requests.view-log'), ['media-requests.log']],
         ['media-requests.assistant', 'nav.assistant', 'spark', $isMediaTeam && $user->hasActivePermission('media-requests.view-log'), ['media-requests.assistant']],

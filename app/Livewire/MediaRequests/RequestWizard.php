@@ -84,9 +84,14 @@ class RequestWizard extends Component
     public ?int $assistantLogId = null;
 
     #[On('media-wizard-open')]
-    public function open(?int $id = null, ?string $prompt = null): void
+    public function open(?int $id = null, ?string $prompt = null, ?string $date = null): void
     {
         $this->resetForm();
+
+        // Opened from a calendar day: that day is the needed-by date.
+        if ($id === null && $date && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) && $date >= today()->toDateString()) {
+            $this->needed_by = $date;
+        }
 
         // Opened from the "describe what you need" bar: read it straight away.
         if ($id === null && $prompt !== null && trim($prompt) !== '') {

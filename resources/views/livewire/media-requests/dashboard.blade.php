@@ -225,7 +225,8 @@
                                             @foreach ($days as $d)<div class="cwd" role="columnheader">{{ $d }}</div>@endforeach
                                             @foreach ($calendar['weeks'] as $week)
                                                 @foreach ($week as $day)
-                                                    <div @class(['cd', 'out' => ! $day['in'], 'today' => $day['today'], 'has' => $day['items']->isNotEmpty()]) role="gridcell">
+                                                    <div @class(['cd', 'out' => ! $day['in'], 'today' => $day['today'], 'has' => $day['items']->isNotEmpty()]) role="gridcell"
+                                                         x-on:dblclick="if (! editing) $wire.pickDay('{{ $day['date']->toDateString() }}')" title="{{ __('media.cal.dblclick') }}">
                                                         <span class="cn num">{{ $day['date']->day }}</span>
                                                         @foreach ($day['items']->take(2) as $r)
                                                             <a {{ $go($r) }} @class(['cc', 'mine' => Gate::allows('isOwner', $r), 'done' => ! $r->isOpen()]) title="{{ $r->displayName() }}"><span class="ltr">{{ $r->title ?: $r->item_code }}</span></a>
@@ -328,6 +329,41 @@
 
     </div>
 
+    {{-- A calendar day, from a double click: a new request for it, and the requests of that day the person may see. --}}
+    @if ($pickedDay)
+        @php($picked = \Illuminate\Support\Carbon::parse($pickedDay))
+        @php($canAsk = $user->hasActivePermission('media-requests.create') && $picked->gte(today()) && app(\App\Support\MediaRequests\WorkCalendar::class)->isWorkDay($picked))
+        <div class="sheet-back reqpanel-back" wire:click.self="closeDay" x-data x-on:keydown.escape.window="$wire.closeDay()">
+            <div class="reqpanel bellpanel" role="dialog" aria-modal="true" aria-labelledby="day-t">
+                <div class="bellhead">
+                    <h2 id="day-t"><x-ic n="cal" />{{ $picked->translatedFormat('l') }} <span class="num">{{ $picked->format('d-m-Y') }}</span></h2>
+                    <button type="button" class="iconbtn" wire:click="closeDay" aria-label="{{ __('media.close') }}"><x-ic n="x" /></button>
+                </div>
+
+                @if ($canAsk)
+                    <button type="button" class="btn btn-p" style="width:100%" x-on:click="$wire.closeDay(); $dispatch('media-wizard-open', { date: @js($pickedDay) })"><x-ic n="plus" />{{ __('media.cal.newOnDay') }}</button>
+                @elseif (! app(\App\Support\MediaRequests\WorkCalendar::class)->isWorkDay($picked))
+                    <p class="hint workhint warn"><x-ic n="alert" />{{ __('media.err.weekend') }}</p>
+                @elseif ($picked->lt(today()))
+                    <p class="hint">{{ __('media.cal.past') }}</p>
+                @endif
+
+                <h3 class="bellsec">{{ trans_choice('media.cal.onDay', $dayRequests->count(), ['n' => $dayRequests->count()]) }}</h3>
+                @if ($dayRequests->isEmpty())
+                    <p class="sub">{{ __('media.cal.noneOnDay') }}</p>
+                @else
+                    <ul class="wlist">
+                        @foreach ($dayRequests as $r)
+                            <li><a href="#" wire:click.prevent="openRequest({{ $r->id }}); closeDay()">
+                                <x-media.name :r="$r" class="nm" />
+                                <span class="meta" style="font-size:13px"><x-media.status :r="$r" />@if ($r->assignee)<span><x-ic n="user" />{{ $r->assignee->nameForLocale($locale) }}</span>@endif</span>
+                            </a></li>
+                        @endforeach
+                    </ul>
+                @endif
+            </div>
+        </div>
+    @endif
     {{-- Notifications, from the bell in the top bar: read and opened here, without leaving the home screen. --}}
     @if ($bellOpen)
         <div class="sheet-back reqpanel-back" wire:click.self="toggleBell" x-data x-on:keydown.escape.window="$wire.toggleBell()">

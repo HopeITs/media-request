@@ -46,6 +46,7 @@ class DashboardLayout
         'app.generator' => ['wand', null, true],
         'app.board' => ['board', 'media-requests.board', true],
         'app.approvals' => ['shield', 'media-requests.approvals', true],
+        'app.stats' => ['chart', 'media-requests.stats', false],
         'app.log' => ['list', 'media-requests.log', false],
         'app.assistant' => ['spark', 'media-requests.assistant', false],
         'app.bell' => ['bell', 'notifications.index', false],
@@ -61,7 +62,7 @@ class DashboardLayout
      * waiting; then calendar beside notes and team. Cards grow into any cells left empty.
      */
     private const ORDER = [
-        'ask', 'app.new', 'app.my', 'app.pack', 'app.generator', 'app.board', 'app.approvals', 'app.log', 'app.assistant',
+        'ask', 'app.new', 'app.my', 'app.pack', 'app.generator', 'app.board', 'app.approvals', 'app.stats', 'app.log', 'app.assistant',
         'app.bell', 'app.people', 'clock', 'pack', 'proof', 'mine', 'bell', 'waiting', 'calendar', 'notes', 'team',
     ];
 
@@ -86,7 +87,7 @@ class DashboardLayout
         return match ($key) {
             'ask', 'pack', 'app.new', 'app.pack', 'app.generator' => $user->hasActivePermission('media-requests.create'),
             'team' => $isTeam,   // the media manager and the team see who is working on what
-            'app.board' => $isTeam && $user->hasActivePermission('media-requests.work'),
+            'app.board', 'app.stats' => $isTeam && $user->hasActivePermission('media-requests.work'),
             'app.approvals' => $managesPrograms && $user->hasActivePermission('media-requests.approve'),
             'app.log', 'app.assistant' => $isTeam && $user->hasActivePermission('media-requests.view-log'),
             'app.people' => $user->hasActivePermission('people.manage'),

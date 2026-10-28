@@ -41,6 +41,7 @@ class DemoSeeder extends Seeder
 
         $this->requests();
         $this->proofreads();
+        $this->call(DemoHistorySeeder::class);   // past deliveries, for the statistics
     }
 
     private function requests(): void

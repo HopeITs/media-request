@@ -42,6 +42,9 @@ class Dashboard extends Component
     /** Notifications shown: "unread" or "all" (empty: unread when there are any). */
     public string $bellFilter = '';
 
+    /** A calendar day picked with a double click (Y-m-d): new request for it, or its requests. */
+    public ?string $pickedDay = null;
+
     /** How many request groups the notifications list shows; "show more" adds to it. */
     public int $bellShown = 8;
 
@@ -124,6 +127,16 @@ class Dashboard extends Component
         $this->openRequest($requestId);
     }
 
+    public function pickDay(string $date): void
+    {
+        $this->pickedDay = preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) && strtotime($date) ? $date : null;
+    }
+
+    public function closeDay(): void
+    {
+        $this->pickedDay = null;
+    }
+
     public function bellShow(string $filter): void
     {
         $this->bellFilter = in_array($filter, ['unread', 'all'], true) ? $filter : '';
@@ -162,6 +175,8 @@ class Dashboard extends Component
             'mine' => in_array('mine', $keys, true) ? $this->mine($user) : collect(),
             'bell' => in_array('bell', $keys, true) || $this->bellOpen ? $this->notificationGroups($user) : null,
             'openRequest' => $this->open ? MediaRequest::find($this->open) : null,
+            'dayRequests' => $this->pickedDay ? MediaRequest::query()->visibleTo($user)->whereDate('needed_by', $this->pickedDay)
+                ->whereNotIn('status', [S::Rejected, S::Cancelled])->with(['assignee'])->orderBy('status')->get() : collect(),
         ]);
     }
 

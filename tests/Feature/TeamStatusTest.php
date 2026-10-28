@@ -95,8 +95,38 @@ class TeamStatusTest extends TestCase
         $this->assertSame(0, $rami->unreadNotifications()->count());
     }
 
+    public function test_a_calendar_day_offers_a_new_request_and_shows_its_requests(): void
+    {
+        $day = $this->request->needed_by->toDateString();
+
+        // Rami sees his own request on that day, and can ask for something new on it.
+        \Livewire\Livewire::actingAs($this->user('rami'))->test(\App\Livewire\MediaRequests\Dashboard::class)
+            ->call('pickDay', $day)
+            ->assertSee(__('media.cal.newOnDay'))
+            ->assertSee('Flyer');
+
+        // Nour cannot see Rami's request.
+        \Livewire\Livewire::actingAs($this->user('nour'))->test(\App\Livewire\MediaRequests\Dashboard::class)
+            ->call('pickDay', $day)
+            ->assertDontSee('Flyer');
+
+        // The form opened from the day has that day as the needed-by date.
+        \Livewire\Livewire::actingAs($this->user('rami'))->test(\App\Livewire\MediaRequests\RequestWizard::class)
+            ->call('open', null, null, $day)
+            ->assertSet('needed_by', $day);
+    }
+
     private function user(string $key): User
     {
-        return User::where('email', $key.'@example.test')->firstOrFail();
+        return User::where('email', $key.'@example.test')->first()
+            ?? ($key === 'nour' ? $this->outsider() : throw new \RuntimeException($key));
+    }
+
+    /** A requester with nothing to do with Rami's request. */
+    private function outsider(): User
+    {
+        $e = Employee::create(['username' => 'nour', 'first_name_en' => 'Nour', 'first_name_ar' => 'نور', 'city_id' => City::where('slug', 'HMS')->value('id')]);
+
+        return User::create(['email' => 'nour@example.test', 'name' => 'Nour', 'password' => 'password', 'role' => 'employee', 'employee_id' => $e->id]);
     }
 }
