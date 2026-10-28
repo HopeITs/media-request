@@ -190,10 +190,8 @@
                                     @break
 
                                 @case('flow')
-                                    {{-- Where every request is: the total, then the stages in order (the strip says the rest); a stage opens its list. --}}
-                                    {{-- One-line php only here: a multi-line php block after the one-line ones in this file breaks Blade's compiler. --}}
-                                    @php($firstOpen = collect($flow['stages'])->except(['done', 'stopped'])->filter(fn ($items) => $items->isNotEmpty())->keys()->first())
-                                    <div class="flow" x-data="{ stage: @js($firstOpen) }">
+                                    {{-- Where every request is: the total, then the stages in order; a stage opens its requests in a window. --}}
+                                    <div class="flow" x-data="{ stage: null }" x-on:keydown.escape.window="stage = null">
                                         <p class="flowsum">
                                             @if ($flow['total'] === 0){{ __('media.flow.empty.'.$flow['scope']) }}
                                             @else<b>{{ rtrim(trans_choice('media.flow.total.'.$flow['scope'], $flow['total'], ['n' => $flow['total']]), ':') }}</b>@endif
@@ -205,7 +203,7 @@
                                                 @continue($stage === 'stopped' && $items->isEmpty())
                                                 <li @class(['empty' => $items->isEmpty(), 'end' => in_array($stage, ['done', 'stopped'], true)])>
                                                     <button type="button" role="tab" class="fnode" @disabled($items->isEmpty())
-                                                            x-on:click="stage = stage === @js($stage) ? null : @js($stage)" :aria-selected="stage === @js($stage)" :class="{ on: stage === @js($stage) }">
+                                                            x-on:click="stage = @js($stage)" :aria-selected="stage === @js($stage)" :class="{ on: stage === @js($stage) }" aria-haspopup="dialog">
                                                         <span class="fi"><x-ic :n="\App\Support\MediaRequests\RequestFlow::ICONS[$stage]" /></span>
                                                         <b class="num">{{ $items->count() }}</b>
                                                         <span class="fl">{{ __('media.flow.stage.'.$stage) }}</span>
@@ -214,10 +212,18 @@
                                             @endforeach
                                         </ol>
 
+                                        {{-- The stage's requests: a window over the page (moved to <body>, out of the card). --}}
+                                        <template x-teleport="body">
+                                        <div class="daypop-back" x-show="stage" x-cloak x-on:click.self="stage = null">
                                         @foreach ($flow['stages'] as $stage => $items)
                                             @continue($items->isEmpty())
-                                            <ul class="wlist flowlist" x-show="stage === @js($stage)" x-cloak>
-                                                @foreach ($items->take(12) as $r)
+                                            <div class="daypop flowpop" role="dialog" aria-modal="true" aria-labelledby="flow-t-{{ $stage }}" x-show="stage === @js($stage)" x-cloak>
+                                                <div class="bellhead">
+                                                    <h2 id="flow-t-{{ $stage }}"><x-ic :n="\App\Support\MediaRequests\RequestFlow::ICONS[$stage]" />{{ __('media.flow.stage.'.$stage) }} <span class="num sub">{{ $items->count() }}</span></h2>
+                                                    <button type="button" class="iconbtn" x-on:click="stage = null" aria-label="{{ __('media.close') }}"><x-ic n="x" /></button>
+                                                </div>
+                                            <ul class="wlist flowlist">
+                                                @foreach ($items->take(30) as $r)
                                                     <li><a {{ $go($r) }}>
                                                         <x-media.name :r="$r" class="nm" />
                                                         <span class="meta" style="font-size:13px">
@@ -228,9 +234,12 @@
                                                         </span>
                                                     </a></li>
                                                 @endforeach
-                                                @if ($items->count() > 12)<li class="sub" style="padding:6px 8px">{{ trans_choice('media.crew.more', $items->count() - 12, ['n' => $items->count() - 12]) }}</li>@endif
+                                                @if ($items->count() > 30)<li class="sub" style="padding:6px 8px">{{ trans_choice('media.crew.more', $items->count() - 30, ['n' => $items->count() - 30]) }}</li>@endif
                                             </ul>
+                                            </div>
                                         @endforeach
+                                        </div>
+                                        </template>
                                     </div>
                                     @break
                                 @case('clock')

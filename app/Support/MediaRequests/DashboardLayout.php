@@ -26,7 +26,7 @@ class DashboardLayout
     /** Widgets: key => [icon, min [cols, rows], max [cols, rows], default [cols, rows], shown by default] */
     private const WIDGETS = [
         'ask' => ['spark', [3, 1], [12, 3], [3, 1], true],
-        'flow' => ['layers', [4, 3], [12, 8], [8, 4], true],   // where every request is, stage by stage
+        'flow' => ['layers', [4, 2], [12, 6], [8, 2], true],   // where every request is, stage by stage
         'clock' => ['clock', [2, 1], [12, 6], [2, 2], true],
         'waiting' => ['arrow', [2, 2], [12, 8], [4, 6], true],
         'calendar' => ['cal', [3, 3], [12, 8], [4, 4], true],

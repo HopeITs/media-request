@@ -933,3 +933,8 @@ img[src*="hope-center.svg"]{filter:var(--logo)}
 .daypop .sub{margin:0}
 @keyframes popin{from{transform:scale(.97);opacity:.6}to{transform:none;opacity:1}}
 @media (prefers-reduced-motion:reduce){.daypop{animation:none}}
+/* Request flow: the card is the strip; a stage's requests open in a window */
+.flowpop{width:min(560px,100%);max-height:min(76vh,680px)}
+.flowpop .flowlist{flex:1;min-height:0;overflow-y:auto;border-top:1px solid var(--line-soft);padding-top:8px;margin:0 -6px;padding-inline:6px}
+.flowpop .bellhead h2 .sub{font-weight:600;margin-inline-start:4px}
+.flow .flowlist{display:none}
