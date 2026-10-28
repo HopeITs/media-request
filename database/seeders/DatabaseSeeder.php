@@ -69,7 +69,7 @@ class DatabaseSeeder extends Seeder
             'lina' => ['Lina', 'لينا', 'manager', null, ['DISC', 'MP'], null],
             'maya' => ['Maya', 'مايا', 'manager', 'manager', [], 'Communication manager / Designer / Photographer'],
             'fadi' => ['Fadi', 'فادي', 'employee', 'member', [], 'Communication team member / Designer'],
-            'sami' => ['Sami', 'سامي', 'employee', 'member', [], 'Communication team member / Videographer'],
+            'sami' => ['Sami', 'سامي', 'employee', 'member', [], 'Communication team member / Videographer / Editor'],
         ] as $key => [$en, $ar, $role, $mediaRole, $programs, $title]) {
             $employee = Employee::firstOrCreate(['username' => $key], [
                 'first_name_en' => $en, 'first_name_ar' => $ar, 'city_id' => $alp, 'media_role' => $mediaRole, 'position_title' => $title,

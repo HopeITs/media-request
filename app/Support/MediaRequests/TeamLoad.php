@@ -49,7 +49,9 @@ class TeamLoad
 
         $units = $open->sum(fn (MediaRequest $r) => $this->effort($r->service, $r->type, $r->answers ?? []));
         $members = $this->team->members();
-        $people = max(1, $members->filter(fn ($e) => $this->team->hasSkill($e, $specialty))->count() ?: $members->count());
+        $specialists = $members->filter(fn ($e) => $this->team->hasSkill($e, $specialty));
+        // A part-timer counts as part of a person (four hours = half).
+        $people = max(1, (int) round(($specialists->isNotEmpty() ? $specialists : $members)->sum(fn ($e) => $e->dayShare())));
 
         $capacity = (float) config('media-requests.work.capacity', 2);
         $over = $units - $capacity * $people;

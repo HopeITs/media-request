@@ -77,23 +77,75 @@ class MediaTeam
 
     /**
      * Specialties named in a position title: "Communication team member / Photographer"
-     * gives photo; a Videographer films and edits, so gives video and montage.
+     * gives photo. Parts marked "(on need)" are left out: see extraSkillsFromTitle.
      *
      * @return array<int, string>
      */
     public function skillsFromTitle(string $title): array
     {
-        $title = trim($title);
+        return $this->match('specialties', $this->titleParts($title, false));
+    }
 
-        return $title === '' ? [] : array_keys(array_filter(
-            config('media-requests.specialties', []),
-            fn (array $s): bool => isset($s['title']) && preg_match('/'.$s['title'].'/iu', $title) === 1,
-        ));
+    /**
+     * Specialties this person does when needed: "Photographer (on need)".
+     *
+     * @return array<int, string>
+     */
+    public function extraSkillsOf(?Employee $employee): array
+    {
+        $title = (string) $employee?->position_title;
+
+        return array_values(array_diff($this->match('specialties', $this->titleParts($title, true)), $this->skillsFromTitle($title)));
+    }
+
+    /**
+     * What else they do (interviews, print, laser cut, animation, …), from config media-requests.extras.
+     *
+     * @return array<int, string>
+     */
+    public function extrasOf(?Employee $employee): array
+    {
+        $title = (string) $employee?->position_title;
+
+        return $this->match('extras', array_merge($this->titleParts($title, false), $this->titleParts($title, true)));
     }
 
     public function hasSkill(?Employee $employee, ?string $specialty): bool
     {
         return $specialty !== null && in_array($specialty, $this->skillsOf($employee), true);
+    }
+
+    /** 0 their field, 1 they do it on need, 2 not theirs. */
+    public function skillRank(?Employee $employee, ?string $specialty): int
+    {
+        return $this->hasSkill($employee, $specialty) ? 0 : ($specialty !== null && in_array($specialty, $this->extraSkillsOf($employee), true) ? 1 : 2);
+    }
+
+    /**
+     * The parts of a title, either the main ones or the "(on need)" ones.
+     *
+     * @return array<int, string>
+     */
+    private function titleParts(string $title, bool $onNeed): array
+    {
+        $parts = preg_split('/\s*[\/,،|]\s*/u', trim($title), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $need = '/\(?\s*(on\s*need|when\s*needed|if\s*needed|عند\s*الحاجة)\s*\)?/iu';
+
+        return array_values(array_filter($parts, fn (string $p): bool => (preg_match($need, $p) === 1) === $onNeed));
+    }
+
+    /**
+     * @param  array<int, string>  $parts
+     * @return array<int, string>
+     */
+    private function match(string $list, array $parts): array
+    {
+        $text = implode(' / ', $parts);
+
+        return $text === '' ? [] : array_keys(array_filter(
+            config('media-requests.'.$list, []),
+            fn (array $s): bool => isset($s['title']) && preg_match('/'.$s['title'].'/iu', $text) === 1,
+        ));
     }
 
     /**
@@ -108,7 +160,7 @@ class MediaTeam
 
         return $this->members()->sortBy(fn (Employee $e) => [
             $area === null ? 0 : $this->areaRank($e, $area),
-            $this->hasSkill($e, $specialty) ? 0 : 1,
+            $this->skillRank($e, $specialty),
         ])->values();
     }
 

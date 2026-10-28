@@ -49,7 +49,9 @@
                     <select id="q-spec" class="inp" wire:model="quickSpecialty">
                         <option value="Designer">{{ __('media.spec.design') }} (Designer)</option>
                         <option value="Photographer">{{ __('media.spec.photo') }} (Photographer)</option>
-                        <option value="Videographer">{{ __('media.spec.video') }} + {{ __('media.spec.montage') }} (Videographer)</option>
+                        <option value="Videographer">{{ __('media.spec.video') }} (Videographer)</option>
+                        <option value="Videographer / Editor">{{ __('media.spec.video') }} + {{ __('media.spec.montage') }} (Videographer / Editor)</option>
+                        <option value="Video Editor">{{ __('media.spec.montage') }} (Video Editor)</option>
                     </select>
                 </div>
                 <fieldset class="field full" x-show="role === 'pm'" x-cloak style="border:0;padding:0;margin:0">
@@ -102,15 +104,20 @@
                 </div>
                 <div class="field full">
                     <label for="p-title">{{ __('media.people.position') }}</label>
-                    <input id="p-title" class="inp" type="text" maxlength="120" wire:model.live.debounce.400ms="position_title" lang="en" dir="auto" placeholder="Communication team member / Photographer">
+                    <input id="p-title" class="inp" type="text" maxlength="255" wire:model.live.debounce.400ms="position_title" lang="en" dir="auto" placeholder="Videographer / Editor / Photographer (on need)">
                     <p class="hint">{{ __('media.spec.hint') }}</p>
-                    @php($found = app(\App\Support\MediaRequests\MediaTeam::class)->skillsFromTitle($position_title))
-                    @if ($media_role && $found)
+                    @if ($media_role && trim($position_title) !== '')
                         <div class="row" style="gap:6px;margin-top:6px">
                             <span class="sub">{{ __('media.spec.title') }}:</span>
-                            @foreach ($found as $s)<span class="chip"><x-ic :n="config('media-requests.specialties.'.$s.'.icon')" />{{ __('media.spec.'.$s) }}</span>@endforeach
+                            <x-media.skills :title="$position_title" />
                         </div>
                     @endif
+                </div>
+                <div class="field">
+                    <label for="p-hours">{{ __('media.people.hours') }}</label>
+                    <input id="p-hours" class="inp ltr" type="text" maxlength="11" wire:model="work_hours" placeholder="10:00-14:00">
+                    <p class="hint">{{ __('media.people.hoursHint') }}</p>
+                    @error('work_hours')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
                 </div>
                 <div class="field">
                     <label for="p-city">{{ __('media.f.city') }}</label>
@@ -152,7 +159,11 @@
                         <td data-l="{{ __('media.people.name') }}"><b>{{ $e->nameForLocale($locale) }}</b><br><small class="sub ltr">{{ $e->account?->email }}</small></td>
                         <td data-l="{{ __('media.people.role') }}">{{ $e->account ? __('media.people.roles.'.$e->account->role) : '—' }}</td>
                         <td data-l="{{ __('media.people.mediaRole') }}">
-                            @if ($e->media_role)<span class="chip {{ $e->media_role === 'manager' ? 'work' : '' }}">{{ $e->media_role === 'manager' ? __('media.owner.media_manager') : __('media.people.member') }}</span>@foreach (app(\App\Support\MediaRequests\MediaTeam::class)->skillsOf($e) as $s)<span class="chip"><x-ic :n="config('media-requests.specialties.'.$s.'.icon')" />{{ __('media.spec.'.$s) }}</span>@endforeach @else — @endif
+                            @if ($e->media_role)
+                                <span class="chip {{ $e->media_role === 'manager' ? 'work' : '' }}">{{ $e->media_role === 'manager' ? __('media.owner.media_manager') : __('media.people.member') }}</span>
+                                <x-media.skills :e="$e" />
+                                <small class="sub" style="display:block;margin-top:4px">{{ $e->city ? ($locale === 'ar' ? $e->city->name_ar : $e->city->name_en) : '' }}@if ($e->work_hours) · {{ __('media.people.partTime') }} <span class="num ltr">{{ $e->work_hours }}</span>@endif</small>
+                            @else — @endif
                         </td>
                         <td data-l="{{ __('media.people.manages') }}" class="ltr" style="text-align:start">{{ $e->managedPrograms->map(fn ($p) => $p->code.' '.$p->slug)->implode(', ') ?: '—' }}</td>
                         <td style="white-space:nowrap;text-align:end">

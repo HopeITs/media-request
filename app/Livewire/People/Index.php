@@ -43,6 +43,9 @@ class Index extends Component
     /** The job title, as in HR ("Communication team member / Photographer"); the Media specialty is read from it. */
     public string $position_title = '';
 
+    /** Part time only: the hours they work, e.g. "10:00-14:00". */
+    public string $work_hours = '';
+
     public ?int $city_id = null;
 
     public array $programs = [];
@@ -97,6 +100,7 @@ class Index extends Component
             'role' => $e->account?->role ?? 'employee',
             'media_role' => (string) $e->media_role,
             'position_title' => (string) $e->position_title,
+            'work_hours' => (string) $e->work_hours,
             'city_id' => $e->city_id,
             'programs' => $e->managedPrograms->pluck('id')->map(fn ($id) => (string) $id)->all(),
             'editing' => true,
@@ -119,7 +123,8 @@ class Index extends Component
             'password' => [$userId ? 'nullable' : 'required', 'string', 'min:8'],
             'role' => ['required', Rule::in(['employee', 'manager', 'general-manager', 'super-admin'])],
             'media_role' => ['nullable', Rule::in(['member', 'manager'])],
-            'position_title' => ['nullable', 'string', 'max:120'],
+            'position_title' => ['nullable', 'string', 'max:255'],
+            'work_hours' => ['nullable', 'regex:/^\d{1,2}(:\d{2})?-\d{1,2}(:\d{2})?$/'],
             'city_id' => ['nullable', 'exists:cities,id'],
             'programs' => ['array'],
             'programs.*' => ['integer', 'exists:programs,id'],
@@ -133,6 +138,7 @@ class Index extends Component
                 'last_name_ar' => $data['last_name_ar'],
                 'media_role' => $data['media_role'] ?: null,
                 'position_title' => $data['position_title'] ?: null,
+                'work_hours' => $data['work_hours'] ?: null,
                 'city_id' => $data['city_id'],
             ]);
             $employee->managedPrograms()->sync($data['programs']);
@@ -160,7 +166,7 @@ class Index extends Component
             'quickEmail' => ['required', 'email', 'max:190', Rule::unique('users', 'email')],
             'quickName' => ['required', 'string', 'max:60'],
             'quickRole' => ['required', Rule::in(['media', 'staff', 'pm'])],
-            'quickSpecialty' => ['required_if:quickRole,media', Rule::in(['Designer', 'Photographer', 'Videographer'])],
+            'quickSpecialty' => ['required_if:quickRole,media', Rule::in(['Designer', 'Photographer', 'Videographer', 'Videographer / Editor', 'Video Editor'])],
             'quickPrograms' => ['required_if:quickRole,pm', 'array'],
             'quickPrograms.*' => ['integer', 'exists:programs,id'],
         ], [], [
@@ -219,7 +225,7 @@ class Index extends Component
 
     private function resetForm(): void
     {
-        $this->reset(['editing', 'employeeId', 'first_name_en', 'first_name_ar', 'last_name_en', 'last_name_ar', 'email', 'password', 'role', 'media_role', 'position_title', 'city_id', 'programs']);
+        $this->reset(['editing', 'employeeId', 'first_name_en', 'first_name_ar', 'last_name_en', 'last_name_ar', 'email', 'password', 'role', 'media_role', 'position_title', 'work_hours', 'city_id', 'programs']);
         $this->resetErrorBag();
     }
 }

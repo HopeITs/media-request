@@ -11,8 +11,19 @@ class Employee extends Model
 {
     protected $fillable = [
         'city_id', 'first_name_en', 'first_name_ar', 'last_name_en', 'last_name_ar',
-        'username', 'media_role', 'position_title', 'is_active',
+        'username', 'media_role', 'position_title', 'work_hours', 'is_active',
     ];
+
+    /** Part of a working day this person works: 1 full time, 0.5 for four hours. */
+    public function dayShare(): float
+    {
+        if (! preg_match('/^(\d{1,2})(?::(\d{2}))?-(\d{1,2})(?::(\d{2}))?$/', (string) $this->work_hours, $m)) {
+            return 1.0;
+        }
+        $hours = ((int) $m[3] + (int) ($m[4] ?? 0) / 60) - ((int) $m[1] + (int) ($m[2] ?? 0) / 60);
+
+        return $hours > 0 ? min(1.0, round($hours / 8, 2)) : 1.0;
+    }
 
     protected $casts = ['is_active' => 'boolean'];
 

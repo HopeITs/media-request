@@ -157,6 +157,9 @@ h1{font-size:clamp(26px,4vw,34px);font-weight:800;line-height:1.2;text-wrap:bala
 
 /* ---------- chips and tags ---------- */
 .chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:14px;font-weight:600;border:1.5px solid var(--line);line-height:1.4;max-width:100%;background:var(--card);white-space:nowrap}
+.skills{display:inline-flex;flex-wrap:wrap;gap:4px 6px;vertical-align:middle}
+.chip.onneed{border-style:dashed;color:var(--text-2)}
+.skills .chip.soft{background:var(--soft);border-color:transparent;font-weight:500;color:var(--text-2)}
 .chip .ic{width:1em;height:1em}
 .chip.work{background:var(--ink);border-color:var(--ink);color:var(--on-ink)}
 .chip.done{background:var(--surface);border-color:var(--surface);color:var(--text)}

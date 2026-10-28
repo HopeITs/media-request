@@ -119,17 +119,36 @@ return [
     |
     | "for": which request types belong to the field.
     | "title": how the field shows in a position title, e.g. the HR position
-    | "Communication team member / Photographer". A title can name several.
+    | "Communication team member / Photographer". A title can name several,
+    | separated by "/" or ","; a part marked "(on need)" is a second skill:
+    | "Videographer / Editor / Photographer (on need)". Filming and editing are
+    | apart: a videographer edits only when the title says Editor.
     */
     'specialties' => [
         'design' => ['icon' => 'pen', 'for' => ['001' => '*', '000' => '*'],      // design and print
-            'title' => 'designer|design|مصمم|تصميم'],
+            'title' => 'designer|(?<!animation\s)design|مصمم|تصميم(?!\s*(متحرك|موشن))'],
         'photo' => ['icon' => 'camera', 'for' => ['002' => '*'],                  // photography
             'title' => 'photographer|photography|مصور(?!\s*فيديو)'],
         'video' => ['icon' => 'video', 'for' => ['003' => ['shoot']],             // filming
-            'title' => 'videographer|video|فيديو|مصور\s*فيديو'],
+            'title' => 'videographer|video(?!\s*editor)|فيديو|مصور\s*فيديو'],
         'montage' => ['icon' => 'layers', 'for' => ['003' => ['export']],         // video editing
-            'title' => 'videographer|video\s*editor|editor|montage|مونتاج|مونتير|محرر\s*فيديو|مصور\s*فيديو'],
+            'title' => 'editor|editing|montage|مونتاج|مونتير|محرر\s*فيديو'],
+    ],
+
+    /*
+    | What else a team member does, shown beside their name: read from the
+    | same position title.
+    */
+    'extras' => [
+        'interview' => ['icon' => 'msg', 'title' => 'interview|مقابلات|محاور'],
+        'print' => ['icon' => 'printer', 'title' => 'print|طباعة'],
+        'laser' => ['icon' => 'spark', 'title' => 'laser|ليزر'],
+        'idcard' => ['icon' => 'user', 'title' => 'id\s*(plastic|card)|بطاقات'],
+        'animation' => ['icon' => 'play', 'title' => 'animation|motion|موشن|تصميم\s*متحرك'],
+        'template' => ['icon' => 'layers', 'title' => 'template|قوالب'],
+        'uxui' => ['icon' => 'board', 'title' => '\bux\b|\bui\b'],
+        'reports' => ['icon' => 'link', 'title' => 'report|تقارير'],
+        'archive' => ['icon' => 'box', 'title' => 'archive|أرشيف|ارشيف'],
     ],
 
     /*

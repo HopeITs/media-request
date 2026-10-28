@@ -64,12 +64,32 @@ class SpecialtyTest extends TestCase
         $team = app(MediaTeam::class);
 
         $this->assertSame(['photo'], $team->skillsFromTitle('Communication team member / Photographer'));
-        $this->assertSame(['video', 'montage'], $team->skillsFromTitle('Communication team member / Videographer'));
+        $this->assertSame(['video'], $team->skillsFromTitle('Communication team member / Videographer'));   // edits only when it says Editor
+        $this->assertSame(['video', 'montage'], $team->skillsFromTitle('Videographer / Editor'));
+        $this->assertSame(['montage'], $team->skillsFromTitle('Video Editor'));
         $this->assertSame(['design'], $team->skillsFromTitle('Communication team member / Designer'));
         $this->assertSame(['photo'], $team->skillsFromTitle('عضو فريق التواصل / مصور'));
-        $this->assertSame(['video', 'montage'], $team->skillsFromTitle('مصور فيديو'));
+        $this->assertSame(['video'], $team->skillsFromTitle('مصور فيديو'));
         $this->assertSame([], $team->skillsFromTitle('Communication team member'));
         $this->assertSame([], $team->skillsFromTitle(''));
+    }
+
+    public function test_second_skills_and_extras_and_part_time(): void
+    {
+        $team = app(MediaTeam::class);
+        $e = new Employee(['position_title' => 'Video Editor / Videographer / Photographer (on need) / Animation design (on need) / Local print', 'work_hours' => '10:00-14:00']);
+
+        $this->assertSame(['video', 'montage'], $team->skillsOf($e));
+        $this->assertSame(['photo'], $team->extraSkillsOf($e));              // animation design is not design
+        $this->assertSame(['print', 'animation'], $team->extrasOf($e));
+        $this->assertSame(1, $team->skillRank($e, 'photo'));
+        $this->assertSame(0.5, $e->dayShare());
+        $this->assertSame(1.0, (new Employee)->dayShare());
+
+        // Someone who photographs on need comes after the photographers, before the rest.
+        Employee::where('username', 'sami')->update(['position_title' => 'Videographer / Photographer (on need)']);
+        $team->flush();
+        $this->assertSame(['maya', 'sami', 'fadi'], $team->membersFor('photo')->pluck('username')->all());
     }
 
     public function test_managers_set_the_position_on_people(): void
