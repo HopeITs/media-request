@@ -1036,4 +1036,12 @@ return [
     'progress.hold' => 'الطلب متوقف مؤقتاً.',
     'home.help' => 'كيف يقدر فريق الميديا يساعدك اليوم؟',
     'home.nothingForYou' => 'لا شيء ينتظر ردك الآن.',
+    'bell.unread' => 'غير المقروءة',
+    'bell.all' => 'الكل',
+    'bell.today' => 'اليوم',
+    'bell.week' => 'هذا الأسبوع',
+    'bell.earlier' => 'أقدم',
+    'bell.more' => 'عرض المزيد',
+    'bell.noneUnread' => 'قرأت كل الإشعارات.',
+    'bell.moreUpdates' => '{1} وتحديث آخر|[2,*] و:n تحديثات أخرى',
 ];

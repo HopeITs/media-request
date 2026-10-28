@@ -1036,4 +1036,12 @@ return [
     'progress.hold' => 'The request is on hold.',
     'home.help' => 'How can the media team help you today?',
     'home.nothingForYou' => 'Nothing needs your answer right now.',
+    'bell.unread' => 'Unread',
+    'bell.all' => 'All',
+    'bell.today' => 'Today',
+    'bell.week' => 'This week',
+    'bell.earlier' => 'Earlier',
+    'bell.more' => 'Show more',
+    'bell.noneUnread' => 'You have read all your notifications.',
+    'bell.moreUpdates' => '{1} and one more update|[2,*] and :n more updates',
 ];

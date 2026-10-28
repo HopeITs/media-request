@@ -75,6 +75,26 @@ class TeamStatusTest extends TestCase
             ->assertSee(__('media.home.help'))->assertDontSee(__('media.home.clear'));
     }
 
+    public function test_notifications_are_one_row_per_request_and_open_it(): void
+    {
+        $rami = $this->user('rami');
+        $rami->notifications()->delete();
+        // Notifications are faked in these tests, so store four updates about the same request directly.
+        $data = (new \App\Notifications\MediaRequestUpdated($this->request, 'comment'))->toArray($rami);
+        foreach (range(1, 4) as $i) {
+            $rami->notifications()->create(['id' => (string) \Illuminate\Support\Str::uuid(), 'type' => \App\Notifications\MediaRequestUpdated::class, 'data' => $data, 'created_at' => now()->subMinutes($i)]);
+        }
+
+        $page = \Livewire\Livewire::actingAs($rami)->test(\App\Livewire\MediaRequests\Dashboard::class)->set('bellOpen', true);
+        $page->assertSee(trans_choice('media.bell.moreUpdates', 3, ['n' => 3]))   // one row: the latest and "3 more"
+            ->assertSee(__('media.bell.unread'));
+
+        $page->call('openRequestNotes', $this->request->id)
+            ->assertSet('open', $this->request->id)
+            ->assertSet('bellOpen', false);
+        $this->assertSame(0, $rami->unreadNotifications()->count());
+    }
+
     private function user(string $key): User
     {
         return User::where('email', $key.'@example.test')->firstOrFail();

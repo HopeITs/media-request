@@ -776,3 +776,12 @@ img[src*="hope-center.svg"]{filter:var(--logo)}
 .bellpanel{width:min(520px,100%)}
 .bellhead{display:flex;align-items:center;gap:8px;margin-bottom:12px}
 .bellhead h2{flex:1;display:flex;gap:8px;align-items:center;font-size:20px;margin:0}
+/* Notifications: unread/all, sections, show more */
+.bellbar{display:flex;align-items:center;gap:8px;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap}
+.bellbar .seg{display:inline-flex;background:var(--soft);border-radius:999px;padding:3px}
+.bellbar .seg button{border:0;background:none;color:var(--text-2);font:700 13px var(--font);padding:5px 12px;border-radius:999px;cursor:pointer;display:flex;gap:6px;align-items:center}
+.bellbar .seg button.on{background:var(--card);color:var(--text);box-shadow:var(--shadow-sm)}
+.bellbar .seg .n{background:var(--brand);color:#fff;border-radius:999px;padding:0 6px;font-size:11px}
+.bellbar .readall{margin:0}
+.bellsec{font-size:12px;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.02em;margin:10px 0 2px}
+.bellmore{margin-top:10px}

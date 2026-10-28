@@ -39,6 +39,12 @@ class Dashboard extends Component
     #[Url(as: 'bell', except: false)]
     public bool $bellOpen = false;
 
+    /** Notifications shown: "unread" or "all" (empty: unread when there are any). */
+    public string $bellFilter = '';
+
+    /** How many request groups the notifications list shows; "show more" adds to it. */
+    public int $bellShown = 8;
+
     public function mount(): void
     {
         $this->notes = (string) $this->record()->notes;
@@ -110,6 +116,25 @@ class Dashboard extends Component
         }
     }
 
+    /** A request's row in the notifications: mark all its updates read and open it here. */
+    public function openRequestNotes(int $requestId): void
+    {
+        auth()->user()->unreadNotifications()->where('data->media_request_id', $requestId)->update(['read_at' => now()]);
+        $this->bellOpen = false;
+        $this->openRequest($requestId);
+    }
+
+    public function bellShow(string $filter): void
+    {
+        $this->bellFilter = in_array($filter, ['unread', 'all'], true) ? $filter : '';
+        $this->bellShown = 8;
+    }
+
+    public function bellMore(): void
+    {
+        $this->bellShown = min($this->bellShown + 8, 80);
+    }
+
     public function markAllRead(): void
     {
         auth()->user()->unreadNotifications->markAsRead();
@@ -135,7 +160,7 @@ class Dashboard extends Component
             'calendar' => in_array('calendar', $keys, true) ? $this->calendar($user) : [],
             'team' => in_array('team', $keys, true) ? $this->teamLoad() : collect(),
             'mine' => in_array('mine', $keys, true) ? $this->mine($user) : collect(),
-            'bell' => in_array('bell', $keys, true) || $this->bellOpen ? $user->notifications()->limit(30)->get() : collect(),
+            'bell' => in_array('bell', $keys, true) || $this->bellOpen ? $this->notificationGroups($user) : null,
             'openRequest' => $this->open ? MediaRequest::find($this->open) : null,
         ]);
     }
@@ -150,6 +175,36 @@ class Dashboard extends Component
             ->orderBy('needed_by')->limit(100)->get()
             ->filter(fn (MediaRequest $r) => Gate::allows('isOwner', $r))
             ->values();
+    }
+
+    /**
+     * The notifications, one row per request (its latest update and how many
+     * others), unread only when there are any, newest first, in sections:
+     * today, this week, earlier. Updates not about a request stay one row each.
+     *
+     * @return array{filter: string, unread: int, total: int, more: bool, sections: array<string, Collection>}
+     */
+    private function notificationGroups(User $user): array
+    {
+        $unread = $user->unreadNotifications()->count();
+        $filter = $this->bellFilter ?: ($unread ? 'unread' : 'all');
+
+        $groups = ($filter === 'unread' ? $user->unreadNotifications() : $user->notifications())->latest()->limit(300)->get()
+            ->groupBy(fn ($n) => isset($n->data['media_request_id']) ? 'r'.$n->data['media_request_id'] : 'n'.$n->id)
+            ->map(fn (Collection $g) => ['latest' => $g->first(), 'count' => $g->count(), 'unread' => $g->whereNull('read_at')->count(),
+                'request' => $g->first()->data['media_request_id'] ?? null])
+            ->values();
+
+        $shown = $groups->take($this->bellShown);
+        $section = fn ($g) => $g['latest']->created_at->isToday() ? 'today' : ($g['latest']->created_at->gt(now()->subDays(7)) ? 'week' : 'earlier');
+
+        return [
+            'filter' => $filter,
+            'unread' => $unread,
+            'total' => $groups->count(),
+            'more' => $groups->count() > $shown->count(),
+            'sections' => $shown->groupBy($section)->all(),
+        ];
     }
 
     /** The person's own requests: open ones first, then the latest finished. */
