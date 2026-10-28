@@ -47,6 +47,7 @@ class DashboardLayout
         'app.generator' => ['wand', null, true],
         'app.board' => ['board', 'media-requests.board', true],
         'app.approvals' => ['shield', 'media-requests.approvals', true],
+        'app.drive' => ['layers', 'media-requests.drive', true],
         'app.stats' => ['chart', 'media-requests.stats', false],
         'app.log' => ['list', 'media-requests.log', false],
         'app.assistant' => ['spark', 'media-requests.assistant', false],
@@ -63,7 +64,7 @@ class DashboardLayout
      * waiting; then calendar beside notes and team. Cards grow into any cells left empty.
      */
     private const ORDER = [
-        'ask', 'app.new', 'app.my', 'app.pack', 'app.generator', 'app.board', 'app.approvals', 'app.stats', 'app.log', 'app.assistant',
+        'ask', 'app.new', 'app.my', 'app.pack', 'app.drive', 'app.generator', 'app.board', 'app.approvals', 'app.stats', 'app.log', 'app.assistant',
         'app.bell', 'app.people', 'flow', 'clock', 'pack', 'proof', 'mine', 'bell', 'waiting', 'calendar', 'notes', 'team',
     ];
 

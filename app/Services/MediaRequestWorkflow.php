@@ -10,6 +10,7 @@ use App\Models\Program;
 use App\Models\User;
 use App\Support\MediaRequests\HcPack;
 use App\Support\MediaRequests\MediaCatalog;
+use App\Support\MediaRequests\MediaFolders;
 use App\Support\MediaRequests\MediaNaming;
 use App\Support\MediaRequests\MediaTeam;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -256,28 +257,30 @@ class MediaRequestWorkflow
     }
 
     /** Show the direction early. The request stays with the designer. */
-    public function shareDraft(User $actor, MediaRequest $r, string $link, ?string $note = null): MediaRequest
+    public function shareDraft(User $actor, MediaRequest $r, ?string $link, ?string $note = null, array $files = []): MediaRequest
     {
         Gate::forUser($actor)->authorize('work', $r);
 
-        $r->draft_link = $this->validLink($link);
+        [$link, $names] = $this->linkOrFiles($r, $link, $files, 'draft');
+        $r->draft_link = $link ?? $r->draft_link;
 
-        return $this->commit($r, $actor, 'draft', $r->status, ['link' => $r->draft_link, 'note' => $this->cleanNote($note)]);
+        return $this->commit($r, $actor, 'draft', $r->status, ['link' => $link, 'files' => implode(', ', $names) ?: null, 'note' => $this->cleanNote($note)]);
     }
 
     /**
      * The first version goes to the media manager for the internal check;
      * once that has passed, later versions go straight to the requester.
      */
-    public function sendResult(User $actor, MediaRequest $r, string $link, ?string $note = null): MediaRequest
+    public function sendResult(User $actor, MediaRequest $r, ?string $link, ?string $note = null, array $files = []): MediaRequest
     {
         Gate::forUser($actor)->authorize('work', $r);
 
         $from = $r->status;
-        $r->result_link = $this->validLink($link);
+        [$link, $names] = $this->linkOrFiles($r, $link, $files, 'result');
+        $r->result_link = $link ?? ($names !== [] ? null : $r->result_link);
         $this->move($r, $r->internal_ok ? S::RequesterReview : S::InternalReview);
 
-        return $this->commit($r, $actor, $r->internal_ok ? 'sentReq' : 'sentInt', $from, ['link' => $r->result_link, 'note' => $this->cleanNote($note)]);
+        return $this->commit($r, $actor, $r->internal_ok ? 'sentReq' : 'sentInt', $from, ['link' => $link, 'files' => implode(', ', $names) ?: null, 'note' => $this->cleanNote($note)]);
     }
 
     // ------------------------------------------------------------------
@@ -640,6 +643,41 @@ class MediaRequestWorkflow
         return $link;
     }
 
+    /** Extensions the team may send as a draft or a result. */
+    public const RESULT_FILES = 'jpg,jpeg,png,webp,gif,svg,pdf,mp4,mov,zip,ai,psd,eps,doc,docx,ppt,pptx';
+
+    /**
+     * A draft or a result is a link, files, or both; at least one. The files are kept in the
+     * "results" collection with the kind and the version (revisions + 1).
+     *
+     * @return array{0: ?string, 1: array<int, string>} the link (null when none) and the file names
+     */
+    private function linkOrFiles(MediaRequest $r, ?string $link, array $files, string $kind): array
+    {
+        $link = trim((string) $link);
+        $files = array_values(array_filter($files, fn ($f) => $f instanceof UploadedFile));
+
+        Validator::make(['link' => $link, 'files' => $files], [
+            'link' => ['nullable', 'url:http,https', 'max:500'],
+            'files' => ['array', 'max:10'],
+            'files.*' => ['file', 'max:51200', 'mimes:'.self::RESULT_FILES],
+        ], ['url' => __('media.err.link')], ['files' => __('media.fm.files')])->validate();
+
+        if ($link === '' && $files === []) {
+            throw ValidationException::withMessages(['link' => __('media.err.linkOrFile')]);
+        }
+
+        $names = [];
+        foreach ($files as $file) {
+            $names[] = $r->addMedia($file)
+                ->usingName(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME))
+                ->withCustomProperties(['kind' => $kind, 'version' => $r->revisions + 1, 'folder' => MediaFolders::folderFor($r)])
+                ->toMediaCollection('results')->file_name;
+        }
+
+        return [$link === '' ? null : $link, $names];
+    }
+
     private function requiredNote(?string $note): string
     {
         $note = $this->cleanNote($note);
@@ -701,6 +739,7 @@ class MediaRequestWorkflow
 
             $media = $r->addMedia($file)
                 ->usingName(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME))
+                ->withCustomProperties(['folder' => MediaFolders::folderFor($r)])
                 ->toMediaCollection('attachments');
             $names[] = $media->file_name;
         }

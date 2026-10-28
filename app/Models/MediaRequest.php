@@ -56,6 +56,8 @@ class MediaRequest extends Model implements HasMedia
         // the private disk and are read back through MediaRequestFileController,
         // which runs MediaRequestPolicy::view first.
         $this->addMediaCollection('attachments')->useDisk('local');
+        // What the team sends: drafts and versions of the result (images, PDFs, videos…), each with its version.
+        $this->addMediaCollection('results')->useDisk('local');
     }
 
     // ------------------------------------------------------------------

@@ -42,6 +42,9 @@ class Show extends Component
 
     public array $uploads = [];
 
+    /** Files sent with a draft or a result (images, PDFs…), shown to the reviewers as previews. */
+    public array $resultUploads = [];
+
     /** Shown in the panel on the home screen, not as its own page. */
     public bool $embedded = false;
 
@@ -120,12 +123,12 @@ class Show extends Component
 
     public function shareDraft(MediaRequestWorkflow $w): void
     {
-        $this->run(fn () => $w->shareDraft(auth()->user(), $this->mediaRequest, $this->link, $this->note));
+        $this->run(fn () => $w->shareDraft(auth()->user(), $this->mediaRequest, $this->link, $this->note, $this->resultUploads));
     }
 
     public function sendResult(MediaRequestWorkflow $w): void
     {
-        $this->run(fn () => $w->sendResult(auth()->user(), $this->mediaRequest, $this->link, $this->note));
+        $this->run(fn () => $w->sendResult(auth()->user(), $this->mediaRequest, $this->link, $this->note, $this->resultUploads));
     }
 
     public function approveInternal(MediaRequestWorkflow $w): void
@@ -192,6 +195,13 @@ class Show extends Component
         $this->run(fn () => $w->comment(auth()->user(), $this->mediaRequest, $this->body), __('media.toast.sent'));
     }
 
+    /** Take one chosen file back out before sending. */
+    public function dropResultUpload(int $i): void
+    {
+        unset($this->resultUploads[$i]);
+        $this->resultUploads = array_values($this->resultUploads);
+    }
+
     public function attachFiles(MediaRequestWorkflow $w): void
     {
         $this->validate([
@@ -231,7 +241,7 @@ class Show extends Component
         $action();
 
         $this->mediaRequest->refresh();
-        $this->reset(['note', 'link', 'body', 'uploads', 'assigneeId']);
+        $this->reset(['note', 'link', 'body', 'uploads', 'resultUploads', 'assigneeId']);
 
         LivewireAlert::title($message ?? __('media.toast.done', ['st' => \App\Enums\MediaRequestStatus::label($this->mediaRequest->status, $this->mediaRequest->type)]))
             ->success()

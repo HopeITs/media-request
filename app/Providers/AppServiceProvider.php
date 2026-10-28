@@ -17,6 +17,9 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->scoped(MediaTeam::class);
+
+        // Request files on the disk in program / governorate / request folders (see MediaFolders).
+        config(['media-library.path_generator' => \App\Support\MediaRequests\MediaFolders::class]);
     }
 
     public function boot(): void

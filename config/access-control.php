@@ -74,7 +74,7 @@ return [
         // Filters and re-renders; the lists are scoped to the caller's own
         // requests and programs in render(), and the routes are gated.
         'media-requests.index' => ['setActiveTab', 'refreshList'],
-        'media-requests.show' => ['refreshRequest', 'applyProof'],
+        'media-requests.show' => ['refreshRequest', 'applyProof', 'dropResultUpload'],
         'media-requests.log' => ['resetFilters'],
         // A filter on a read-only list; the route needs media-requests.view-log.
         'media-requests.assistant-log' => ['setFilter'],
@@ -89,6 +89,8 @@ return [
         'media-requests.proofreader-panel' => ['open', 'close', 'check', 'accept', 'again', 'openSaved', 'deleteSaved', 'download', 'updatedFile'],
         // Statistics: the page is behind media-requests.work and checks the team; the period only changes what is shown.
         'media-requests.stats' => [],
+        // The files page: moving between folders only; every request shown is checked with visibleTo.
+        'media-requests.drive' => ['open', 'up'],
         'auth.login' => ['login'],
         'notifications.index' => ['markAllRead'],
         'people.index' => ['create', 'cancel', 'forgetPassword'],

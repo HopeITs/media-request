@@ -156,6 +156,7 @@
 
                 <section class="card">
                     <h2>{{ __('media.d.files') }}</h2>
+                    <x-media.results :r="$r" />
                     <ul class="files">
                         @foreach (array_filter(['draft' => $r->draft_link, 'result' => $r->result_link, 'archive' => $r->archive_link]) as $kind => $href)
                             <li><a href="{{ $href }}" target="_blank" rel="noopener noreferrer"><x-ic n="link" />{{ __('media.link.'.$kind) }}</a></li>
@@ -167,7 +168,7 @@
                             <li><a href="{{ route('media-requests.files', $media) }}"><x-ic n="download" /><span class="ltr">{{ $media->file_name }}</span></a></li>
                         @endforeach
                     </ul>
-                    @if (! $r->draft_link && ! $r->result_link && ! $r->archive_link && $packFiles->isEmpty() && $r->getMedia('attachments')->isEmpty())
+                    @if (! $r->draft_link && ! $r->result_link && ! $r->archive_link && $packFiles->isEmpty() && $r->getMedia('attachments')->isEmpty() && $r->getMedia('results')->isEmpty())
                         <p class="sub">{{ __('media.att.empty') }}</p>
                     @endif
                     @if ($r->archive_name)
@@ -309,10 +310,37 @@
                     @can('work', $r)
                         <form wire:submit="sendResult" class="stack" style="gap:10px">
                             <p class="act-p" style="margin:0">{{ __($r->internal_ok ? 'media.act.progress2' : 'media.act.progress') }}</p>
+                            {{-- A link, files, or both: at least one. Images and PDFs show as previews before sending. --}}
                             <div class="field" style="margin:0">
-                                <label for="mr-link">{{ __('media.fm.link') }}</label>
+                                <label for="mr-link">{{ __('media.fm.link') }} <span class="sub">({{ __('media.fm.optional') }})</span></label>
                                 <input id="mr-link" class="inp ltr" type="url" wire:model="link" placeholder="https://…" @error('link') aria-invalid="true" @enderror>
                                 @error('link')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
+                            </div>
+                            <div class="field" style="margin:0">
+                                <label class="drop resdrop" for="mr-result-files">
+                                    <span class="di"><x-ic n="upload" /></span>
+                                    <span><b>{{ __('media.fm.files') }}</b><small class="sub">{{ __('media.fm.filesHint') }}</small></span>
+                                    <input id="mr-result-files" type="file" multiple class="vh" wire:model="resultUploads"
+                                           accept="{{ collect(explode(',', \App\Services\MediaRequestWorkflow::RESULT_FILES))->map(fn ($e) => '.'.$e)->implode(',') }}">
+                                    <span class="spin" wire:loading wire:target="resultUploads"></span>
+                                </label>
+                                @error('resultUploads.*')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
+                                @error('files.*')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
+                                @if ($resultUploads)
+                                    <ul class="resprev">
+                                        @foreach ($resultUploads as $i => $file)
+                                            <li wire:key="rp-{{ $i }}">
+                                                @if (str_starts_with((string) $file->getMimeType(), 'image/') && $file->getMimeType() !== 'image/svg+xml')
+                                                    <img src="{{ $file->temporaryUrl() }}" alt="">
+                                                @else
+                                                    <span class="rpi"><x-ic n="file" /><small class="ltr">{{ strtoupper($file->getClientOriginalExtension()) }}</small></span>
+                                                @endif
+                                                <span class="rpn ltr">{{ $file->getClientOriginalName() }}</span>
+                                                <button type="button" class="iconbtn" wire:click="dropResultUpload({{ $i }})" aria-label="{{ __('media.proof.delete') }}"><x-ic n="x" /></button>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                @endif
                             </div>
                             <div class="field" style="margin:0">
                                 <label for="mr-work-note">{{ __('media.fm.note') }}</label>
@@ -326,6 +354,7 @@
                     @can('reviewInternal', $r)
                         <p class="act-p" style="margin:0">{{ __('media.act.int') }}</p>
                         @if ($r->result_link)<a class="btn btn-g btn-w" href="{{ $r->result_link }}" target="_blank" rel="noopener noreferrer"><x-ic n="eye" />{{ __('media.link.result') }}</a>@endif
+                        <x-media.results :r="$r" latest class="compact" />
                         <button type="button" class="btn btn-p btn-w" wire:click="approveInternal" wire:loading.attr="data-loading"><span class="spin"></span><x-ic n="check" />{{ __('media.act.intOk') }}</button>
                         <div class="act-sep" style="margin:4px 0"></div>
                         <div class="field" style="margin:0">
@@ -339,6 +368,7 @@
                     @can('reviewResult', $r)
                         <p class="act-p" style="margin:0">{{ __('media.act.review') }}</p>
                         @if ($r->result_link)<a class="btn btn-g btn-w" href="{{ $r->result_link }}" target="_blank" rel="noopener noreferrer"><x-ic n="eye" />{{ __('media.link.result') }}</a>@endif
+                        <x-media.results :r="$r" latest class="compact" />
                         <button type="button" class="btn btn-p btn-w" wire:click="approveResult" wire:loading.attr="data-loading"><span class="spin"></span><x-ic n="check" />{{ __('media.act.resultOk') }}</button>
                         <div class="act-sep" style="margin:4px 0"></div>
                         <div class="field" style="margin:0">
