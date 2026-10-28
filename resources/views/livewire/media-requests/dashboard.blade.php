@@ -49,34 +49,64 @@
         </div>
     </section>
 
-    {{-- Decisions waiting on you: one card each, in a row you can scroll, so nothing is forgotten. --}}
+    {{--
+        Decisions waiting on you, oldest first. One card at a time with arrows and dots, so the oldest
+        is in front; "Show all" lays them side by side instead. The choice is kept on this device.
+    --}}
     @if ($decisions->isNotEmpty())
-        <section class="decide" aria-labelledby="decide-t" x-data="{ go(d) { const t = $refs.track; t.scrollBy({ left: d * t.clientWidth * 0.8 * (getComputedStyle(t).direction === 'rtl' ? -1 : 1), behavior: 'smooth' }) } }">
+        <section class="decide" aria-labelledby="decide-t" aria-roledescription="carousel"
+                 x-data="{
+                    i: 0, n: {{ $decisions->count() }}, all: false,
+                    init() { try { this.all = localStorage.getItem('mr-decide') === 'all' } catch (e) {} },
+                    show(k) { this.i = (k + this.n) % this.n },
+                    toggle() { this.all = ! this.all; try { localStorage.setItem('mr-decide', this.all ? 'all' : 'one') } catch (e) {} },
+                 }"
+                 x-on:keydown.arrow-right="if (! all) show(i + (getComputedStyle($el).direction === 'rtl' ? -1 : 1))"
+                 x-on:keydown.arrow-left="if (! all) show(i - (getComputedStyle($el).direction === 'rtl' ? -1 : 1))">
             <div class="decide-h">
                 <h2 id="decide-t"><x-ic n="alert" />{{ trans_choice('media.decide.title', $decisions->count(), ['n' => $decisions->count()]) }}</h2>
                 @if ($decisions->count() > 1)
                     <span class="btnline">
-                        <button type="button" class="iconbtn" x-on:click="go(-1)" aria-label="{{ __('media.decide.prev') }}"><x-ic n="back" class="flip" /></button>
-                        <button type="button" class="iconbtn" x-on:click="go(1)" aria-label="{{ __('media.decide.next') }}"><x-ic n="arrow" class="flip" /></button>
+                        <template x-if="! all">
+                            <span class="btnline">
+                                <button type="button" class="iconbtn" x-on:click="show(i - 1)" aria-label="{{ __('media.decide.prev') }}"><x-ic n="back" class="flip" /></button>
+                                <span class="num dcount" aria-live="polite"><span x-text="i + 1">1</span> / {{ $decisions->count() }}</span>
+                                <button type="button" class="iconbtn" x-on:click="show(i + 1)" aria-label="{{ __('media.decide.next') }}"><x-ic n="arrow" class="flip" /></button>
+                            </span>
+                        </template>
+                        <button type="button" class="btn-q dtoggle" x-on:click="toggle()">
+                            <x-ic n="layers" /><span x-text="all ? @js(__('media.decide.one')) : @js(__('media.decide.all'))">{{ __('media.decide.all') }}</span>
+                        </button>
                     </span>
                 @endif
             </div>
-            <div class="decide-track" x-ref="track">
+
+            <div class="decide-track" :class="{ all }">
                 @foreach ($decisions as $r)
                     @php($what = match ($r->status) { 'pm_approval' => 'pm', 'mm_approval' => 'mm', 'int_review' => 'check', 'req_review' => 'review', default => 'info' })
                     @php($since = $r->status_changed_at ?? $r->created_at)
-                    <article @class(['dcard', 'old' => $since->lt(now()->subDay())]) wire:key="dc-{{ $r->id }}">
+                    <article @class(['dcard', 'old' => $since->lt(now()->subDay())]) wire:key="dc-{{ $r->id }}"
+                             :class="{ off: ! (all || i === {{ $loop->index }}) }" @unless ($loop->first) style="display:none" x-init="$el.style.removeProperty('display')" @endunless
+                             aria-roledescription="slide" aria-label="{{ $loop->iteration }} / {{ $decisions->count() }}">
                         <span class="dwhat"><x-ic :n="['pm' => 'shield', 'mm' => 'shield', 'check' => 'eye', 'review' => 'eye', 'info' => 'msg'][$what]" />{{ __('media.decide.'.$what) }}</span>
                         <x-media.name :r="$r" class="nm" />
                         <span class="dmeta">
                             <span><x-ic n="user" />{{ $r->requester?->nameForLocale($locale) }}</span>
                             @if ($r->needed_by)<span><x-ic n="cal" /><span class="num">{{ $r->needed_by->format('d-m-Y') }}</span></span>@endif
+                            <span class="dsince">{{ __('media.decide.since', ['t' => $since->diffForHumans()]) }}</span>
                         </span>
-                        <span class="dsince">{{ __('media.decide.since', ['t' => $since->diffForHumans()]) }}</span>
                         <button type="button" class="btn btn-p btn-sm" wire:click="openRequest({{ $r->id }})"><x-ic n="arrow" class="flip" />{{ __('media.decide.open.'.$what) }}</button>
                     </article>
                 @endforeach
             </div>
+
+            @if ($decisions->count() > 1)
+                <div class="ddots" x-show="! all" role="tablist" aria-label="{{ __('media.decide.pick') }}">
+                    @foreach ($decisions as $r)
+                        <button type="button" role="tab" x-on:click="show({{ $loop->index }})" :aria-selected="i === {{ $loop->index }}" :class="{ on: i === {{ $loop->index }} }" aria-label="{{ $loop->iteration }}"></button>
+                    @endforeach
+                </div>
+            @endif
         </section>
     @endif
     {{-- The grid. Tiles are drawn once by the server; moving, resizing and hiding only change them in place. --}}

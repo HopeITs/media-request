@@ -1127,4 +1127,7 @@ return [
     'decide.open.info' => 'افتح وأرسل المعلومة',
     'wz.fromCalendar' => 'اليوم الذي اخترته من الرزنامة',
     'wz.change' => 'تغيير',
+    'decide.all' => 'عرض الكل',
+    'decide.one' => 'واحداً واحداً',
+    'decide.pick' => 'اختر قراراً',
 ];

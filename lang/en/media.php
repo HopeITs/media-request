@@ -1127,4 +1127,7 @@ return [
     'decide.open.info' => 'Open and answer',
     'wz.fromCalendar' => 'the day you picked on the calendar',
     'wz.change' => 'Change',
+    'decide.all' => 'Show all',
+    'decide.one' => 'One at a time',
+    'decide.pick' => 'Pick a decision',
 ];

@@ -885,3 +885,24 @@ img[src*="hope-center.svg"]{filter:var(--logo)}
 .flowlist{padding-top:10px;gap:4px}
 .flowlist a{padding:10px 10px;gap:6px}
 .flowlist .meta{gap:6px 14px}
+/* Decisions: one card at a time (default), or all side by side */
+.decide-track{display:block;overflow:visible;padding-bottom:0}
+.decide-track .dcard{max-width:none}
+.decide-track:not(.all) .dcard{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"what btn" "name btn" "meta btn";column-gap:20px;align-items:center;padding:16px 18px;animation:dslide .22s cubic-bezier(.2,.8,.2,1)}
+.decide-track:not(.all) .dwhat{grid-area:what}
+.decide-track:not(.all) .nm{grid-area:name;font-size:18px}
+.decide-track:not(.all) .dmeta{grid-area:meta}
+.decide-track:not(.all) .btn{grid-area:btn;margin:0;align-self:center}
+.decide-track.all{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.dmeta .dsince{font-size:13px}
+.dcount{font-weight:800;min-width:44px;text-align:center}
+.dtoggle{min-height:32px;padding:0 4px;font-size:14px}
+.ddots{display:flex;justify-content:center;gap:6px;margin-top:10px}
+.ddots button{width:8px;height:8px;border-radius:999px;border:0;padding:0;background:var(--line);cursor:pointer;transition:width .2s}
+.ddots button.on{width:22px;background:var(--brand)}
+@keyframes dslide{from{opacity:.4;transform:translateX(12px)}to{opacity:1;transform:none}}
+[dir=rtl] .decide-track:not(.all) .dcard{animation-name:dslide-rtl}
+@keyframes dslide-rtl{from{opacity:.4;transform:translateX(-12px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.decide-track .dcard{animation:none!important}}
+@media (max-width:640px){.decide-track:not(.all) .dcard{grid-template-columns:minmax(0,1fr);grid-template-areas:"what" "name" "meta" "btn"}.decide-track:not(.all) .btn{justify-self:start;margin-top:8px}}
+.decide-track .dcard.off{display:none!important}
