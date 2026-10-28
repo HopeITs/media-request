@@ -55,8 +55,26 @@ php artisan db:seed --force              # programs and governorates only (no sa
 php artisan media:admin --email=fares.badawi@hcsyria.org --name="Fares Badawi" --media-manager
                                          # the main administrator, also the media manager;
                                          # asks for his Arabic name and a password, never shows it
+php artisan media:team storage/app/private/media-team.csv --dry-run   # check the team list first
+php artisan media:team storage/app/private/media-team.csv             # then load it
 php artisan optimize                     # caches config, routes and views
 ```
+
+The Media team list (`media-team.csv`) holds people's emails, so it is **not in git**. Fares sends it to IT
+privately; put it in `storage/app/private/`. One row per person:
+
+```
+email,name_en,name_ar,city,media_role,position_title,work_hours
+someone@hcsyria.org,Some One,,HMS,member,"Photographer / Videographer (on need) / Local print",10:00-14:00
+```
+
+- `city`: governorate code (ALP, HMS, DMS, LAT, …). Shoots go to the team of the place.
+- `media_role`: `manager` for the media manager and his vice, else `member`.
+- `position_title`: skills separated by `/`; `(on need)` marks a second skill.
+- `work_hours`: empty for full time.
+
+New people get a password, printed once at the end; pass each one on privately. Running it again
+updates people (same email) and keeps their passwords.
 
 Folders the web server user (e.g. `www-data`) must be able to write:
 
