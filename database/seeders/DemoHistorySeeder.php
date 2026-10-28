@@ -75,7 +75,9 @@ class DemoHistorySeeder extends Seeder
             if ($r->status === \App\Enums\MediaRequestStatus::Production) {
                 $w->markReady($u($assignee), $r);
             }
-            $w->deliver($u($assignee), $r->refresh(), 'https://drive.google.com/drive/folders/demo-past-archive-'.($i + 1));
+            if ($r->refresh()->status !== \App\Enums\MediaRequestStatus::Delivered) {   // photos and filming: delivered at the check
+                $w->deliver($u($assignee), $r, 'https://drive.google.com/drive/folders/demo-past-archive-'.($i + 1));
+            }
 
             // Move it into the past: sent weeks ago, delivered early, on the day or late.
             $sent = today()->subWeeks($weeksAgo)->startOfWeek()->addDays(1)->setTime(10, 0);

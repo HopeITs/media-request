@@ -290,6 +290,17 @@ class MediaRequestWorkflow
 
         $from = $r->status;
         $r->internal_ok = true;
+
+        // Photography and filming: the link the team sent is the delivery; no requester review.
+        if ($r->shortPath()) {
+            $r->archive_link = $r->result_link;
+            $r->archive_name = $this->naming->archiveName($r);
+            $r->delivered_at = now();
+            $this->move($r, S::Delivered);
+
+            return $this->commit($r, $actor, 'delivered', $from, ['link' => $r->archive_link, 'archive_name' => $r->archive_name]);
+        }
+
         $this->move($r, S::RequesterReview);
 
         return $this->commit($r, $actor, 'intOk', $from);
@@ -407,14 +418,17 @@ class MediaRequestWorkflow
         return $this->commit($r, $actor, 'rejected', $from, ['note' => $note]);
     }
 
-    /** Only the media manager pauses and resumes, so they own the request while it is on hold. */
+    /**
+     * Postpone, with a reason. The media manager can at any stage; the program manager at their own
+     * approval. Whoever postponed it owns it while it waits, and resumes it.
+     */
     public function hold(User $actor, MediaRequest $r, string $note): MediaRequest
     {
         Gate::forUser($actor)->authorize('hold', $r);
 
         $note = $this->requiredNote($note);
         $from = $r->status;
-        $r->fill(['return_to' => $r->status, 'held_by' => 'media_manager']);
+        $r->fill(['return_to' => $r->status, 'held_by' => $r->status === S::ProgramApproval ? 'program_manager' : 'media_manager']);
         $this->move($r, S::OnHold);
 
         return $this->commit($r, $actor, 'hold', $from, ['note' => $note]);

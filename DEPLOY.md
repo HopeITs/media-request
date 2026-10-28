@@ -1,7 +1,7 @@
 # Putting Media Requests on a server (on its own, not inside the HR app)
 
-A Laravel 12 + Livewire 3 app. No build step (no Node/npm), no background worker,
-no scheduled tasks: a web server with PHP and one database is enough.
+A Laravel 12 + Livewire 3 app. No build step (no Node/npm) and no background worker: a web server with PHP,
+one database, and **one cron line** (for the deadline reminders) is enough.
 
 ## 1. What the server needs
 
@@ -75,7 +75,19 @@ are on the Media team (member or manager), their position title (the specialty i
 "Communication team member / Photographer", "… / Videographer", "… / Designer"), and which
 programs they manage.
 
-## 3. Web server
+## 3. The cron line (deadline reminders)
+
+Every working morning at 08:30 (Damascus) the app reminds whoever holds a request one working day before its
+needed-by date and on the day, and every day after it is late (also the assignee and the media manager).
+Laravel's scheduler does this; it needs one line in the web server user's crontab (`crontab -u www-data -e`):
+
+```cron
+* * * * * cd /var/www/media-requests && php artisan schedule:run >> /dev/null 2>&1
+```
+
+To try it by hand: `php artisan media:remind` (safe to run again: each request is reminded at most once a day).
+
+## 4. Web server
 
 **Nginx** (the important lines):
 
@@ -102,7 +114,7 @@ PHP (`php.ini`): `upload_max_filesize = 50M`, `post_max_size = 60M`.
 **Apache**: point the site's `DocumentRoot` at `public/` and allow `.htaccess` (`AllowOverride All`);
 `public/.htaccess` is included.
 
-## 4. Updating to a new version
+## 5. Updating to a new version
 
 ```bash
 cd /var/www/media-requests
@@ -114,7 +126,7 @@ php artisan optimize
 php artisan up
 ```
 
-## 5. Backups
+## 6. Backups
 
 Two things hold all the data:
 
@@ -124,7 +136,7 @@ Two things hold all the data:
 Back up both, every day. `.env` holds the app key: keep a copy somewhere safe, because without it
 sessions and anything encrypted cannot be read.
 
-## 6. HC_PACK search
+## 7. HC_PACK search
 
 The HC_PACK search reads a list of the pack's files from `resources/data/hc-pack.json` (shipped in the
 repository). When the pack changes, rebuild the list on a machine that has the pack folder and commit it:
@@ -135,7 +147,7 @@ php artisan media:pack-index "D:\000_HC_PACK_012025"
 
 The files themselves are not on the server: the team sends them, the app records who asked and when.
 
-## 7. Settings people usually change (`config/media-requests.php`)
+## 8. Settings people usually change (`config/media-requests.php`)
 
 - `work`: working days and hours, the days each request type takes, the team's capacity.
 - `specialties`: which request types belong to which specialty, and the words in position titles.
@@ -145,7 +157,7 @@ The files themselves are not on the server: the team sends them, the app records
 
 After changing a config file on the server, run `php artisan optimize` again.
 
-## 8. Good to know
+## 9. Good to know
 
 - Notifications are inside the app (the bell); no email is sent, so no mail server is needed.
 - The sample accounts and the "sample accounts" list on the sign-in page exist only on a local copy

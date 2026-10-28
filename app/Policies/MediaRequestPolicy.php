@@ -91,7 +91,8 @@ class MediaRequestPolicy
 
     public function reviewResult(User $user, MediaRequest $r): bool
     {
-        return $r->status === S::RequesterReview && $this->isRequester($user, $r);
+        // The requester or the program manager: either one approving, or asking for changes, is enough.
+        return $r->status === S::RequesterReview && ($this->isRequester($user, $r) || $this->pm($user, $r));
     }
 
     public function markReady(User $user, MediaRequest $r): bool
@@ -132,13 +133,18 @@ class MediaRequestPolicy
 
     public function hold(User $user, MediaRequest $r): bool
     {
+        if ($r->status === S::ProgramApproval) {
+            return $this->pm($user, $r);   // the program manager postpones at their own approval
+        }
+
         return $this->mm($user) && $r->isOpen()
-            && ! in_array($r->status, [S::OnHold, S::NeedsInfo, S::ProgramApproval], true);
+            && ! in_array($r->status, [S::OnHold, S::NeedsInfo], true);
     }
 
     public function resume(User $user, MediaRequest $r): bool
     {
-        return $r->status === S::OnHold && $this->mm($user);
+        return $r->status === S::OnHold
+            && ($r->held_by === 'program_manager' ? $this->pm($user, $r) : $this->mm($user));
     }
 
     public function cancel(User $user, MediaRequest $r): bool
@@ -165,6 +171,11 @@ class MediaRequestPolicy
     /** Is it this person's turn? Drives "needs your action" everywhere. */
     public function isOwner(User $user, MediaRequest $r): bool
     {
+        // The result waits for the requester and the program manager alike.
+        if ($r->status === S::RequesterReview && $this->pm($user, $r)) {
+            return true;
+        }
+
         return match ($r->owner()) {
             'requester' => $this->isRequester($user, $r),
             'program_manager' => $this->pm($user, $r),

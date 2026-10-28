@@ -32,7 +32,7 @@ class MediaRequest extends Model implements HasMedia
         'needs_program_approval', 'program_approver_id', 'program_approved_at',
         'media_approver_id', 'media_approved_at', 'assignee_id', 'priority', 'planned_for',
         'internal_ok', 'revisions', 'draft_link', 'result_link', 'archive_link', 'archive_name',
-        'last_nudged_at', 'delivered_at',
+        'last_nudged_at', 'last_reminded_on', 'delivered_at',
     ];
 
     protected $casts = [
@@ -127,6 +127,15 @@ class MediaRequest extends Model implements HasMedia
         return ($this->service === '001' && in_array($this->type, ['print', 'production'], true)) || $this->wantsPrint();
     }
 
+    /**
+     * Photography (shoots and photo delivery) and video filming end with a link: the media
+     * manager checks it and it is delivered, without a requester review. Editing keeps the full review.
+     */
+    public function shortPath(): bool
+    {
+        return $this->service === '002' || ($this->service === '003' && $this->type === 'shoot');
+    }
+
     /** A new design the requester also wants printed, in this same request. */
     public function wantsPrint(): bool
     {
@@ -187,7 +196,8 @@ class MediaRequest extends Model implements HasMedia
         return array_values(array_filter([
             'submitted',
             $this->needs_program_approval ? 'pm' : null,
-            'mm', 'claim', 'progress', 'int', 'req',
+            'mm', 'claim', 'progress', 'int',
+            $this->shortPath() ? null : 'req',
             $this->needsProduction() ? 'production' : null,
             'delivery',
         ]));

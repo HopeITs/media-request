@@ -30,12 +30,17 @@ class MediaRequestNotifier
             'packAsked' => $this->team->accounts($this->team->members()),
             'pmApproved', 'mmApproved' => $this->owners($r)->merge($this->requester($r)),
             'assigned' => $this->owners($r)->merge($this->requester($r)),
-            'claimed', 'started', 'draft', 'sentReq', 'intOk', 'ready', 'delivered', 'packDone',
+            // A result to review goes to the requester and the program manager: either may approve it.
+            'intOk', 'sentReq' => $this->requester($r)->merge($this->team->accounts($this->team->programManagers($r->program))),
+            'claimed', 'started', 'draft', 'ready', 'delivered', 'packDone',
             'info', 'rejected', 'hold' => $this->requester($r),
             'sentInt' => $this->owners($r),
             'intBack', 'changes', 'reqOk' => $this->assignee($r),
             'cancelled' => $this->assignee($r)->merge($r->status === S::Cancelled ? $this->team->accounts($this->team->managers()) : collect()),
             'comment' => $this->conversationPartners($r, $actor),
+            // Deadline reminders (media:remind): whoever holds it; when it is late, also the assignee and the media manager.
+            'dueSoon', 'dueToday' => $this->owners($r),
+            'overdue' => $this->owners($r)->merge($this->assignee($r))->merge($this->team->accounts($this->team->managers())),
             default => collect(),
         };
 
