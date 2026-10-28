@@ -418,8 +418,38 @@ select.inp{cursor:pointer}
 [dir=rtl] .nlist li.unread a{border-radius:10px 0 0 10px}
 .readall{min-height:30px;padding:0;font-size:14px;margin-bottom:4px}
 .reqpanel-back{align-items:stretch;justify-content:flex-end}
-.reqpanel{position:relative;width:min(920px,100%);height:100%;overflow:auto;background:var(--bg);padding:28px clamp(16px,4vw,40px) 40px;box-shadow:var(--shadow);animation:reqin .22s cubic-bezier(.2,.8,.2,1)}
+.reqpanel{position:relative;width:min(1320px,100%);height:100%;overflow:auto;overflow-x:hidden;overscroll-behavior:contain;background:var(--bg);padding:22px clamp(16px,3vw,32px) 28px;box-shadow:var(--shadow);animation:reqin .22s cubic-bezier(.2,.8,.2,1);container-type:inline-size}
 .reqpanel-x{position:sticky;top:0;float:inline-end;z-index:2;background:var(--card);box-shadow:var(--shadow-sm)}
+/* On a wide screen the panel is a card that fits the screen: wider, so it needs less height. */
+@media (min-width:900px){
+  .reqpanel-back{align-items:center;justify-content:center;padding:16px}
+  .reqpanel{width:min(1320px,100%);height:auto;max-height:calc(100dvh - 32px);border-radius:22px}
+}
+/* Inside the panel everything is tighter, and the overview cards sit side by side when there is room. */
+.reqpanel .dh{gap:6px;margin-bottom:14px}
+.reqpanel .dh h1{font-size:clamp(20px,2.4vw,28px);line-height:1.2;padding-inline-end:52px}
+.reqpanel .card{padding:16px 18px}
+.reqpanel .card[aria-labelledby=trk]{margin-bottom:14px!important}
+.reqpanel .curstat{margin-top:12px;padding-top:12px}
+.reqpanel .dgrid{gap:16px}
+.reqpanel .dgrid aside{top:0}
+.reqpanel .stack{gap:14px}
+.reqpanel .resgal img{max-height:140px}
+.reqpanel .tabs{overflow:visible}
+.reqpanel .tabs button{flex:1 1 auto;min-width:0;justify-content:center;padding:0 4px;white-space:nowrap}
+@container (max-width:420px){.reqpanel .tabs button{font-size:14px;gap:5px}.reqpanel .tabs button svg{width:16px;height:16px}}
+@container (min-width:860px){
+  .reqpanel .dgrid{grid-template-columns:minmax(0,1fr) clamp(290px,28cqi,340px)}
+  .reqpanel [x-show="tab === 'overview'"].stack{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+  .reqpanel [x-show="tab === 'overview'"].stack .dl{grid-template-columns:minmax(0,1fr);gap:2px}
+  .reqpanel [x-show="tab === 'overview'"].stack .dl dt{color:var(--text-2);font-size:13.5px}
+  .reqpanel [x-show="tab === 'overview'"].stack .dl dd{margin:0 0 10px;font-weight:600}
+  .reqpanel [x-show="tab === 'overview'"].stack>section:only-child,.reqpanel [x-show="tab === 'overview'"].stack>section:nth-child(3){grid-column:1/-1}
+}
+@container (max-width:760px){
+  .reqpanel .dgrid{grid-template-columns:minmax(0,1fr)}
+  .reqpanel .dgrid aside{position:static}
+}
 @keyframes reqin{from{transform:translateX(24px)}to{transform:none}}
 [dir=rtl] .reqpanel{animation-name:reqin-rtl}
 @keyframes reqin-rtl{from{transform:translateX(-24px)}to{transform:none}}
