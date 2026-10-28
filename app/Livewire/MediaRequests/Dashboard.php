@@ -1,0 +1,229 @@
+<?php
+
+namespace App\Livewire\MediaRequests;
+
+use App\Enums\MediaRequestStatus as S;
+use App\Models\MediaDashboard;
+use App\Models\MediaRequest;
+use App\Models\User;
+use App\Support\MediaRequests\DashboardLayout;
+use App\Support\MediaRequests\MediaTeam;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Gate;
+use Livewire\Attributes\Renderless;
+use Livewire\Attributes\Url;
+use Livewire\Component;
+
+/**
+ * Each person's home screen, phone style: widgets and app shortcuts on a grid.
+ *
+ * Moving, resizing, pinning, hiding and adding all happen in the browser at
+ * once (Alpine + SortableJS); the new layout is then saved here in the
+ * background without re-rendering, so nothing jumps or waits on the server.
+ * The layout and the private notes are stored per person (media_dashboards),
+ * and every stored layout is cleaned by DashboardLayout before use.
+ */
+class Dashboard extends Component
+{
+    public string $notes = '';
+
+    #[Url(as: 'month')]
+    public string $month = '';
+
+    /** The request open in the panel over the home screen (a request link or notification lands here). */
+    #[Url(as: 'open', except: null)]
+    public ?int $open = null;
+
+    /** The notifications panel over the home screen (the bell in the top bar opens it). */
+    #[Url(as: 'bell', except: false)]
+    public bool $bellOpen = false;
+
+    public function mount(): void
+    {
+        $this->notes = (string) $this->record()->notes;
+        $this->month = $this->validMonth($this->month);
+        if ($this->open) {
+            $this->openRequest($this->open);
+        }
+    }
+
+    /**
+     * The whole layout as the browser now shows it.
+     *
+     * @param  array<int, array{key?: string, size?: string, pinned?: bool, hidden?: bool}>  $items
+     */
+    #[Renderless]
+    public function saveLayout(array $items): void
+    {
+        $this->record()->update([
+            'layout' => app(DashboardLayout::class)->clean(auth()->user(), array_slice($items, 0, 60)),
+        ]);
+    }
+
+    public function resetLayout(): void
+    {
+        $this->record()->update(['layout' => null]);
+    }
+
+    #[Renderless]
+    public function saveNotes(): void
+    {
+        $this->validate(['notes' => ['nullable', 'string', 'max:10000']]);
+        $this->record()->update(['notes' => $this->notes]);
+    }
+
+    public function shiftMonth(int $delta): void
+    {
+        $this->month = Carbon::createFromFormat('Y-m-d', $this->validMonth($this->month).'-01')->addMonthsNoOverflow($delta < 0 ? -1 : 1)->format('Y-m');
+    }
+
+    /** Open a request in the panel; only one the person may see. */
+    public function openRequest(int $id): void
+    {
+        $request = MediaRequest::find($id);
+        $this->open = $request && Gate::allows('view', $request) ? $id : null;
+    }
+
+    public function closeRequest(): void
+    {
+        $this->open = null;
+    }
+
+    public function toggleBell(): void
+    {
+        $this->bellOpen = ! $this->bellOpen;
+    }
+
+    /** A notification from the card: mark it read and open its request here. */
+    public function openNotification(string $id): void
+    {
+        $n = auth()->user()->notifications()->whereKey($id)->first();
+        if (! $n) {
+            return;
+        }
+
+        $n->markAsRead();
+        $this->bellOpen = false;
+        if ($requestId = $n->data['media_request_id'] ?? null) {
+            $this->openRequest((int) $requestId);
+        }
+    }
+
+    public function markAllRead(): void
+    {
+        auth()->user()->unreadNotifications->markAsRead();
+    }
+
+    public function thisMonth(): void
+    {
+        $this->month = now()->format('Y-m');
+    }
+
+    public function render()
+    {
+        $user = auth()->user();
+        $cards = app(DashboardLayout::class);
+        $layout = $cards->clean($user, $this->record()->layout);
+        $keys = array_column($layout, 'key');
+
+        return view('livewire.media-requests.dashboard', [
+            'layout' => $layout,
+            'cards' => $cards,
+            // Always counted: the greeting says how many wait on you, even with the card hidden.
+            'waiting' => $this->waiting($user),
+            'calendar' => in_array('calendar', $keys, true) ? $this->calendar($user) : [],
+            'team' => in_array('team', $keys, true) ? $this->teamLoad() : collect(),
+            'mine' => in_array('mine', $keys, true) ? $this->mine($user) : collect(),
+            'bell' => in_array('bell', $keys, true) || $this->bellOpen ? $user->notifications()->limit(30)->get() : collect(),
+            'openRequest' => $this->open ? MediaRequest::find($this->open) : null,
+        ]);
+    }
+
+    // ------------------------------------------------------------------
+
+    /** Open requests that wait on this person, most urgent first. */
+    private function waiting(User $user): Collection
+    {
+        return MediaRequest::query()->open()->relevantTo($user)
+            ->with(['requester', 'assignee', 'program', 'city'])
+            ->orderBy('needed_by')->limit(100)->get()
+            ->filter(fn (MediaRequest $r) => Gate::allows('isOwner', $r))
+            ->values();
+    }
+
+    /** The person's own requests: open ones first, then the latest finished. */
+    private function mine(User $user): Collection
+    {
+        return MediaRequest::query()->where('requester_id', $user->employee_id)
+            ->with(['assignee', 'program', 'city'])
+            ->latest()->limit(40)->get()
+            ->sortBy(fn (MediaRequest $r) => $r->isOpen() ? 0 : 1)
+            ->values();
+    }
+
+    /** Weeks of the shown month (Saturday first), each day with the requests needed that day. */
+    private function calendar(User $user): array
+    {
+        $first = Carbon::createFromFormat('Y-m-d', $this->validMonth($this->month).'-01')->startOfDay();
+        $start = $first->copy()->startOfWeek(Carbon::SATURDAY);
+        $end = $first->copy()->endOfMonth()->endOfWeek(Carbon::FRIDAY);
+
+        $byDay = MediaRequest::query()->relevantTo($user)
+            ->whereNotIn('status', [S::Rejected, S::Cancelled])
+            ->whereBetween('needed_by', [$start->toDateString(), $end->toDateString()])
+            ->orderBy('needed_by')->get()
+            ->groupBy(fn (MediaRequest $r) => $r->needed_by->toDateString());
+
+        $weeks = [];
+        for ($day = $start->copy(); $day->lte($end); $day->addDay()) {
+            $weeks[intdiv($start->diffInDays($day), 7)][] = [
+                'date' => $day->copy(),
+                'in' => $day->month === $first->month,
+                'today' => $day->isToday(),
+                'items' => $byDay->get($day->toDateString(), collect()),
+            ];
+        }
+
+        return ['first' => $first, 'weeks' => $weeks];
+    }
+
+    /**
+     * What each team member is doing now, for the media manager and the team:
+     * the request they are working on, the ones they took but have not started,
+     * and the others they hold (in review, at the printer, waiting for an answer).
+     * First row: requests nobody has taken yet.
+     */
+    private function teamLoad(): Collection
+    {
+        $held = [S::Assigned, S::InProgress, S::InternalReview, S::RequesterReview, S::Production, S::Delivery, S::NeedsInfo];
+        $byPerson = MediaRequest::query()->whereIn('status', $held)->whereNotNull('assignee_id')
+            ->orderByDesc('status_changed_at')->get()->groupBy('assignee_id');
+        $toClaim = MediaRequest::query()->where('status', S::ToClaim)->orderBy('needed_by')->get();
+
+        return app(MediaTeam::class)->members()
+            ->map(function ($e) use ($byPerson) {
+                $mine = $byPerson->get($e->id, collect());
+
+                return [
+                    'employee' => $e,
+                    'now' => $mine->where('status', S::InProgress)->values(),
+                    'taken' => $mine->where('status', S::Assigned)->values(),
+                    'other' => $mine->whereNotIn('status', [S::InProgress, S::Assigned])->values(),
+                    'n' => $mine->count(),
+                ];
+            })
+            // Busiest first; free people last.
+            ->sortByDesc(fn ($row) => [$row['now']->count(), $row['n']])->values()
+            ->prepend(['employee' => null, 'now' => collect(), 'taken' => $toClaim, 'other' => collect(), 'n' => $toClaim->count()]);
+    }
+    private function record(): MediaDashboard
+    {
+        return MediaDashboard::firstOrCreate(['user_id' => auth()->id()]);
+    }
+
+    private function validMonth(string $month): string
+    {
+        return preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $month) ? $month : now()->format('Y-m');
+    }
+}
