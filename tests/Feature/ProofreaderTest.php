@@ -175,6 +175,8 @@ class ProofreaderTest extends TestCase
 
         Livewire::actingAs($rami)->test(ProofreaderPanel::class, ['inline' => true])
             ->assertSee(__('media.proof.upload'))
+            ->assertSee(__('media.proof.gem'))   // the team's Gem, in a new tab
+            ->assertSeeHtml('href="https://gemini.google.com/gem/')
             ->assertDontSeeHtml('class="mback"')
             // The open event is for the pop-up; the card keeps what is in it.
             ->set('text', 'فارس : ب')

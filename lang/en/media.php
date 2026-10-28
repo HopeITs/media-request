@@ -1139,4 +1139,6 @@ return [
     'people.qr.pm' => 'Program manager',
     'people.made' => ':email was added. Password:',
     'people.madeOnce' => 'It is shown this time only. Copy it and pass it on.',
+    'proof.gem' => 'Open in our Gem',
+    'proof.gemHint' => 'Copies the text and opens the team\'s Gem in a new tab; paste it there.',
 ];

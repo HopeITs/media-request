@@ -761,14 +761,17 @@ img[src*="hope-center.svg"]{filter:var(--logo)}
 .progress.lg .ic{width:18px;height:18px;margin-top:3px}
 /* Proofreader inside its home screen card */
 .is-widget[data-key="proof"] .wb{padding:0;display:flex;overflow:hidden}
-.proofinline,.proofinline>div{display:flex;flex-direction:column;flex:1;min-height:0;width:100%}
+/* Only the middle stretches and scrolls; the tabs and the buttons always keep their room, so Check is never hidden. */
+.proofinline{display:flex;flex-direction:column;flex:1;min-height:0;width:100%}
+.proofinline>.prooftabs,.proofinline>.mf{flex:none}
+.proofinline>.mb{flex:1 1 auto;min-height:0;overflow:auto}
 .proofinline .prooftabs{padding:0 12px}
 .proofinline .prooftabs button{padding:8px 8px;font-size:14px}
 .proofinline .mb{flex:1;min-height:0;overflow:auto;padding:10px 14px}
 .proofinline .mf{padding:8px 14px;gap:8px;flex-wrap:wrap}
 .proofinline .mf .btn{min-height:36px;padding-inline:12px;font-size:14px}
 .proofinline .mf .btn-p{min-width:0}
-.proofinline textarea{min-height:90px}
+.proofinline textarea{min-height:56px;height:100%;max-height:none}
 .proofinline .proofdrop{padding:8px 10px;margin-bottom:8px}
 .proofinline .proofdrop small{display:none}
 .proofinline .proofdiff{max-height:none}
@@ -911,3 +914,11 @@ img[src*="hope-center.svg"]{filter:var(--logo)}
 .madepw{margin-bottom:16px;align-items:center}
 .madepw>span{flex:1;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
 .madepw .pw{font-size:17px;letter-spacing:.04em;background:var(--soft);padding:2px 8px;border-radius:6px}
+/* A short card: fewer extras, so the text box and Check fit */
+@container w (max-height:340px){.proofinline .hint{display:none}.proofinline .prooftabs button{padding:6px 8px}}
+@container w (max-height:240px){.proofinline .prooftabs{display:none}}
+.proofinline .mb>textarea{flex:1}
+.proofinline .mb{display:flex;flex-direction:column}
+.proofinline .mb>*{flex:none}
+.proofinline .mb>textarea{flex:1 1 56px}
+.proofinline .mf .proofgem{margin-inline-start:auto}

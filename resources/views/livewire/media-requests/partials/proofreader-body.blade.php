@@ -91,7 +91,11 @@
             <button type="button" class="btn btn-p" wire:click="again"><x-ic n="plus" />{{ __('media.proof.new') }}</button>
         @elseif ($result === null)
             @unless ($inline)<button type="button" class="btn btn-o" wire:click="close">{{ __('media.close') }}</button>@else<span></span>@endunless
-            <button type="button" class="btn btn-p" wire:click="check" wire:loading.attr="data-loading" wire:target="check, file">
+            @if ($gemUrl = config('media-requests.proofread.gem_url'))
+                {{-- The team's own Gem, in a new tab: the text is copied first, to paste there. --}}
+                <a href="{{ $gemUrl }}" target="_blank" rel="noopener" class="btn btn-o proofgem" title="{{ __('media.proof.gemHint') }}"
+                   x-data x-on:click="navigator.clipboard && navigator.clipboard.writeText($wire.text || '')"><x-ic n="external" />{{ __('media.proof.gem') }}</a>
+            @endif            <button type="button" class="btn btn-p" wire:click="check" wire:loading.attr="data-loading" wire:target="check, file">
                 <span class="spin"></span><x-ic n="check" wire:loading.remove wire:target="check" />{{ __('media.proof.go') }}
             </button>
         @else

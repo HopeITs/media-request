@@ -97,6 +97,9 @@ return [
         // The "-latest" names follow Google's current models, so they keep working when old ones retire.
         'models' => array_filter(explode(',', (string) env('GEMINI_MODEL', 'gemini-flash-lite-latest,gemini-flash-latest'))),
         'daily_limit' => 40,   // AI checks per person per day
+        // The team's own Gemini Gem (gemini.google.com/gem/...): a button copies the text and opens it.
+        // Google does not allow it inside another page, so it opens in a new tab. Set GEMINI_GEM_URL= (empty) to hide it.
+        'gem_url' => env('GEMINI_GEM_URL', 'https://gemini.google.com/gem/1d2AX7yQRcwnA2HjrkAixmFY-aDerNRFQ?usp=sharing'),
     ],
     // HC_PACK index: one [path, bytes] pair per file, relative to the pack root.
     // Rebuild with: php artisan media:pack-index "D:\000_HC_PACK_012025"
