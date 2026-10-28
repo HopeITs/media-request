@@ -170,6 +170,50 @@ class ProcedureTest extends TestCase
         $this->actingAs($this->user('rami'))->get('/media-requests/home?open='.$r->id)->assertSee('mr-cel-'.$r->id, false);
     }
 
+    public function test_early_deliveries_get_a_badge(): void
+    {
+        $r = $this->toWork('002', 'export', ['deliverWhat' => 'select'], 'sami');   // due in 10 working days
+        $r->forceFill(['created_at' => now()->subDays(2)])->saveQuietly();   // asked two days ago: early, not same day
+        $this->w->sendResult($this->user('sami'), $r->fresh(), 'https://drive.google.com/drive/folders/p');
+
+        \Livewire\Livewire::actingAs($this->user('maya'))
+            ->test(\App\Livewire\MediaRequests\Show::class, ['mediaRequest' => $r->fresh()])
+            ->call('approveInternal')
+            ->assertDispatched('media-celebrate', label: __('media.cel.early'));
+
+        $done = $r->fresh();
+        $this->assertSame('early', $done->deliveryTiming());
+        $this->assertGreaterThan(1, $done->daysEarly());
+
+        // The request shows the badge; Sami's name on the team card shows his count.
+        $this->actingAs($this->user('rami'))->get('/media-requests/home?open='.$r->id)->assertSee('tag early', false);
+        $this->actingAs($this->user('maya'))->get('/media-requests/home')->assertSee('earlyme', false);
+
+        // On the day, or late: no badge.
+        $done->forceFill(['needed_by' => $done->delivered_at->toDateString()])->saveQuietly();
+        $this->assertSame('onTime', $done->fresh()->deliveryTiming());
+    }
+
+    public function test_a_same_day_delivery_gets_the_booster_badge(): void
+    {
+        $r = $this->toWork('002', 'export', ['deliverWhat' => 'select'], 'sami');   // asked for today
+        $this->w->sendResult($this->user('sami'), $r, 'https://drive.google.com/drive/folders/p');
+
+        \Livewire\Livewire::actingAs($this->user('maya'))
+            ->test(\App\Livewire\MediaRequests\Show::class, ['mediaRequest' => $r->fresh()])
+            ->call('approveInternal')
+            ->assertDispatched('media-celebrate', label: __('media.cel.boost'), boost: true);
+
+        $this->assertTrue($r->fresh()->sameDay());
+        $this->actingAs($this->user('rami'))->get('/media-requests/home?open='.$r->id)
+            ->assertSee('tag boost', false)->assertDontSee('tag early', false);   // the stronger one only
+        $this->actingAs($this->user('maya'))->get('/media-requests/home')->assertSee('boostme', false);
+
+        // Asked for yesterday: early, not same day.
+        $r->forceFill(['created_at' => now()->subDay()])->saveQuietly();
+        $this->assertFalse($r->fresh()->sameDay());
+    }
+
     private function toWork(string $service, string $type, array $answers, string $who, string $program = 'SZ', ?string $date = null): MediaRequest
     {
         $r = $this->submit($service, $type, $answers, $program, $date);

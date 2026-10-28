@@ -511,20 +511,24 @@ window.mrConfirm = function (message, opts = {}) {
  * With "reduce motion" it is a still check that leaves quickly. Fired by the
  * "media-celebrate" event (from Livewire), or called directly: mrCelebrate(label).
  */
-window.mrCelebrate = function (label) {
+window.mrCelebrate = function (label, boost = false) {
     if (document.querySelector('.celebrate')) return;
     const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const el = document.createElement('div');
-    el.className = 'celebrate' + (still ? ' still' : '');
+    el.className = 'celebrate' + (still ? ' still' : '') + (boost ? ' boost' : '');
     el.setAttribute('role', 'status');
     let bits = '';
-    for (let i = 0; i < 14; i++) {
-        const a = (360 / 14) * i + (i % 2 ? 8 : -8);
-        const d = 70 + (i % 3) * 18;
+    // Same-day delivery: twice the burst, and further.
+    const count = boost ? 28 : 14;
+    for (let i = 0; i < count; i++) {
+        const a = (360 / count) * i + (i % 2 ? 8 : -8);
+        const d = (boost ? 95 : 70) + (i % 3) * (boost ? 26 : 18);
         bits += '<i style="--a:' + a + 'deg;--d:' + d + 'px;--t:' + (i % 3) + '"></i>';
     }
     el.innerHTML = '<div class="cel-box"><div class="cel-burst">' + bits + '</div>'
-        + '<svg viewBox="0 0 52 52" aria-hidden="true"><circle class="cel-ring" cx="26" cy="26" r="23"/><path class="cel-check" d="M15 27l7 7 15-16"/></svg>'
+        + (boost
+            ? '<svg viewBox="0 0 24 24" class="cel-rocket" aria-hidden="true"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>'
+            : '<svg viewBox="0 0 52 52" aria-hidden="true"><circle class="cel-ring" cx="26" cy="26" r="23"/><path class="cel-check" d="M15 27l7 7 15-16"/></svg>')
         + (label ? '<b class="cel-label"></b>' : '') + '</div>';
     if (label) el.querySelector('.cel-label').textContent = label;
     document.body.appendChild(el);
@@ -532,6 +536,6 @@ window.mrCelebrate = function (label) {
     const esc = (e) => { if (e.key === 'Escape') done(); };
     el.addEventListener('click', done);
     window.addEventListener('keydown', esc);
-    setTimeout(done, still ? 900 : 1600);
+    setTimeout(done, still ? 900 : (boost ? 2100 : 1600));
 };
-window.addEventListener('media-celebrate', (e) => window.mrCelebrate(e.detail && e.detail.label));
+window.addEventListener('media-celebrate', (e) => window.mrCelebrate(e.detail && e.detail.label, !! (e.detail && e.detail.boost)));

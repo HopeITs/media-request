@@ -1149,4 +1149,13 @@ return [
     'late.mine' => '{1} You have a request past its deadline|[2,*] You have :n requests past their deadline',
     'late.team' => '{1} One request with the team is past its deadline|[2,*] :n requests with the team are past their deadline',
     'late.open' => 'Open the oldest (:days late)',
+    'early.tag' => '{1} A day early ⚡|[2,*] :n days early ⚡',
+    'early.title' => '{1} Delivered one working day before its deadline|[2,*] Delivered :n working days before its deadline',
+    'early.person' => '{1} Delivered one request early in the last 30 days|[2,*] Delivered :n requests early in the last 30 days',
+    'cel.early' => 'Delivered early ⚡',
+    'stats.col.early' => 'Early',
+    'boost.tag' => 'Same day 🚀',
+    'boost.title' => 'Delivered the very day it was asked for',
+    'boost.person' => '{1} Delivered one request on the day it was asked for, in the last 30 days|[2,*] Delivered :n requests on the day they were asked for, in the last 30 days',
+    'cel.boost' => 'Delivered the same day 🚀',
 ];

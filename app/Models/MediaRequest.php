@@ -112,6 +112,46 @@ class MediaRequest extends Model implements HasMedia
         return app(\App\Support\MediaRequests\MediaTeam::class)->specialty($this->service, $this->type);
     }
 
+    /** Delivered before (early), on (onTime) or after (late) its needed-by day; null while open. */
+    public function deliveryTiming(): ?string
+    {
+        if ($this->status !== MediaRequestStatus::Delivered || ! $this->delivered_at || ! $this->needed_by) {
+            return null;
+        }
+
+        $done = $this->delivered_at->copy()->startOfDay();
+        $due = $this->needed_by->copy()->startOfDay();
+
+        return $done->lt($due) ? 'early' : ($done->gt($due) ? 'late' : 'onTime');
+    }
+
+    /** Delivered on the very day it was asked for (Damascus time): the strongest badge. */
+    public function sameDay(): bool
+    {
+        if ($this->status !== MediaRequestStatus::Delivered || ! $this->delivered_at || ! $this->created_at) {
+            return false;
+        }
+        $tz = (string) config('media-requests.work.timezone', 'Asia/Damascus');
+
+        return $this->created_at->copy()->setTimezone($tz)->isSameDay($this->delivered_at->copy()->setTimezone($tz));
+    }
+
+    /** Working days delivered ahead of the needed-by day (0 unless early). */
+    public function daysEarly(): int
+    {
+        if ($this->deliveryTiming() !== 'early') {
+            return 0;
+        }
+
+        $calendar = app(\App\Support\MediaRequests\WorkCalendar::class);
+        $n = 0;
+        for ($d = $this->delivered_at->copy()->startOfDay()->addDay(); $d->lte($this->needed_by->copy()->startOfDay()); $d->addDay()) {
+            $n += $calendar->isWorkDay($d) ? 1 : 0;
+        }
+
+        return max(1, $n);
+    }
+
     public function isOpen(): bool
     {
         return in_array($this->status, MediaRequestStatus::open(), true);

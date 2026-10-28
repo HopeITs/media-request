@@ -118,6 +118,7 @@
                         <th scope="col">{{ __('media.stats.col.person') }}</th>
                         <th scope="col" class="n">{{ __('media.stats.col.delivered') }}</th>
                         <th scope="col" class="n">{{ __('media.stats.col.onTime') }}</th>
+                        <th scope="col" class="n">{{ __('media.stats.col.early') }}</th>
                         <th scope="col" class="n">{{ __('media.stats.col.returned') }}</th>
                         <th scope="col" class="n">{{ __('media.stats.col.working') }}</th>
                         <th scope="col" class="n">{{ __('media.stats.col.holding') }}</th>
@@ -129,6 +130,7 @@
                                     @foreach ($p['skills'] as $sk)<x-ic :n="config('media-requests.specialties.'.$sk.'.icon')" class="skill" title="{{ __('media.spec.'.$sk) }}" />@endforeach</th>
                                 <td class="n num">{{ $p['delivered'] }}</td>
                                 <td class="n num">{{ $p['delivered'] ? $pct($p['onTime'], $p['delivered']).'%' : '—' }}</td>
+                                <td class="n num">@if ($p['early'])<span class="earlyme"><x-ic n="bolt" />{{ $p['early'] }}</span>@else 0 @endif</td>
                                 <td class="n num">{{ $p['returned'] }}</td>
                                 <td class="n num">{{ $p['working'] }}</td>
                                 <td class="n num">{{ $p['holding'] }}</td>

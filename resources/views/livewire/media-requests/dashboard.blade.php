@@ -389,6 +389,8 @@
                                                 <span class="who">
                                                     <span @class(['dot', 'busy' => $row['now']->isNotEmpty(), 'idle' => $row['n'] === 0])></span>
                                                     <b>{{ $row['employee']->nameForLocale($locale) }}</b>
+                                                    @if ($row['boost'])<span class="earlyme boostme" title="{{ trans_choice('media.boost.person', $row['boost'], ['n' => $row['boost']]) }}"><x-ic n="rocket" /><span class="num">{{ $row['boost'] }}</span></span>@endif
+                                                    @if ($row['early'])<span class="earlyme" title="{{ trans_choice('media.early.person', $row['early'], ['n' => $row['early']]) }}"><x-ic n="bolt" /><span class="num">{{ $row['early'] }}</span></span>@endif
                                                     @foreach (app(\App\Support\MediaRequests\MediaTeam::class)->skillsOf($row['employee']) as $s)<x-ic :n="config('media-requests.specialties.'.$s.'.icon')" class="skill" title="{{ __('media.spec.'.$s) }}" />@endforeach
                                                 </span>
                                                 @if ($now = $row['now']->first())

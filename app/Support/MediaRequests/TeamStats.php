@@ -67,6 +67,7 @@ class TeamStats
                 'skills' => $this->team->skillsOf($e),
                 'delivered' => $delivered->where('assignee_id', $e->id)->count(),
                 'onTime' => $delivered->where('assignee_id', $e->id)->filter(fn ($r) => $this->timing($r) !== 'late')->count(),
+                'early' => $delivered->where('assignee_id', $e->id)->filter(fn ($r) => $this->timing($r) === 'early')->count(),
                 'working' => $open->where('assignee_id', $e->id)->where('status', S::InProgress)->count(),
                 'holding' => $open->where('assignee_id', $e->id)->whereIn('status', self::HELD)->count(),
                 'returned' => MediaRequest::whereIn('id', $returned->all())->where('assignee_id', $e->id)->count(),
@@ -74,17 +75,10 @@ class TeamStats
         ];
     }
 
-    /** early | onTime | late, by the delivery day against the needed-by day. */
+    /** early | onTime | late, by the delivery day against the needed-by day (see MediaRequest::deliveryTiming). */
     public function timing(MediaRequest $r): string
     {
-        if (! $r->needed_by || ! $r->delivered_at) {
-            return 'onTime';
-        }
-
-        $done = $r->delivered_at->copy()->startOfDay();
-        $due = $r->needed_by->copy()->startOfDay();
-
-        return $done->lt($due) ? 'early' : ($done->gt($due) ? 'late' : 'onTime');
+        return $r->deliveryTiming() ?? 'onTime';
     }
 
     /** Ids of requests sent back for changes in the period. */

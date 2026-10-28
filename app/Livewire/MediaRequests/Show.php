@@ -243,7 +243,8 @@ class Show extends Component
 
         // Delivered: a short celebration for whoever delivered it.
         if ($this->mediaRequest->status === \App\Enums\MediaRequestStatus::Delivered) {
-            $this->dispatch('media-celebrate', label: __('media.cel.delivered'));
+            $r = $this->mediaRequest;
+            $this->dispatch('media-celebrate', label: __($r->sameDay() ? 'media.cel.boost' : ($r->deliveryTiming() === 'early' ? 'media.cel.early' : 'media.cel.delivered')), boost: $r->sameDay());
         }
     }
 }

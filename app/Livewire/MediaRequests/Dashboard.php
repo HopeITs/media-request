@@ -298,9 +298,13 @@ class Dashboard extends Component
         $byPerson = MediaRequest::query()->whereIn('status', $held)->whereNotNull('assignee_id')
             ->orderByDesc('status_changed_at')->get()->groupBy('assignee_id');
         $toClaim = MediaRequest::query()->where('status', S::ToClaim)->orderBy('needed_by')->get();
+        // Delivered early in the last 30 days, per person: their badge on the card.
+        $recent = MediaRequest::query()->where('status', S::Delivered)->where('delivered_at', '>=', now()->subDays(30))->whereNotNull('assignee_id')->get();
+        $boost = $recent->filter(fn (MediaRequest $r) => $r->sameDay())->countBy('assignee_id');
+        $early = $recent->filter(fn (MediaRequest $r) => ! $r->sameDay() && $r->deliveryTiming() === 'early')->countBy('assignee_id');
 
         return app(MediaTeam::class)->members()
-            ->map(function ($e) use ($byPerson) {
+            ->map(function ($e) use ($byPerson, $early, $boost) {
                 $mine = $byPerson->get($e->id, collect());
 
                 return [
@@ -309,11 +313,13 @@ class Dashboard extends Component
                     'taken' => $mine->where('status', S::Assigned)->values(),
                     'other' => $mine->whereNotIn('status', [S::InProgress, S::Assigned])->values(),
                     'n' => $mine->count(),
+                    'early' => (int) ($early[$e->id] ?? 0),
+                    'boost' => (int) ($boost[$e->id] ?? 0),
                 ];
             })
             // Busiest first; free people last.
             ->sortByDesc(fn ($row) => [$row['now']->count(), $row['n']])->values()
-            ->prepend(['employee' => null, 'now' => collect(), 'taken' => $toClaim, 'other' => collect(), 'n' => $toClaim->count()]);
+            ->prepend(['employee' => null, 'now' => collect(), 'taken' => $toClaim, 'other' => collect(), 'n' => $toClaim->count(), 'early' => 0, 'boost' => 0]);
     }
     private function record(): MediaDashboard
     {

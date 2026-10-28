@@ -973,3 +973,23 @@ img[src*="hope-center.svg"]{filter:var(--logo)}
 .tag.late{animation:latepulse 2.4s ease-in-out infinite}
 @keyframes latepulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--brand) 45%,transparent)}50%{box-shadow:0 0 0 5px transparent}}
 @media (prefers-reduced-motion:reduce){.lateband::after,.lateband .lb-ico,.tag.late{animation:none}}
+/* Delivered early: a badge that catches the eye, once */
+.tag.early{background:var(--ink);color:var(--on-ink);border-color:var(--ink);font-weight:800;position:relative;overflow:hidden}
+.tag.early .ic{color:var(--brand)}
+.tag.early::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.45) 50%,transparent 65%);transform:translateX(-120%);animation:earlyshine 2.4s .4s ease-in-out 2}
+@keyframes earlyshine{to{transform:translateX(120%)}}
+.earlyme{display:inline-flex;align-items:center;gap:2px;margin-inline-start:6px;padding:0 7px;border-radius:999px;background:var(--ink);color:var(--on-ink);font-size:12px;font-weight:800;line-height:20px}
+.earlyme .ic{width:12px;height:12px;color:var(--brand)}
+@media (prefers-reduced-motion:reduce){.tag.early::after{animation:none}}
+/* Same day: the strongest badge, red with a glow */
+.tag.boost{background:var(--brand);color:#fff;border-color:var(--brand);font-weight:800;box-shadow:0 0 0 0 color-mix(in srgb,var(--brand) 55%,transparent);animation:boostglow 2.2s ease-in-out 3}
+.tag.boost .ic{color:#fff;animation:boostlift 2.2s ease-in-out 3}
+@keyframes boostglow{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--brand) 55%,transparent)}50%{box-shadow:0 0 10px 2px color-mix(in srgb,var(--brand) 55%,transparent)}}
+@keyframes boostlift{0%,100%{transform:none}50%{transform:translate(1px,-2px) rotate(-8deg)}}
+.earlyme.boostme{background:var(--brand);color:#fff}
+.earlyme.boostme .ic{color:#fff}
+.celebrate.boost .cel-box{border:2px solid var(--brand)}
+.cel-rocket{width:96px;height:96px;fill:none;stroke:var(--brand);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;animation:rocketup .9s cubic-bezier(.2,1.2,.4,1) both}
+@keyframes rocketup{0%{transform:translate(-30px,40px) scale(.6) rotate(10deg);opacity:0}60%{opacity:1}100%{transform:none}}
+.celebrate.boost .cel-burst i:nth-child(4n){background:#fff;box-shadow:0 0 0 1px var(--brand)}
+@media (prefers-reduced-motion:reduce){.tag.boost,.tag.boost .ic,.cel-rocket{animation:none}}
