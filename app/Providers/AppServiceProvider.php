@@ -26,6 +26,10 @@ class AppServiceProvider extends ServiceProvider
     {
         Gate::policy(MediaRequest::class, MediaRequestPolicy::class);
 
+        // Someone on the Media team list takes their place on the team the first time they sign in.
+        \Illuminate\Support\Facades\Event::listen(\Illuminate\Auth\Events\Login::class,
+            fn ($e) => $e->user instanceof \App\Models\User ? app(\App\Support\MediaRequests\TeamRoster::class)->welcome($e->user) : null);
+
         Blade::if('activepermission', function (string $permission) {
             return auth()->user()?->hasActivePermission($permission) ?? false;
         });

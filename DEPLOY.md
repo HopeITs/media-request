@@ -76,6 +76,11 @@ someone@hcsyria.org,Some One,,HMS,member,"Photographer / Videographer (on need) 
 New people get a password, printed once at the end; pass each one on privately. Running it again
 updates people (same email) and keeps their passwords.
 
+Once the file is in place, the list also works by itself: anyone on it whom Fares adds on the People page
+(even with quick add as "Team"), or who signs in while not yet on the team, takes their place on the team
+right away (role, specialties, city, hours). `media:admin` for Fares reads his row too. Changes made later
+on the People page are kept; to apply a changed list to everyone, run `php artisan media:team` again.
+
 Folders the web server user (e.g. `www-data`) must be able to write:
 
 ```bash

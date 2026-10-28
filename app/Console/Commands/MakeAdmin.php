@@ -54,9 +54,15 @@ class MakeAdmin extends Command
             app(\App\Support\MediaRequests\MediaTeam::class)->flush();
         }
 
-        User::updateOrCreate(['email' => $email], [
+        $admin = User::updateOrCreate(['email' => $email], [
             'name' => $name, 'password' => $password, 'role' => 'super-admin', 'employee_id' => $employee->id,
         ]);
+
+        // On the Media team list: specialties, city and hours from it.
+        $roster = app(\App\Support\MediaRequests\TeamRoster::class);
+        if (($row = $roster->find($email)) && $roster->problem($row) === null) {
+            $roster->apply($row, $admin->fresh());
+        }
 
         $this->info(($user ? 'Updated' : 'Created')." administrator {$email}".($this->option('media-manager') ? ' (also the media manager)' : '').'. Sign in, then add people on the People page.');
 

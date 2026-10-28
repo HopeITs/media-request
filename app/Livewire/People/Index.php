@@ -148,7 +148,10 @@ class Index extends Component
                 $account['password'] = $data['password'];
             }
 
-            User::updateOrCreate(['id' => $userId], $account);
+            $user = User::updateOrCreate(['id' => $userId], $account);
+            if (! $userId) {
+                app(\App\Support\MediaRequests\TeamRoster::class)->welcome($user->fresh());   // on the Media team list
+            }
         });
 
         $this->resetForm();
@@ -188,10 +191,16 @@ class Index extends Component
                 $employee->managedPrograms()->sync($data['quickPrograms']);
             }
 
-            User::create([
+            $user = User::create([
                 'email' => $data['quickEmail'], 'name' => $data['quickName'], 'password' => $password,
                 'role' => $data['quickRole'] === 'pm' ? 'manager' : 'employee', 'employee_id' => $employee->id,
             ]);
+
+            // On the Media team list: their role, specialties, city and hours come from it.
+            $roster = app(\App\Support\MediaRequests\TeamRoster::class);
+            if (($row = $roster->find($user->email)) && $roster->problem($row) === null) {
+                $roster->apply($row, $user->fresh());
+            }
         });
         app(\App\Support\MediaRequests\MediaTeam::class)->flush();
 
