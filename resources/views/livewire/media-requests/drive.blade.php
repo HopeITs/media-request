@@ -34,7 +34,7 @@
 
     @if (trim($search) !== '')
         {{-- Search across all folders --}}
-        <ul class="dgrid">
+        <ul class="drivegrid">
             @forelse ($found as $r)
                 <li><a href="{{ route('media-requests.drive', ['p' => $r->program_id, 'c' => $r->city_id, 'r' => $r->id]) }}" wire:navigate class="dfolder">
                     <span class="dico"><x-ic n="inbox" /></span>
@@ -58,7 +58,7 @@
 
             @php($links = array_filter(['draft' => $r->draft_link, 'result' => $r->result_link, 'archive' => $r->archive_link]))
             @if ($links)
-                <ul class="dgrid">
+                <ul class="drivegrid">
                     @foreach ($links as $kind => $href)
                         <li><a href="{{ $href }}" target="_blank" rel="noopener noreferrer" class="dfolder dlink">
                             <span class="dico"><x-ic n="link" /></span>
@@ -96,7 +96,7 @@
         </div>
     @else
         {{-- Folders --}}
-        <ul class="dgrid">
+        <ul class="drivegrid">
             @forelse ($folders as $f)
                 <li><button type="button" class="dfolder" wire:click="open('{{ $f['level'] }}', {{ $f['id'] }})">
                     <span class="dico"><x-ic :n="$f['level'] === 'request' ? 'inbox' : 'layers'" /></span>
