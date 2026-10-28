@@ -20,8 +20,8 @@
     ], fn ($item) => $item[3]);
     // People who only ask for work have the home screen only: no page links, and the bell is a card there.
     $requesterOnly = $team->isRequesterOnly($user);
-    // The home screen uses the whole width of a big screen; other pages keep a reading width.
-    $wide = request()->routeIs('media-requests.home');
+    // Every page uses the whole width of a big screen, like the home screen.
+    $wide = true;
     if ($requesterOnly) {
         $nav = [];
     }

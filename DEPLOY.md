@@ -1,0 +1,147 @@
+# Putting Media Requests on a server (on its own, not inside the HR app)
+
+A Laravel 12 + Livewire 3 app. No build step (no Node/npm), no background worker,
+no scheduled tasks: a web server with PHP and one database is enough.
+
+## 1. What the server needs
+
+- **PHP 8.2 or newer** (8.3 tested), with the extensions: `mbstring`, `xml`/`dom`, `zip`, `fileinfo`,
+  `curl`, `openssl`, `pdo` with the driver for the database (`pdo_mysql` or `pdo_sqlite`), `intl` (recommended).
+- **Composer 2**.
+- **A database**: MySQL 8 / MariaDB 10.6+ (recommended for a server), or SQLite (simplest, one file).
+- **A web server** (Nginx or Apache) whose document root is the app's **`public/`** folder, never the app folder itself.
+- **HTTPS** (a certificate, e.g. Let's Encrypt).
+- **Outgoing HTTPS** to `generativelanguage.googleapis.com`, only if the proofreader's AI part is wanted.
+
+## 2. First install
+
+```bash
+git clone git@github.com:HopeITs/media_request.git media-requests
+cd media-requests
+composer install --no-dev --optimize-autoloader
+cp .env.example .env
+php artisan key:generate
+```
+
+Edit `.env` (the values that matter):
+
+```ini
+APP_NAME="Media Requests"
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://media.example.org        # the real address, with https
+APP_LOCALE=en                            # en or ar: the language people see first
+
+DB_CONNECTION=mysql                      # or sqlite (then remove the DB_* lines below)
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=media_requests
+DB_USERNAME=media_requests
+DB_PASSWORD=change-me
+
+SESSION_SECURE_COOKIE=true               # cookies only over https
+LOG_LEVEL=warning
+
+# Proofreader (optional). Empty = only punctuation, spacing and numerals are fixed.
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-flash-lite-latest,gemini-flash-latest
+```
+
+Then:
+
+```bash
+php artisan migrate --force              # creates the tables
+php artisan db:seed --force              # programs and governorates only (no sample people in production)
+php artisan media:admin                  # the first administrator; asks for the password, never shows it
+php artisan optimize                     # caches config, routes and views
+```
+
+Folders the web server user (e.g. `www-data`) must be able to write:
+
+```bash
+chown -R www-data:www-data storage bootstrap/cache
+chmod -R ug+rwX storage bootstrap/cache
+```
+
+Sign in with the administrator, then add people on the **People** page: their role, whether they
+are on the Media team (member or manager), their position title (the specialty is read from it:
+"Communication team member / Photographer", "… / Videographer", "… / Designer"), and which
+programs they manage.
+
+## 3. Web server
+
+**Nginx** (the important lines):
+
+```nginx
+server {
+    server_name media.example.org;
+    root /var/www/media-requests/public;
+    index index.php;
+
+    client_max_body_size 60M;            # uploads are up to 50 MB per file
+
+    location / { try_files $uri $uri/ /index.php?$query_string; }
+    location ~ \.php$ {
+        include fastcgi_params;
+        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+    }
+    location ~ /\.(?!well-known) { deny all; }
+}
+```
+
+PHP (`php.ini`): `upload_max_filesize = 50M`, `post_max_size = 60M`.
+
+**Apache**: point the site's `DocumentRoot` at `public/` and allow `.htaccess` (`AllowOverride All`);
+`public/.htaccess` is included.
+
+## 4. Updating to a new version
+
+```bash
+cd /var/www/media-requests
+php artisan down
+git pull
+composer install --no-dev --optimize-autoloader
+php artisan migrate --force
+php artisan optimize
+php artisan up
+```
+
+## 5. Backups
+
+Two things hold all the data:
+
+- **the database** (requests, history, comments, notifications, people, home screens, proofreading history);
+- **`storage/app/private/`**: the files people attach to requests.
+
+Back up both, every day. `.env` holds the app key: keep a copy somewhere safe, because without it
+sessions and anything encrypted cannot be read.
+
+## 6. HC_PACK search
+
+The HC_PACK search reads a list of the pack's files from `resources/data/hc-pack.json` (shipped in the
+repository). When the pack changes, rebuild the list on a machine that has the pack folder and commit it:
+
+```bash
+php artisan media:pack-index "D:\000_HC_PACK_012025"
+```
+
+The files themselves are not on the server: the team sends them, the app records who asked and when.
+
+## 7. Settings people usually change (`config/media-requests.php`)
+
+- `work`: working days and hours, the days each request type takes, the team's capacity.
+- `specialties`: which request types belong to which specialty, and the words in position titles.
+- `generator.url`: the HC Generator address (or `HC_GENERATOR_URL` in `.env`).
+- `proofread.daily_limit`: full AI checks per person per day.
+- Proofreader instructions: `resources/prompts/proofread.md`.
+
+After changing a config file on the server, run `php artisan optimize` again.
+
+## 8. Good to know
+
+- Notifications are inside the app (the bell); no email is sent, so no mail server is needed.
+- The sample accounts and the "sample accounts" list on the sign-in page exist only on a local copy
+  (`APP_ENV=local`), never on a server.
+- `.tools/` (portable PHP for the Windows preview) and `.env` are not in the repository.
+- Tests: `php artisan test` (needs the dev dependencies: `composer install` without `--no-dev`).

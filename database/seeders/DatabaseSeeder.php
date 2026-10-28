@@ -22,6 +22,13 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->places();
+
+        // On a real server only the programs and governorates: no sample people (their password is
+        // "password"). Create the first administrator there with: php artisan media:admin
+        if (app()->environment('production')) {
+            return;
+        }
+
         $people = $this->people();
 
         if (app()->environment('local')) {

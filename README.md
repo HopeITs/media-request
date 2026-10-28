@@ -25,20 +25,19 @@ All sample passwords are `password`. To start again from the sample data, with a
 .tools\php\php.exe artisan db:seed --class=DemoSeeder
 ```
 
-Tests: `.tools\php\php.exe artisan test` (64 tests, including one that opens every link for every kind of person).
+Tests: `.tools\php\php.exe artisan test` (73 tests, including one that opens every link for every kind of person).
 
 `.tools` holds a portable PHP 8.3 and Composer for this preview only. A server has its own PHP.
 
 ## Put it on a server
 
-Any PHP 8.2+ host with Composer.
+The full guide is in [DEPLOY.md](DEPLOY.md). In short, any PHP 8.2+ host with Composer:
 
 1. Copy the folder without `.tools`, `vendor` and `database/database.sqlite`.
 2. `composer install --no-dev`, then copy `.env.example` to `.env`, run `php artisan key:generate`,
    set `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL`, and the database (MySQL or SQLite).
-3. `php artisan migrate --seed`. The seed adds the programs, the governorates and sample people.
-   On a server it does not add sample requests. Change the sample passwords, or remove those people,
-   on the People page.
+3. `php artisan migrate --seed`, then `php artisan media:admin` for the first administrator.
+   On a server (`APP_ENV=production`) the seed adds only the programs and governorates: no sample people.
 4. The proofreader uses Google Gemini: set `GEMINI_API_KEY` in `.env` (aistudio.google.com/apikey).
    Without it, only punctuation, spacing and numerals are fixed. Its instructions are in `resources/prompts/proofread.md`.
 5. Working days, the time each request type takes and the team's capacity are in `config/media-requests.php` (`work`).
