@@ -169,10 +169,14 @@ class Dashboard extends Component
             'layout' => $layout,
             'cards' => $cards,
             // Always counted: the greeting says how many wait on you, even with the card hidden.
-            'waiting' => $this->waiting($user),
+            'waiting' => $waiting = $this->waiting($user),
+            // Decisions waiting on this person (approve, check, review, answer), oldest first, for the cards at the top.
+            'decisions' => $waiting->whereIn('status', [S::ProgramApproval, S::MediaApproval, S::InternalReview, S::RequesterReview, S::NeedsInfo])
+                ->sortBy(fn (MediaRequest $r) => $r->status_changed_at ?? $r->created_at)->values(),
             'calendar' => in_array('calendar', $keys, true) ? $this->calendar($user) : [],
             'team' => in_array('team', $keys, true) ? $this->teamLoad() : collect(),
             'mine' => in_array('mine', $keys, true) ? $this->mine($user) : collect(),
+            'flow' => in_array('flow', $keys, true) ? app(\App\Support\MediaRequests\RequestFlow::class)->for($user) : null,
             'bell' => in_array('bell', $keys, true) || $this->bellOpen ? $this->notificationGroups($user) : null,
             'openRequest' => $this->open ? MediaRequest::find($this->open) : null,
             'dayRequests' => $this->pickedDay ? MediaRequest::query()->visibleTo($user)->whereDate('needed_by', $this->pickedDay)

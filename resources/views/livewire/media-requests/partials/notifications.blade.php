@@ -17,6 +17,7 @@
     @endif
 </div>
 
+<div class="bellscroll">
 @if ($bell['total'] === 0)
     <div class="wempty"><span class="ei"><x-ic n="bell" /></span><span>{{ $bell['filter'] === 'unread' ? __('media.bell.noneUnread') : __('media.bell.none') }}</span></div>
 @else
@@ -39,3 +40,4 @@
         <button type="button" class="btn btn-o btn-sm bellmore" wire:click="bellMore">{{ __('media.bell.more') }}</button>
     @endif
 @endif
+</div>

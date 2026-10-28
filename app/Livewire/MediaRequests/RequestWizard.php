@@ -83,13 +83,21 @@ class RequestWizard extends Component
     #[Locked]
     public ?int $assistantLogId = null;
 
+    /** The day picked on the calendar, if the form was opened from one (Y-m-d). */
+    #[Locked]
+    public ?string $presetDate = null;
+
+    /** The person chose to change the event date that came from the calendar. */
+    public bool $changeEventDate = false;
+
     #[On('media-wizard-open')]
     public function open(?int $id = null, ?string $prompt = null, ?string $date = null): void
     {
         $this->resetForm();
 
-        // Opened from a calendar day: that day is the needed-by date.
+        // Opened from a calendar day: that day is the needed-by date, or the event date for a shoot (applyPresetDate).
         if ($id === null && $date && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) && $date >= today()->toDateString()) {
+            $this->presetDate = $date;
             $this->needed_by = $date;
         }
 
@@ -151,6 +159,7 @@ class RequestWizard extends Component
         $this->service = $service;
         $this->type = $type;
         $this->resetErrorBag('service');
+        $this->applyPresetDate();
     }
 
     /** Read the description, pick the type, pre-fill, and ask only what is still missing. */
@@ -181,6 +190,7 @@ class RequestWizard extends Component
         $this->needed_by = $result['needed_by'] ?? $this->needed_by;
         $this->questions = $result['questions'];
         $this->questionAnswers = [];
+        $this->applyPresetDate();
     }
 
     public function next(): void
@@ -387,7 +397,7 @@ class RequestWizard extends Component
     private function resetForm(): void
     {
         $this->reset([
-            'step', 'editingId', 'service', 'type', 'answers', 'program_id', 'city_id', 'title',
+            'step', 'editingId', 'presetDate', 'changeEventDate', 'service', 'type', 'answers', 'program_id', 'city_id', 'title',
             'description', 'needed_by', 'rush_reason', 'delivery_channel', 'delivery_contact',
             'uploads', 'prompt', 'questions', 'questionAnswers', 'assistantUsed', 'assistantMissed', 'assistantLogId',
         ]);
@@ -405,6 +415,28 @@ class RequestWizard extends Component
         $wait = app(TeamLoad::class)->of(app(MediaTeam::class)->specialty($this->service, $this->type))['extraDays'];
 
         return app(WorkCalendar::class)->earliest($this->service, (string) $this->type, $this->answers, null, $wait);
+    }
+
+    /**
+     * A day picked on the calendar: for a shoot it is the event date (not asked again), and the
+     * needed-by date becomes the turnaround after the event; for anything else it is the needed-by date.
+     */
+    private function applyPresetDate(): void
+    {
+        if (! $this->presetDate || ! $this->service) {
+            return;
+        }
+
+        $hasEventDate = collect(app(MediaCatalog::class)->fields($this->service, (string) $this->type))->contains('key', 'eventDate');
+        if (! $hasEventDate) {
+            $this->needed_by = $this->presetDate;
+
+            return;
+        }
+
+        $this->answers['eventDate'] = $this->presetDate;
+        $days = app(WorkCalendar::class)->plan($this->service, (string) $this->type, $this->answers)[0] ?? 2;
+        $this->needed_by = \Illuminate\Support\Carbon::parse($this->presetDate)->addWeekdays($days)->toDateString();
     }
 
     private function programs(): Collection

@@ -819,3 +819,69 @@ img[src*="hope-center.svg"]{filter:var(--logo)}
 .stable tbody th{font-weight:700}
 .stable .ic.skill{width:13px;height:13px;color:var(--text-2);margin-inline-start:4px;vertical-align:-2px}
 .tablewrap{overflow-x:auto}
+/* Request flow card */
+.flow{display:flex;flex-direction:column;gap:12px;height:100%;min-height:0}
+.flowsum{margin:0;font-size:15px;line-height:1.7;color:var(--text-2)}
+.flowsum b{color:var(--text)}
+.flowyou{display:inline-flex;gap:4px;align-items:center;margin-inline-start:8px;color:var(--brand);font-weight:700}
+.flowyou .ic{width:15px;height:15px}
+.flowline{list-style:none;margin:0;padding:0;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(84px,1fr);gap:0;overflow-x:auto;position:relative}
+.flowline li{position:relative;display:flex;justify-content:center}
+.flowline li::before{content:"";position:absolute;top:21px;inset-inline:0;height:2px;background:var(--line-soft);z-index:0}
+.flowline li:first-child::before{inset-inline-start:50%}
+.flowline li:last-child::before{inset-inline-end:50%}
+.flowline li.end::before{background:repeating-linear-gradient(90deg,var(--line-soft) 0 4px,transparent 4px 8px)}
+.fnode{position:relative;z-index:1;display:grid;justify-items:center;gap:2px;border:0;background:none;color:var(--text);cursor:pointer;padding:0 4px 6px;font:inherit;border-radius:10px}
+.fnode .fi{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--card);border:2px solid var(--line);color:var(--text-2)}
+.fnode .fi .ic{width:18px;height:18px}
+.fnode b{font-size:18px;line-height:1.1}
+.fnode .fl{font-size:12px;color:var(--text-2);text-align:center;line-height:1.3}
+.flowline li:not(.empty) .fnode .fi{border-color:var(--text);color:var(--text)}
+.fnode.on .fi{background:var(--brand);border-color:var(--brand);color:#fff}
+.fnode.on .fl{color:var(--text);font-weight:700}
+.fnode:disabled{cursor:default;opacity:.55}
+.fnode:not(:disabled):hover .fi{box-shadow:var(--shadow-sm)}
+.flowlist{flex:1;min-height:0;overflow:auto;border-top:1px solid var(--line-soft);padding-top:6px}
+/* Notifications drop-down: under the bell, inside the screen */
+.belldrop-back{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.18)}
+.belldrop{position:absolute;top:64px;inset-inline-end:max(12px,calc((100vw - 1840px) / 2 + 16px));width:min(440px,calc(100vw - 24px));max-height:min(70vh,640px);display:flex;flex-direction:column;background:var(--card);color:var(--text);border:1px solid var(--line-soft);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:14px 16px;overflow:hidden;animation:dropin .16s cubic-bezier(.2,.8,.2,1)}
+.belldrop .bellhead{margin-bottom:8px}
+.belldrop .bellhead h2{font-size:17px}
+.belldrop .bellscroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;margin-inline:-4px;padding-inline:4px}
+@keyframes dropin{from{transform:translateY(-6px)}to{transform:none}}
+@media (prefers-reduced-motion:reduce){.belldrop{animation:none}}
+@media (max-width:640px){.belldrop{top:56px;inset-inline:12px;width:auto;max-height:calc(100vh - 72px)}}
+/* Decisions waiting on you: cards in a row you can scroll */
+.decide{margin:0 0 18px;padding:14px 16px;border:1px solid var(--line-soft);border-inline-start:3px solid var(--brand);border-radius:var(--r-lg);background:var(--card)}
+.decide-h{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.decide-h h2{flex:1;display:flex;gap:8px;align-items:center;font-size:17px;font-weight:800;margin:0}
+.decide-h h2 .ic{color:var(--brand)}
+.decide-track{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(260px,320px);gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px;scrollbar-width:thin}
+.dcard{scroll-snap-align:start;display:flex;flex-direction:column;gap:6px;padding:12px 14px;border:1px solid var(--line-soft);border-radius:var(--r-lg);background:var(--soft);min-width:0}
+.dcard.old{border-color:var(--brand)}
+.dwhat{display:flex;gap:6px;align-items:center;font-size:13px;font-weight:800;color:var(--text)}
+.dwhat .ic{width:15px;height:15px;color:var(--brand)}
+.dcard .nm{font-weight:700;overflow-wrap:anywhere}
+.dmeta{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px;color:var(--text-2)}
+.dmeta .ic{width:13px;height:13px;vertical-align:-2px}
+.dsince{font-size:12px;color:var(--text-2)}
+.dcard.old .dsince{color:var(--brand);font-weight:700}
+.dcard .btn{margin-top:auto;align-self:flex-start}
+.tile[data-key="bell"] .wb{display:flex;flex-direction:column}
+.tile[data-key="bell"] .bellscroll{flex:1;min-height:0;overflow-y:auto}
+.presetday p{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:4px 0 0}
+.presetday .btn-q{min-height:28px;padding:0}
+/* Request flow: more room */
+.is-widget[data-key="flow"] .wb{padding:14px 18px 16px}
+.flow{gap:18px}
+.flowsum{display:flex;align-items:center;gap:6px 14px;flex-wrap:wrap;font-size:15px}
+.flowyou{margin-inline-start:0}
+.flowline{padding:4px 0 2px;grid-auto-columns:minmax(104px,1fr)}
+.flowline li::before{top:23px}
+.fnode{gap:6px;padding:0 8px 4px}
+.fnode .fi{width:46px;height:46px}
+.fnode b{font-size:20px}
+.fnode .fl{font-size:12.5px;max-width:112px}
+.flowlist{padding-top:10px;gap:4px}
+.flowlist a{padding:10px 10px;gap:6px}
+.flowlist .meta{gap:6px 14px}

@@ -49,6 +49,36 @@
         </div>
     </section>
 
+    {{-- Decisions waiting on you: one card each, in a row you can scroll, so nothing is forgotten. --}}
+    @if ($decisions->isNotEmpty())
+        <section class="decide" aria-labelledby="decide-t" x-data="{ go(d) { const t = $refs.track; t.scrollBy({ left: d * t.clientWidth * 0.8 * (getComputedStyle(t).direction === 'rtl' ? -1 : 1), behavior: 'smooth' }) } }">
+            <div class="decide-h">
+                <h2 id="decide-t"><x-ic n="alert" />{{ trans_choice('media.decide.title', $decisions->count(), ['n' => $decisions->count()]) }}</h2>
+                @if ($decisions->count() > 1)
+                    <span class="btnline">
+                        <button type="button" class="iconbtn" x-on:click="go(-1)" aria-label="{{ __('media.decide.prev') }}"><x-ic n="back" class="flip" /></button>
+                        <button type="button" class="iconbtn" x-on:click="go(1)" aria-label="{{ __('media.decide.next') }}"><x-ic n="arrow" class="flip" /></button>
+                    </span>
+                @endif
+            </div>
+            <div class="decide-track" x-ref="track">
+                @foreach ($decisions as $r)
+                    @php($what = match ($r->status) { 'pm_approval' => 'pm', 'mm_approval' => 'mm', 'int_review' => 'check', 'req_review' => 'review', default => 'info' })
+                    @php($since = $r->status_changed_at ?? $r->created_at)
+                    <article @class(['dcard', 'old' => $since->lt(now()->subDay())]) wire:key="dc-{{ $r->id }}">
+                        <span class="dwhat"><x-ic :n="['pm' => 'shield', 'mm' => 'shield', 'check' => 'eye', 'review' => 'eye', 'info' => 'msg'][$what]" />{{ __('media.decide.'.$what) }}</span>
+                        <x-media.name :r="$r" class="nm" />
+                        <span class="dmeta">
+                            <span><x-ic n="user" />{{ $r->requester?->nameForLocale($locale) }}</span>
+                            @if ($r->needed_by)<span><x-ic n="cal" /><span class="num">{{ $r->needed_by->format('d-m-Y') }}</span></span>@endif
+                        </span>
+                        <span class="dsince">{{ __('media.decide.since', ['t' => $since->diffForHumans()]) }}</span>
+                        <button type="button" class="btn btn-p btn-sm" wire:click="openRequest({{ $r->id }})"><x-ic n="arrow" class="flip" />{{ __('media.decide.open.'.$what) }}</button>
+                    </article>
+                @endforeach
+            </div>
+        </section>
+    @endif
     {{-- The grid. Tiles are drawn once by the server; moving, resizing and hiding only change them in place. --}}
     <div class="hs-wrap">
     {{-- Virtual grid: faint cells behind the tiles while editing, so you can see where a tile will sit. --}}
@@ -129,6 +159,50 @@
                                     </form>
                                     @break
 
+                                @case('flow')
+                                    {{-- Where every request is: the total, then the stages in order (the strip says the rest); a stage opens its list. --}}
+                                    {{-- One-line php only here: a multi-line php block after the one-line ones in this file breaks Blade's compiler. --}}
+                                    @php($firstOpen = collect($flow['stages'])->except(['done', 'stopped'])->filter(fn ($items) => $items->isNotEmpty())->keys()->first())
+                                    <div class="flow" x-data="{ stage: @js($firstOpen) }">
+                                        <p class="flowsum">
+                                            @if ($flow['total'] === 0){{ __('media.flow.empty.'.$flow['scope']) }}
+                                            @else<b>{{ rtrim(trans_choice('media.flow.total.'.$flow['scope'], $flow['total'], ['n' => $flow['total']]), ':') }}</b>@endif
+                                            @if ($flow['waitingYou'])<span class="flowyou"><x-ic n="arrow" class="flip" />{{ trans_choice('media.flow.you', $flow['waitingYou'], ['n' => $flow['waitingYou']]) }}</span>@endif
+                                        </p>
+
+                                        <ol class="flowline" role="tablist">
+                                            @foreach ($flow['stages'] as $stage => $items)
+                                                @continue($stage === 'stopped' && $items->isEmpty())
+                                                <li @class(['empty' => $items->isEmpty(), 'end' => in_array($stage, ['done', 'stopped'], true)])>
+                                                    <button type="button" role="tab" class="fnode" @disabled($items->isEmpty())
+                                                            x-on:click="stage = stage === @js($stage) ? null : @js($stage)" :aria-selected="stage === @js($stage)" :class="{ on: stage === @js($stage) }">
+                                                        <span class="fi"><x-ic :n="\App\Support\MediaRequests\RequestFlow::ICONS[$stage]" /></span>
+                                                        <b class="num">{{ $items->count() }}</b>
+                                                        <span class="fl">{{ __('media.flow.stage.'.$stage) }}</span>
+                                                    </button>
+                                                </li>
+                                            @endforeach
+                                        </ol>
+
+                                        @foreach ($flow['stages'] as $stage => $items)
+                                            @continue($items->isEmpty())
+                                            <ul class="wlist flowlist" x-show="stage === @js($stage)" x-cloak>
+                                                @foreach ($items->take(12) as $r)
+                                                    <li><a {{ $go($r) }}>
+                                                        <x-media.name :r="$r" class="nm" />
+                                                        <span class="meta" style="font-size:13px">
+                                                            <x-media.status :r="$r" />
+                                                            @if ($r->assignee)<span><x-ic n="user" />{{ $r->assignee->nameForLocale($locale) }}</span>@endif
+                                                            @if ($r->status_changed_at && $r->isOpen())<span class="sub">{{ __('media.flow.since', ['t' => $r->status_changed_at->diffForHumans(null, true)]) }}</span>@endif
+                                                            @if ($r->needed_by)<span><x-ic n="cal" /><span class="num">{{ $r->needed_by->format('d-m-Y') }}</span></span>@endif
+                                                        </span>
+                                                    </a></li>
+                                                @endforeach
+                                                @if ($items->count() > 12)<li class="sub" style="padding:6px 8px">{{ trans_choice('media.crew.more', $items->count() - 12, ['n' => $items->count() - 12]) }}</li>@endif
+                                            </ul>
+                                        @endforeach
+                                    </div>
+                                    @break
                                 @case('clock')
                                     {{-- Damascus time. Digital, or an analogue face; the look is chosen in Customise. --}}
                                     <div class="clock" :class="{ analog: styleOf('clock') === 'analog' }" x-data="{
@@ -366,8 +440,9 @@
     @endif
     {{-- Notifications, from the bell in the top bar: read and opened here, without leaving the home screen. --}}
     @if ($bellOpen)
-        <div class="sheet-back reqpanel-back" wire:click.self="toggleBell" x-data x-on:keydown.escape.window="$wire.toggleBell()">
-            <div class="reqpanel bellpanel" role="dialog" aria-modal="true" aria-labelledby="bell-t">
+        {{-- A drop-down under the bell, never taller than the screen; the list scrolls inside it. --}}
+        <div class="belldrop-back" wire:click.self="toggleBell" x-data x-on:keydown.escape.window="$wire.toggleBell()">
+            <div class="belldrop" role="dialog" aria-modal="true" aria-labelledby="bell-t">
                 <div class="bellhead">
                     <h2 id="bell-t"><x-ic n="bell" />{{ __('media.bell.title') }}</h2>
                     <button type="button" class="iconbtn" wire:click="toggleBell" aria-label="{{ __('media.close') }}"><x-ic n="x" /></button>

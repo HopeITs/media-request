@@ -26,6 +26,7 @@ class DashboardLayout
     /** Widgets: key => [icon, min [cols, rows], max [cols, rows], default [cols, rows], shown by default] */
     private const WIDGETS = [
         'ask' => ['spark', [3, 1], [12, 3], [3, 1], true],
+        'flow' => ['layers', [4, 3], [12, 8], [8, 4], true],   // where every request is, stage by stage
         'clock' => ['clock', [2, 1], [12, 6], [2, 2], true],
         'waiting' => ['arrow', [2, 2], [12, 8], [4, 6], true],
         'calendar' => ['cal', [3, 3], [12, 8], [4, 4], true],
@@ -63,7 +64,7 @@ class DashboardLayout
      */
     private const ORDER = [
         'ask', 'app.new', 'app.my', 'app.pack', 'app.generator', 'app.board', 'app.approvals', 'app.stats', 'app.log', 'app.assistant',
-        'app.bell', 'app.people', 'clock', 'pack', 'proof', 'mine', 'bell', 'waiting', 'calendar', 'notes', 'team',
+        'app.bell', 'app.people', 'flow', 'clock', 'pack', 'proof', 'mine', 'bell', 'waiting', 'calendar', 'notes', 'team',
     ];
 
     public function __construct(private MediaTeam $team) {}
@@ -151,7 +152,7 @@ class DashboardLayout
             'key' => $key,
             'size' => $this->defaultSize($key),
             'pinned' => false,
-            'hidden' => ! ($key === 'bell' || ($key === 'mine' && $this->team->isRequesterOnly($user))) && ! (self::WIDGETS[$key][4] ?? self::APPS[$key][2] ?? true),
+            'hidden' => ($key === 'flow' && $this->team->isRequesterOnly($user)) || ! ($key === 'bell' || ($key === 'mine' && $this->team->isRequesterOnly($user))) && ! (self::WIDGETS[$key][4] ?? self::APPS[$key][2] ?? true),
         ] + $this->look($key, null), $this->available($user));
     }
 

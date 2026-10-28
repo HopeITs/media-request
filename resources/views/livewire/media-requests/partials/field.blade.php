@@ -1,4 +1,12 @@
-{{--
+{{-- The event date came from the calendar: say so instead of asking again. --}}
+@if ($field['key'] === 'eventDate' && ($presetDate ?? null) && ! ($changeEventDate ?? false) && ($answers['eventDate'] ?? null) === $presetDate)
+    <div class="field full presetday" wire:key="fld-eventDate-preset">
+        <span class="lbl"><x-media.bi k="media.f.eventDate" /></span>
+        <p><x-ic n="cal" /><b>{{ \Illuminate\Support\Carbon::parse($presetDate)->translatedFormat('l') }} <span class="num">{{ \Illuminate\Support\Carbon::parse($presetDate)->format('d-m-Y') }}</span></b>
+            <span class="sub">{{ __('media.wz.fromCalendar') }}</span>
+            <button type="button" class="btn-q" wire:click="$set('changeEventDate', true)">{{ __('media.wz.change') }}</button></p>
+    </div>
+@else{{--
     One question from config media-requests.fields, bound to answers.<key>.
     Choices update live, because later questions depend on them; typed
     answers sync when the field loses focus.
@@ -79,4 +87,5 @@
         @endif
         @if ($error)<p class="err" role="alert"><x-ic n="alert" />{{ $error }}</p>@endif
     </div>
+@endif
 @endif

@@ -116,6 +116,42 @@ class TeamStatusTest extends TestCase
             ->assertSet('needed_by', $day);
     }
 
+    public function test_a_day_from_the_calendar_is_not_asked_again(): void
+    {
+        $day = today()->addWeekdays(6)->toDateString();
+        $wizard = \Livewire\Livewire::actingAs($this->user('rami'))->test(\App\Livewire\MediaRequests\RequestWizard::class)
+            ->call('open', null, null, $day);
+
+        // A shoot: the day is the event date, shown, not asked; photos are due the turnaround after it.
+        $wizard->call('chooseType', '002', 'shoot')
+            ->assertSet('answers.eventDate', $day)
+            ->assertSet('needed_by', \Illuminate\Support\Carbon::parse($day)->addWeekdays(2)->toDateString())
+            ->set('step', 2)
+            ->assertSee(__('media.wz.fromCalendar'));
+
+        // A design: the day is the needed-by date.
+        $wizard->call('chooseType', '001', 'new')->assertSet('needed_by', $day);
+    }
+
+    public function test_decisions_waiting_on_you_are_cards_at_the_top(): void
+    {
+        // Lina manages DISC: a new DISC request waits for her approval.
+        $r = app(MediaRequestWorkflow::class)->submit($this->user('rami'), [
+            'service' => '001', 'type' => 'edit', 'program_id' => Program::where('slug', 'DISC')->value('id'),
+            'city_id' => City::where('slug', 'ALP')->value('id'), 'title' => 'Badge', 'needed_by' => today()->addWeekdays(8)->toDateString(),
+            'answers' => ['editWhat' => ['names']],
+        ]);
+
+        $this->actingAs($this->user('lina'))->get('/media-requests/home')
+            ->assertOk()
+            ->assertSee(trans_choice('media.decide.title', 1, ['n' => 1]))
+            ->assertSee(__('media.decide.pm'))
+            ->assertSee('Badge');
+
+        // Rami has nothing to decide on it.
+        $this->actingAs($this->user('rami'))->get('/media-requests/home')->assertDontSee(__('media.decide.pm'));
+    }
+
     private function user(string $key): User
     {
         return User::where('email', $key.'@example.test')->first()
