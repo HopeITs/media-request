@@ -32,7 +32,7 @@ class StatsTest extends TestCase
         $this->assertGreaterThan(0, $s['timing']['early']);
         $this->assertGreaterThan(0, $s['timing']['late']);
         $this->assertGreaterThan(0, $s['returned']);
-        $this->assertSame(3, $s['team']['members']);
+        $this->assertSame(4, $s['team']['members']);   // Fadi, Sami, Maya, and Hadi in Latakia
         $this->assertNotEmpty($s['byType']);
     }
 
