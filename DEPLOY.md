@@ -47,54 +47,42 @@ GEMINI_API_KEY=
 GEMINI_MODEL=gemini-flash-lite-latest,gemini-flash-latest
 ```
 
+Before seeding, copy the **two private seeders** Fares hands to IT (never through GitHub: they hold the Media
+team's emails and the staff names of the old requests) into `database/seeders/Private/`:
+
+```
+database/seeders/Private/MediaTeamSeeder.php      the Media team: role, specialties, city, hours
+database/seeders/Private/SheetHistorySeeder.php   the old Google sheet of requests, as history
+```
+
 Then:
 
 ```bash
 php artisan migrate --force              # creates the tables
-php artisan db:seed --force              # programs and governorates only (no sample people in production)
+php artisan db:seed --force              # programs and governorates, then (if the private seeders are there)
+                                         # the Media team and the old requests; prints each new team member's
+                                         # password once: pass them on privately
 php artisan media:admin --email=fares.badawi@hcsyria.org --name="Fares Badawi" --media-manager
                                          # the main administrator, also the media manager;
                                          # asks for his Arabic name and a password, never shows it
-php artisan media:team storage/app/private/media-team.csv --dry-run   # check the team list first
-php artisan media:team storage/app/private/media-team.csv             # then load it
 php artisan optimize                     # caches config, routes and views
 ```
 
-The Media team list (`media-team.csv`) holds people's emails, so it is **not in git**. Fares sends it to IT
-privately; put it in `storage/app/private/`. One row per person:
+`db:seed` is safe to run again: people already there (same email) keep their passwords, and old requests
+already brought in are not added twice. Seed before people start using the app, so the request numbers stay
+in date order.
 
-```
-email,name_en,name_ar,city,media_role,position_title,work_hours
-someone@hcsyria.org,Some One,,HMS,member,"Photographer / Videographer (on need) / Local print",10:00-14:00
-```
+**What the old sheet becomes.** Dates, who asked, program, place, what, who did it, how it ended. Done
+requests come in as delivered (the sheet had no delivery dates, so they are left out of on-time statistics),
+rejected as rejected, open ones from the last 45 days as open, older open ones not at all. Publishing rows are
+kept aside in `storage/app/private/sheet-publishing.csv` for the publishing section that comes later.
 
-- `city`: governorate code (ALP, HMS, DMS, LAT, …). Shoots go to the team of the place.
-- `media_role`: `manager` for the media manager and his vice, else `member`.
-- `position_title`: skills separated by `/`; `(on need)` marks a second skill.
-- `work_hours`: empty for full time.
-
-New people get a password, printed once at the end; pass each one on privately. Running it again
-updates people (same email) and keeps their passwords.
-
-**The old Google sheet (once, after `media:team`).** The requests from the old "MEDIA Request (Responses)"
-sheet come in as history: dates, who asked, program, place, what, who did it, how it ended. Export the sheet
-as CSV and put it, with the name map `sheet-map.json` that Fares sends (it joins names written several ways),
-in `storage/app/private/`:
-
-```bash
-php artisan media:import-sheet "storage/app/private/MEDIA Request (Responses).csv" --dry-run
-php artisan media:import-sheet "storage/app/private/MEDIA Request (Responses).csv"
-```
-
-Done requests come in as delivered (the sheet had no delivery dates, so they are left out of on-time
-statistics), rejected as rejected, open ones from the last 45 days as open, older open ones not at all.
-Publishing rows are kept aside in `storage/app/private/sheet-publishing.csv`. Running it again adds nothing twice.
-Do it before people start using the app, so the request numbers stay in date order.
-
-Once the file is in place, the list also works by itself: anyone on it whom Fares adds on the People page
-(even with quick add as "Team"), or who signs in while not yet on the team, takes their place on the team
-right away (role, specialties, city, hours). `media:admin` for Fares reads his row too. Changes made later
-on the People page are kept; to apply a changed list to everyone, run `php artisan media:team` again.
+**The team list keeps working by itself.** Anyone on it whom Fares adds on the People page (even with quick
+add as "Team"), or who signs in while not yet on the team, takes their place on the team right away (role,
+specialties, city, hours). Changes made later on the People page are kept. A changed team list can also be
+loaded from a CSV with `php artisan media:team <file>` (columns: `email,name_en,name_ar,city,media_role,
+position_title,work_hours`; `media_role` is `manager` for the media manager and his vice, else `member`;
+`(on need)` in the title marks a second skill; empty `work_hours` is full time).
 
 Folders the web server user (e.g. `www-data`) must be able to write:
 

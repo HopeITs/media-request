@@ -27,3 +27,5 @@ Thumbs.db
 /.tools
 # Files left behind by test runs.
 /storage/framework/testing
+# Private seeders (the Media team's emails, the old sheet's staff names): handed to IT privately, never in git.
+/database/seeders/Private/

@@ -23,6 +23,16 @@ class DatabaseSeeder extends Seeder
     {
         $this->places();
 
+        // The real Media team and the old sheet's history, from the private seeders IT is given
+        // (database/seeders/Private, not in git). Never in tests, which use the sample people below.
+        if (! app()->runningUnitTests() && ! defined('PHPUNIT_COMPOSER_INSTALL')) {   // tests may pretend to be production
+            foreach (['MediaTeamSeeder', 'SheetHistorySeeder'] as $private) {
+                if (class_exists($class = 'Database\\Seeders\\Private\\'.$private)) {
+                    $this->call($class);
+                }
+            }
+        }
+
         // On a real server only the programs and governorates: no sample people (their password is
         // "password"). Create the first administrator there with: php artisan media:admin
         if (app()->environment('production')) {
