@@ -180,12 +180,16 @@ class Index extends Component
         $password = \Illuminate\Support\Str::password(12, symbols: false);
 
         DB::transaction(function () use ($data, $password): void {
-            $employee = Employee::create([
+            $fields = [
+                'media_role' => $data['quickRole'] === 'media' ? 'member' : null,
+                'position_title' => $data['quickRole'] === 'media' ? 'Communication team member / '.$data['quickSpecialty'] : null,
+            ];
+            // Already here from the old sheet under this name, with no account yet: give them this one.
+            $employee = Employee::findByName($data['quickName'], unclaimed: true);
+            $employee ? $employee->update(array_filter($fields)) : $employee = Employee::create($fields + [
                 'username' => \Illuminate\Support\Str::before($data['quickEmail'], '@'),
                 'first_name_en' => $data['quickName'],
                 'first_name_ar' => $data['quickName'],
-                'media_role' => $data['quickRole'] === 'media' ? 'member' : null,
-                'position_title' => $data['quickRole'] === 'media' ? 'Communication team member / '.$data['quickSpecialty'] : null,
             ]);
             if ($data['quickRole'] === 'pm') {
                 $employee->managedPrograms()->sync($data['quickPrograms']);

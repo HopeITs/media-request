@@ -14,6 +14,22 @@ class Employee extends Model
         'username', 'media_role', 'position_title', 'work_hours', 'is_active',
     ];
 
+    /**
+     * Someone already here under this English name ("George Tello"), e.g. brought in from the
+     * old sheet without an account; with $unclaimed, only people who have no account yet.
+     */
+    public static function findByName(string $name, bool $unclaimed = false): ?self
+    {
+        $first = mb_strtolower(trim(\Illuminate\Support\Str::before(trim($name), ' ')));
+        $last = mb_strtolower(trim(\Illuminate\Support\Str::contains(trim($name), ' ') ? \Illuminate\Support\Str::after(trim($name), ' ') : ''));
+
+        return self::query()
+            ->whereRaw('lower(first_name_en) = ?', [$first])
+            ->whereRaw("lower(coalesce(last_name_en, '')) = ?", [$last])
+            ->when($unclaimed, fn ($q) => $q->whereDoesntHave('account'))
+            ->orderBy('id')->first();
+    }
+
     /** Part of a working day this person works: 1 full time, 0.5 for four hours. */
     public function dayShare(): float
     {

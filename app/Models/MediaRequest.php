@@ -32,7 +32,7 @@ class MediaRequest extends Model implements HasMedia
         'needs_program_approval', 'program_approver_id', 'program_approved_at',
         'media_approver_id', 'media_approved_at', 'assignee_id', 'priority', 'planned_for',
         'internal_ok', 'revisions', 'draft_link', 'result_link', 'archive_link', 'archive_name',
-        'last_nudged_at', 'last_reminded_on', 'delivered_at',
+        'last_nudged_at', 'last_reminded_on', 'delivered_at', 'imported_from',
     ];
 
     protected $casts = [
@@ -117,7 +117,8 @@ class MediaRequest extends Model implements HasMedia
     /** Delivered before (early), on (onTime) or after (late) its needed-by day; null while open. */
     public function deliveryTiming(): ?string
     {
-        if ($this->status !== MediaRequestStatus::Delivered || ! $this->delivered_at || ! $this->needed_by) {
+        // The old Google sheet had no delivery dates: unknown, never on time or late.
+        if ($this->status !== MediaRequestStatus::Delivered || ! $this->delivered_at || ! $this->needed_by || $this->imported_from) {
             return null;
         }
 
@@ -130,7 +131,7 @@ class MediaRequest extends Model implements HasMedia
     /** Delivered on the very day it was asked for (Damascus time): the strongest badge. */
     public function sameDay(): bool
     {
-        if ($this->status !== MediaRequestStatus::Delivered || ! $this->delivered_at || ! $this->created_at) {
+        if ($this->status !== MediaRequestStatus::Delivered || ! $this->delivered_at || ! $this->created_at || $this->imported_from) {
             return false;
         }
         $tz = (string) config('media-requests.work.timezone', 'Asia/Damascus');

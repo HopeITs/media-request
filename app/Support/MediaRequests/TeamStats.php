@@ -59,6 +59,7 @@ class TeamStats
                 'early' => $timing->get('early', collect())->count(),
                 'onTime' => $timing->get('onTime', collect())->count(),
                 'late' => $timing->get('late', collect())->count(),
+                'unknown' => $timing->get('unknown', collect())->count(),
             ],
             'returned' => $returned->unique()->count(),
             'avgDays' => $this->averageWorkDays($delivered),
@@ -66,7 +67,8 @@ class TeamStats
                 'employee' => $e,
                 'skills' => $this->team->skillsOf($e),
                 'delivered' => $delivered->where('assignee_id', $e->id)->count(),
-                'onTime' => $delivered->where('assignee_id', $e->id)->filter(fn ($r) => $this->timing($r) !== 'late')->count(),
+                'timed' => $delivered->where('assignee_id', $e->id)->filter(fn ($r) => $this->timing($r) !== 'unknown')->count(),
+                'onTime' => $delivered->where('assignee_id', $e->id)->filter(fn ($r) => in_array($this->timing($r), ['early', 'onTime'], true))->count(),
                 'early' => $delivered->where('assignee_id', $e->id)->filter(fn ($r) => $this->timing($r) === 'early')->count(),
                 'working' => $open->where('assignee_id', $e->id)->where('status', S::InProgress)->count(),
                 'holding' => $open->where('assignee_id', $e->id)->whereIn('status', self::HELD)->count(),
@@ -78,7 +80,8 @@ class TeamStats
     /** early | onTime | late, by the delivery day against the needed-by day (see MediaRequest::deliveryTiming). */
     public function timing(MediaRequest $r): string
     {
-        return $r->deliveryTiming() ?? 'onTime';
+        // Imported from the old sheet: no delivery date, so not counted as on time, early or late.
+        return $r->imported_from ? 'unknown' : ($r->deliveryTiming() ?? 'onTime');
     }
 
     /** Ids of requests sent back for changes in the period. */
@@ -100,7 +103,7 @@ class TeamStats
     /** Average working days from sending a request to its delivery. */
     private function averageWorkDays(Collection $delivered): ?float
     {
-        $days = $delivered->map(function (MediaRequest $r) {
+        $days = $delivered->reject(fn (MediaRequest $r) => (bool) $r->imported_from)->map(function (MediaRequest $r) {
             $n = 0;
             for ($d = $r->created_at->copy()->startOfDay(); $d->lt($r->delivered_at->copy()->startOfDay()); $d->addDay()) {
                 $n += $this->calendar->isWorkDay($d) ? 1 : 0;
