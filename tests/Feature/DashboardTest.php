@@ -81,7 +81,7 @@ class DashboardTest extends TestCase
     public function test_a_big_clock_knows_the_working_day_and_who_is_online(): void
     {
         $maya = $this->user('maya');
-        $this->assertSame([8 * 60, 16 * 60], $maya->profile->workMinutes());          // the usual day
+        $this->assertSame([9 * 60, 17 * 60], $maya->profile->workMinutes());          // the team's day (work.from / work.to)
         $maya->profile->update(['work_hours' => '10:00-14:30']);
         $this->assertSame([600, 870], $maya->fresh()->profile->workMinutes());     // a part-timer's own hours
 

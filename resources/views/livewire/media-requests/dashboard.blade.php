@@ -204,7 +204,8 @@
                                     {{-- Made big, it also shows the working day (time left, time done) and who of the team is online. --}}
                                     <div class="clockbox" x-data="{
                                             now: new Date(), loc: @js($locale === 'ar' ? 'ar-SY-u-nu-latn' : 'en-GB'),
-                                            work: @js($work), days: @js(config('media-requests.workday.days')),
+                                            {{-- The team's working days (ISO, Monday = 1) as JavaScript days (Sunday = 0). --}}
+                                            work: @js($work), days: @js(array_map(fn ($d) => $d % 7, config('media-requests.work.days', [1, 2, 3, 4, 5]))),
                                             // Minutes since midnight and the weekday (0 = Sunday), Damascus time.
                                             mins() { return this.part('hour') * 60 + this.part('minute') + this.part('second') / 60 },
                                             wday() { return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(new Intl.DateTimeFormat('en-GB', { weekday: 'short', timeZone: 'Asia/Damascus' }).format(this.now)) },

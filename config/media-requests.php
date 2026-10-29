@@ -152,14 +152,10 @@ return [
     ],
 
     /*
-    | The working day (Damascus time), for the clock card: how long until the
-    | end of the day, and how long since it began. A part-timer's own hours
-    | (employees.work_hours) come first. Days: 0 = Sunday … 6 = Saturday.
-    | "online_minutes": seen this recently counts as online.
+    | Who of the media team is online, on the big clock: seen this recently.
+    | (The clock's working day is "work" above: the same days and hours.)
     */
-    'workday' => [
-        'hours' => env('MEDIA_WORK_HOURS', '08:00-16:00'),
-        'days' => array_map('intval', explode(',', env('MEDIA_WORK_DAYS', '0,1,2,3,4'))),
+    'presence' => [
         'online_minutes' => 5,
     ],
 

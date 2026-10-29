@@ -42,13 +42,15 @@ class Employee extends Model
     }
 
     /**
-     * This person's working hours as minutes after midnight: their own (part time) or the usual day.
+     * This person's working hours as minutes after midnight: their own (part time) or the team's day.
      *
      * @return array{0: int, 1: int}
      */
     public function workMinutes(): array
     {
-        foreach ([(string) $this->work_hours, (string) config('media-requests.workday.hours')] as $hours) {
+        $team = config('media-requests.work.from', '09:00').'-'.config('media-requests.work.to', '17:00');
+
+        foreach ([(string) $this->work_hours, $team] as $hours) {
             if (preg_match('/^(\d{1,2})(?::(\d{2}))?-(\d{1,2})(?::(\d{2}))?$/', $hours, $m)) {
                 [$from, $to] = [(int) $m[1] * 60 + (int) ($m[2] ?? 0), (int) $m[3] * 60 + (int) ($m[4] ?? 0)];
                 if ($to > $from) {
@@ -57,7 +59,7 @@ class Employee extends Model
             }
         }
 
-        return [8 * 60, 16 * 60];
+        return [9 * 60, 17 * 60];
     }
 
     protected $casts = ['is_active' => 'boolean'];

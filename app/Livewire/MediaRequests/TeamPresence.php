@@ -25,7 +25,7 @@ class TeamPresence extends Component
                 ->groupBy('user_id')->selectRaw('user_id, max(last_activity) as at')->pluck('at', 'user_id')
             : collect();
 
-        $since = now()->subMinutes((int) config('media-requests.workday.online_minutes', 5))->getTimestamp();
+        $since = now()->subMinutes((int) config('media-requests.presence.online_minutes', 5))->getTimestamp();
         $locale = app()->getLocale();
 
         $people = $members->map(function ($e) use ($seen, $since, $locale) {
