@@ -293,6 +293,17 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
         stopWiggle() { clearTimeout(this.wiggleTimer); this.wiggling = false; },
         done() { this.flip(() => { this.editing = false; }); this.gallery = false; this.stopWiggle(); },
 
+        // Double-click on a card that has a page opens it (not while editing, nor on its own controls).
+        // A card with a search form (HC_PACK) opens with what is typed.
+        openPage(e, tile) {
+            if (this.editing || e.target.closest('input, textarea, select, button, a, label')) return;
+            try { window.getSelection().removeAllRanges(); } catch (err) {}
+            const form = tile.querySelector('form[method="GET"]');
+            if (form) form.submit();
+            else if (window.Livewire && Livewire.navigate) Livewire.navigate(tile.dataset.page);
+            else window.location = tile.dataset.page;
+        },
+
         // Long-press anywhere on a tile (not while typing in it) starts editing.
         press(e) {
             if (this.editing || e.button > 0 || e.target.closest('input, textarea, select')) return;

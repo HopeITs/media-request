@@ -889,6 +889,7 @@ return [
     'dash.notesSaving' => 'Saving…',
     'dash.toClaim' => 'Waiting to be taken',
     'dash.packPh' => 'Logo, certificate, template…',
+    'dash.pageOpen' => 'Double-click to open the page',
     'dash.packOpen' => 'Double-click the card to open HC_PACK',
     'dash.card.app.new' => 'New request',
     'dash.card.app.my' => 'My requests',

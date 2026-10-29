@@ -38,6 +38,19 @@ class DashboardTest extends TestCase
         $this->assertContains('app.board', $maya);
     }
 
+    public function test_a_card_opens_only_a_page_the_person_may_see(): void
+    {
+        $cards = app(DashboardLayout::class);
+        [$rami, $maya] = [$this->user('rami'), $this->user('maya')];
+
+        $this->assertSame(route('media-requests.board'), $cards->page($maya, 'flow'));
+        $this->assertNull($cards->page($rami, 'flow'));
+        $this->assertSame(route('media-requests.index'), $cards->page($rami, 'decide'));
+        $this->assertSame(route('media-requests.pack'), $cards->page($rami, 'pack'));
+        $this->assertNull($cards->page($rami, 'clock'));
+        $this->assertNull($cards->page($rami, 'app.my'));   // shortcuts open with one click
+    }
+
     public function test_the_browser_layout_is_saved_and_cleaned(): void
     {
         $rami = $this->user('rami');

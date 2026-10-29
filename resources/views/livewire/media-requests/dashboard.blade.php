@@ -63,7 +63,7 @@
                  :style="span('{{ $key }}')"
                  :class="{ pinned: pinned('{{ $key }}'), resizing: resizing === '{{ $key }}' }"
                  x-show="shownHere('{{ $key }}')"
-                 @if ($key === 'pack') x-on:dblclick="if (! editing && ! $event.target.closest('input')) $el.querySelector('form').submit()" title="{{ __('media.dash.packOpen') }}" @endif
+                 @if ($page = $cards->isApp($key) ? null : $cards->page(auth()->user(), $key)) data-page="{{ $page }}" x-on:dblclick="openPage($event, $el)" title="{{ __('media.dash.pageOpen') }}" @endif
                  wire:key="tile-{{ $key }}">
 
                 {{-- Edit controls: remove outside the top corner (like a phone), pin and resize inside the tile so they never overlap a neighbour. --}}

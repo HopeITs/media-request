@@ -664,8 +664,6 @@ textarea.notes{flex:1;min-height:0;resize:none;background:var(--soft);border-col
 @container w (max-width:300px){.load li{grid-template-columns:minmax(0,1fr) 26px}.load .bar{display:none}}
 .packmini{display:grid;gap:8px;align-content:center;height:100%}
 .packmini .packhint{margin:0;font-size:12px;color:var(--text-3)}
-.tile[data-key="pack"]{cursor:pointer;user-select:none}
-.tile[data-key="pack"] input{cursor:text;user-select:text}
 @container w (max-height:120px){.packmini .packhint{display:none}}
 
 /* Editing: a short wiggle, edit controls appear, links do not open */

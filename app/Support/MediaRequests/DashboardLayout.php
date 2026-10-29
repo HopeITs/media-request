@@ -115,6 +115,24 @@ class DashboardLayout
         return self::WIDGETS[$key][0] ?? self::APPS[$key][0] ?? 'file';
     }
 
+    /**
+     * The page a card opens on double-click, when it has one this person may see; null otherwise.
+     * Shortcuts open with a single click, so they are not here.
+     */
+    public function page(User $user, string $key): ?string
+    {
+        $route = match ($key) {
+            'late', 'waiting', 'mine' => 'media-requests.index',
+            'decide' => $this->allowed($user, 'app.approvals') ? 'media-requests.approvals' : 'media-requests.index',
+            'flow', 'team' => $this->allowed($user, 'app.board') ? 'media-requests.board' : null,
+            'bell' => 'notifications.index',
+            'pack' => 'media-requests.pack',
+            default => null,
+        };
+
+        return $route && Route::has($route) ? route($route) : null;
+    }
+
     /** Route the shortcut opens; null for "new request" (opens the form) and HC Generator (another site). */
     public function route(string $key): ?string
     {
