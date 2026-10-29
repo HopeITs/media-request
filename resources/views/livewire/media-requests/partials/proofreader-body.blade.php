@@ -41,7 +41,7 @@
                       wire:model="text" placeholder="{{ __('media.proof.ph') }}"></textarea>
             @error('text')<p class="err" role="alert"><x-ic n="alert" />{{ $message }}</p>@enderror
             <p class="hint">
-                @if ($aiAvailable){{ trans_choice('media.proof.left', $remaining, ['n' => $remaining]) }} {{ __('media.proof.privacy') }}
+                @if ($aiAvailable){{ trans_choice('media.proof.left', $remaining, ['n' => $remaining]) }} <span class="proofpriv">{{ __('media.proof.privacy') }}</span>
                 @else{{ __('media.proof.localOnly') }}@endif
             </p>
         @else
@@ -93,9 +93,10 @@
             @unless ($inline)<button type="button" class="btn btn-o" wire:click="close">{{ __('media.close') }}</button>@else<span></span>@endunless
             @if ($gemUrl = config('media-requests.proofread.gem_url'))
                 {{-- The team's own Gem, in a new tab: the text is copied first, to paste there. --}}
-                <a href="{{ $gemUrl }}" target="_blank" rel="noopener" class="btn btn-o proofgem" title="{{ __('media.proof.gemHint') }}"
-                   x-data x-on:click="navigator.clipboard && navigator.clipboard.writeText($wire.text || '')"><x-ic n="external" />{{ __('media.proof.gem') }}</a>
-            @endif            <button type="button" class="btn btn-p" wire:click="check" wire:loading.attr="data-loading" wire:target="check, file">
+                <a href="{{ $gemUrl }}" target="_blank" rel="noopener" class="btn btn-o proofgem" title="{{ __('media.proof.gemHint') }}" aria-label="{{ __('media.proof.gem') }}"
+                   x-data x-on:click="navigator.clipboard && navigator.clipboard.writeText($wire.text || '')"><x-ic n="external" /><span class="pg-t">{{ __('media.proof.gem') }}</span></a>
+            @endif
+            <button type="button" class="btn btn-p" wire:click="check" wire:loading.attr="data-loading" wire:target="check, file">
                 <span class="spin"></span><x-ic n="check" wire:loading.remove wire:target="check" />{{ __('media.proof.go') }}
             </button>
         @else

@@ -22,6 +22,9 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
     const EASE = 'cubic-bezier(.2,.8,.2,1)';
     const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const parse = (size) => (size || '1x1').split('x').map((n) => parseInt(n, 10) || 1);
+    // On a phone these cards take a fixed, light size whatever was saved: one row for the clock and
+    // the HC_PACK search, room for the proofreader's box and button.
+    const PHONE_SIZE = { clock: '4x1', pack: '4x1', proof: '4x4' };
     // Glides currently running, per tile element (kept outside Alpine's reactive state).
     const glides = new WeakMap();
 
@@ -144,7 +147,7 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
         clockLook() { return this.phone() ? 'digital' : this.styleOf('clock'); },
         get packed() {
             const shown = this.items.filter((i) => this.shownHere(i.key))
-                .map((i) => (this.phone() && i.key === 'clock' ? { ...i, size: '4x1' } : i));
+                .map((i) => (this.phone() && PHONE_SIZE[i.key] ? { ...i, size: PHONE_SIZE[i.key] } : i));
             const own = this.packOrder(shown);
             const isApp = (i) => i.key.startsWith('app.');
             const gaps = this.packOrder([...shown.filter((i) => ! isApp(i)), ...shown.filter(isApp)]);

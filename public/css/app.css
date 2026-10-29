@@ -1134,3 +1134,18 @@ img[src*="hope-center.svg"]{filter:var(--logo)}
 .tb-rows .ic{width:20px;height:20px;color:var(--text-2)}
 .tb-grid .appicon{width:54px;height:54px;min-width:0;flex:none;border-radius:16px;display:grid;place-items:center;aspect-ratio:auto;font-size:inherit}
 .tb-grid .appicon .ic{width:24px;height:24px}
+
+/* HC_PACK as one row: the search only, no title or button. */
+@container w (max-height:120px){.tile[data-key="pack"] .wh{display:none}.tile[data-key="pack"] .wb{display:flex;align-items:center}.tile[data-key="pack"] .packmini{width:100%}}
+/* The proofreader card fills its tile; on a narrow card the text is short and the buttons fit on one line. */
+.tile[data-key="proof"] .wb{display:flex;flex-direction:column;padding:0}
+.tile[data-key="proof"] .wb > *{flex:1;min-height:0;display:flex;flex-direction:column}
+.proofinline .mf{flex-wrap:nowrap}
+.proofinline .mf > span:empty{display:none}
+.proofinline .mf .btn-p{flex:1;justify-content:center}
+@container w (max-width:460px){
+  .proofinline .proofpriv{display:none}
+  .proofinline .proofgem{flex:none;width:40px;padding:0;justify-content:center;margin-inline-start:0}
+  .proofinline .proofgem .pg-t{display:none}
+  .proofinline .hint{font-size:12.5px}
+}
