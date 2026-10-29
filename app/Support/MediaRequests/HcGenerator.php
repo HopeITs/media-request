@@ -27,8 +27,14 @@ class HcGenerator
     public function suggest(string $text, ?string $service = null, ?string $type = null, array $answers = []): ?array
     {
         $text = mb_substr(trim($text), 0, 1000);
+        $tools = config('media-requests.generator.tools', []);
 
-        foreach (config('media-requests.generator.tools', []) as $key => $tool) {
+        // Taught by the media manager ("this is done on HC Generator") before the built-in words.
+        if ($text !== '' && ($lesson = \App\Models\MediaAssistantLesson::matching($text, 'generator')->first(fn ($l) => isset($tools[$l->tool])))) {
+            return ['key' => $lesson->tool, 'url' => $this->url($tools[$lesson->tool]['path']), 'icon' => $tools[$lesson->tool]['icon']];
+        }
+
+        foreach ($tools as $key => $tool) {
             if ($text !== '' && isset($tool['unless']) && $this->matches($tool['unless'], $text)) {
                 continue;
             }

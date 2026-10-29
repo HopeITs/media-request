@@ -5,6 +5,19 @@
         return $service ? __('media.svc.'.$catalog->serviceKey($service)).' · '.__('media.type.'.$type) : '—';
     };
     $place = fn ($m) => $m ? ($locale === 'ar' ? $m->name_ar : $m->name_en) : null;
+    // What a lesson means, in one line: the request, the HC Generator tool, the HC_PACK search or the reply; then program and place.
+    $means = function (\App\Models\MediaAssistantLesson $l) use ($guess, $place) {
+        return implode(' · ', array_filter([
+            match ($l->meaning) {
+                'generator' => 'HC Generator: '.__('media.gen.tool.'.$l->tool),
+                'pack' => 'HC_PACK: «'.$l->pack_query.'»',
+                'reply' => __('media.al.t.replyShort').': '.$l->reply,
+                default => $l->service ? $guess($l->service, $l->type).($l->format ? ' · '.__('media.o.format.'.$l->format) : '') : null,
+            },
+            $l->program ? trim($l->program->code.' '.$l->program->slug) : null,
+            $place($l->city),
+        ]));
+    };
     $tiles = ['missed' => ['al.missed', 'alert'], 'corrected' => ['al.corrected', 'edit'], 'all' => ['al.all', 'layers'], 'lessons' => ['al.lessons', 'spark']];
 @endphp
 
@@ -43,14 +56,8 @@
                     <tbody>
                         @foreach ($lessons as $l)
                             <tr wire:key="ls-{{ $l->id }}">
-                                <td data-l="{{ __('media.al.t.phrase') }}"><b dir="auto">«{{ $l->phrase }}»</b></td>
-                                <td data-l="{{ __('media.al.t.means') }}">
-                                    <span class="meta" style="font-size:14px">
-                                        @if ($l->service)<span>{{ $guess($l->service, $l->type) }}@if ($l->format) · {{ __('media.o.format.'.$l->format) }}@endif</span>@endif
-                                        @if ($l->program)<span class="ltr">{{ trim($l->program->code.' '.$l->program->slug) }}</span>@endif
-                                        @if ($l->city)<span>{{ $place($l->city) }}</span>@endif
-                                    </span>
-                                </td>
+                                <td data-l="{{ __('media.al.t.phrase') }}"><b dir="auto">«{{ $l->phrase }}»</b>@if ($l->keywords)<span class="skills" style="margin-top:4px">@foreach ($l->keywords as $w)<span class="chip soft" dir="auto">{{ $w }}</span>@endforeach</span>@endif</td>
+                                <td data-l="{{ __('media.al.t.means') }}" dir="auto">{{ $means($l) }}</td>
                                 <td data-l="{{ __('media.al.t.by') }}">{{ $l->teacher?->nameForLocale($locale) ?? '—' }} <small class="sub num">{{ $l->created_at->format('d-m-Y') }}</small></td>
                                 <td style="text-align:end">
                                     @if ($canTeach)
@@ -97,8 +104,7 @@
                                 @endif
                                 {{-- Taught since: how it reads this line now. --}}
                                 @if ($row->lesson)
-                                    @php($n = $now($row->text))
-                                    <span class="chip ok" style="margin-top:6px"><x-ic n="spark" />{{ __('media.al.t.now') }} {{ $guess($n['service'], $n['type']) }}</span>
+                                    <span class="chip ok" style="margin-top:6px;white-space:normal" dir="auto"><x-ic n="spark" />{{ __('media.al.t.now') }} {{ $means($row->lesson) }}</span>
                                 @endif
                             </td>
                             <td data-l="{{ __('media.al.col.final') }}">
@@ -133,21 +139,57 @@
                                             <p class="hint">{{ __('media.al.t.phraseHint') }}</p>
                                             @error('phrase')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
                                         </div>
-                                        <div class="field">
-                                            <label for="t-kind">{{ __('media.al.t.kind') }}</label>
-                                            <select id="t-kind" class="inp" wire:model.live="kind">
-                                                <option value="">—</option>
-                                                @foreach ($kinds as $k => $label)<option value="{{ $k }}">{{ $label }}</option>@endforeach
-                                            </select>
-                                            @error('kind')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
+                                        <div class="field full">
+                                            <label for="t-words">{{ __('media.al.t.keywords') }}</label>
+                                            <textarea id="t-words" class="inp" rows="2" dir="auto" wire:model="keywords" placeholder="{{ __('media.al.t.keywordsPh') }}"></textarea>
+                                            <p class="hint">{{ __('media.al.t.keywordsHint') }}</p>
                                         </div>
-                                        @if ($kind === '001.new')
+                                        <fieldset class="field full" style="border:0;padding:0;margin:0">
+                                            <legend style="font-weight:700;margin-bottom:6px">{{ __('media.al.t.means') }}</legend>
+                                            <div class="seg" role="radiogroup">
+                                                @foreach (\App\Models\MediaAssistantLesson::MEANINGS as $m)
+                                                    <button type="button" role="radio" wire:click="$set('meaning', '{{ $m }}')" aria-checked="{{ $meaning === $m ? 'true' : 'false' }}" @class(['on' => $meaning === $m])>{{ __('media.al.m.'.$m) }}</button>
+                                                @endforeach
+                                            </div>
+                                        </fieldset>
+                                        @if ($meaning === 'request')
                                             <div class="field">
-                                                <label for="t-format">{{ __('media.al.t.format') }}</label>
-                                                <select id="t-format" class="inp" wire:model="format">
+                                                <label for="t-kind">{{ __('media.al.t.kind') }}</label>
+                                                <select id="t-kind" class="inp" wire:model.live="kind">
                                                     <option value="">—</option>
-                                                    @foreach ($formats as $f)<option value="{{ $f }}">{{ __('media.o.format.'.$f) }}</option>@endforeach
+                                                    @foreach ($kinds as $k => $label)<option value="{{ $k }}">{{ $label }}</option>@endforeach
                                                 </select>
+                                                @error('kind')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
+                                            </div>
+                                            @if ($kind === '001.new')
+                                                <div class="field">
+                                                    <label for="t-format">{{ __('media.al.t.format') }}</label>
+                                                    <select id="t-format" class="inp" wire:model="format">
+                                                        <option value="">—</option>
+                                                        @foreach ($formats as $fm)<option value="{{ $fm }}">{{ __('media.o.format.'.$fm) }}</option>@endforeach
+                                                    </select>
+                                                </div>
+                                            @endif
+                                        @elseif ($meaning === 'generator')
+                                            <div class="field">
+                                                <label for="t-tool">{{ __('media.al.t.tool') }}</label>
+                                                <select id="t-tool" class="inp" wire:model="tool">
+                                                    <option value="">—</option>
+                                                    @foreach ($tools as $tl)<option value="{{ $tl }}">{{ __('media.gen.tool.'.$tl) }}</option>@endforeach
+                                                </select>
+                                                @error('tool')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
+                                            </div>
+                                        @elseif ($meaning === 'pack')
+                                            <div class="field">
+                                                <label for="t-pack">{{ __('media.al.t.pack') }}</label>
+                                                <input id="t-pack" class="inp" dir="auto" maxlength="120" wire:model="pack_query" placeholder="{{ __('media.hp.ph') }}">
+                                                @error('pack_query')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
+                                            </div>
+                                        @else
+                                            <div class="field full">
+                                                <label for="t-reply">{{ __('media.al.t.reply') }}</label>
+                                                <textarea id="t-reply" class="inp" rows="2" dir="auto" maxlength="500" wire:model="reply" placeholder="{{ __('media.al.t.replyPh') }}"></textarea>
+                                                @error('reply')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
                                             </div>
                                         @endif
                                         <div class="field">

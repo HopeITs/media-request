@@ -90,6 +90,10 @@
                             </div>
                         @endif
 
+                        @if ($reply)
+                            {{-- Taught by the media manager: something the media team does not do, and where it goes. --}}
+                            <div class="banner soft" aria-live="polite" wire:key="reply-{{ $reply->id }}"><x-ic n="msg" /><span dir="auto">{{ $reply->reply }}</span></div>
+                        @endif
                         @if ($generator)
                             {{-- Something HC Generator makes: offer the tool first; the request stays possible. --}}
                             <div class="genhit" aria-live="polite" wire:key="gen-{{ $generator['key'] }}">

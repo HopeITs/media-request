@@ -54,6 +54,35 @@ class TeachAssistantTest extends TestCase
         $this->assertNull($read()['service']);
     }
 
+    public function test_synonyms_a_generator_tool_and_a_reply_can_be_taught(): void
+    {
+        $maya = $this->user('maya');
+        $read = fn (string $t) => app(MediaAssistant::class)->analyze($t, Program::all(), City::all());
+
+        // Several words for the same thing.
+        Livewire::actingAs($maya)->test(AssistantLog::class)
+            ->set('phrase', 'لوغو')->set('keywords', "logo, شعار\nلوجو")->set('meaning', 'request')->set('kind', '001.new')->set('format', 'other')
+            ->call('saveLesson')->assertHasNoErrors();
+        $this->assertSame('001', $read('بدي شعار جديد للمركز')['service']);
+        $this->assertSame('001', $read('need a LOGO')['service']);
+
+        // Done on HC Generator: the form points to the tool.
+        Livewire::actingAs($maya)->test(AssistantLog::class)
+            ->set('phrase', 'تفريغ فواتير')->set('keywords', 'فواتير بدها تفريغ')->set('meaning', 'generator')->set('tool', 'text')
+            ->call('saveLesson')->assertHasNoErrors();
+        $this->assertSame('text', app(\App\Support\MediaRequests\HcGenerator::class)->suggest('عندي فواتير بدها تفريغ')['key']);
+
+        // Not the media team's: the form says where it goes.
+        Livewire::actingAs($maya)->test(AssistantLog::class)
+            ->set('phrase', 'طلب توظيف')->set('meaning', 'reply')->call('saveLesson')->assertHasErrors('reply')
+            ->set('reply', 'التوظيف عند الموارد البشرية')->call('saveLesson')->assertHasNoErrors();
+        Livewire::actingAs($this->user('rami'))->test(\App\Livewire\MediaRequests\RequestWizard::class)
+            ->call('open')->set('prompt', 'بدي اعمل طلب توظيف HR')->assertSee('التوظيف عند الموارد البشرية');
+
+        Livewire::actingAs($maya)->test(AssistantLog::class)->call('setFilter', 'lessons')
+            ->assertSee('شعار')->assertSee('HC Generator')->assertSee('التوظيف عند الموارد البشرية');
+    }
+
     public function test_only_the_media_manager_teaches(): void
     {
         $log = MediaAssistantLog::create(['employee_id' => $this->user('rami')->employee_id, 'text' => 'x y', 'understood' => false]);

@@ -6,7 +6,6 @@ use App\Models\City;
 use App\Models\MediaAssistantLesson;
 use App\Models\MediaAssistantLog;
 use App\Models\Program;
-use App\Support\MediaRequests\MediaAssistant;
 use App\Support\MediaRequests\MediaCatalog;
 use App\Support\MediaRequests\MediaTeam;
 use Illuminate\Database\Eloquent\Builder;
@@ -34,6 +33,18 @@ class AssistantLog extends Component
 
     public string $phrase = '';
 
+    /** Other words for the same thing, one per line or separated by commas. */
+    public string $keywords = '';
+
+    /** request | generator | pack | reply (MediaAssistantLesson::MEANINGS) */
+    public string $meaning = 'request';
+
+    public string $tool = '';
+
+    public string $pack_query = '';
+
+    public string $reply = '';
+
     /** "service.type", e.g. "001.new" */
     public string $kind = '';
 
@@ -55,7 +66,7 @@ class AssistantLog extends Component
         $this->authorizeTeaching();
         $log = MediaAssistantLog::findOrFail($logId);
 
-        $this->resetErrorBag();
+        $this->cancelTeach();
         $this->teaching = $log->id;
         $this->phrase = mb_substr($log->text, 0, 120);
         $service = $log->final_service ?? $log->service;
@@ -64,11 +75,21 @@ class AssistantLog extends Component
         $this->format = (string) ($log->mediaRequest?->answers['format'] ?? '');
         $this->program_id = $log->mediaRequest?->program_id;
         $this->city_id = $log->mediaRequest?->city_id;
+
+        // Taught before: start from that lesson, to change it.
+        if ($lesson = $log->lesson) {
+            $this->fill([
+                'phrase' => $lesson->phrase, 'keywords' => implode("\n", $lesson->keywords ?? []), 'meaning' => $lesson->meaning,
+                'kind' => $lesson->service ? $lesson->service.'.'.$lesson->type : '', 'format' => (string) $lesson->format,
+                'tool' => (string) $lesson->tool, 'pack_query' => (string) $lesson->pack_query, 'reply' => (string) $lesson->reply,
+                'program_id' => $lesson->program_id, 'city_id' => $lesson->city_id,
+            ]);
+        }
     }
 
     public function cancelTeach(): void
     {
-        $this->reset(['teaching', 'phrase', 'kind', 'format', 'program_id', 'city_id']);
+        $this->reset(['teaching', 'phrase', 'keywords', 'meaning', 'tool', 'pack_query', 'reply', 'kind', 'format', 'program_id', 'city_id']);
         $this->resetErrorBag();
     }
 
@@ -79,23 +100,33 @@ class AssistantLog extends Component
         $kinds = collect($catalog->requestServices())->flatMap(fn ($s) => array_map(fn ($t) => $s.'.'.$t, $catalog->types($s)))->all();
         $data = $this->validate([
             'phrase' => ['required', 'string', 'min:2', 'max:120'],
-            'kind' => ['nullable', Rule::in($kinds)],
+            'keywords' => ['nullable', 'string', 'max:1000'],
+            'meaning' => ['required', Rule::in(MediaAssistantLesson::MEANINGS)],
+            'kind' => ['nullable', 'required_if:meaning,request', Rule::in($kinds)],
             'format' => ['nullable', Rule::in($this->formats($catalog))],
+            'tool' => ['nullable', 'required_if:meaning,generator', Rule::in(array_keys(config('media-requests.generator.tools', [])))],
+            'pack_query' => ['nullable', 'required_if:meaning,pack', 'string', 'max:120'],
+            'reply' => ['nullable', 'required_if:meaning,reply', 'string', 'max:500'],
             'program_id' => ['nullable', 'exists:programs,id'],
             'city_id' => ['nullable', 'exists:cities,id'],
-        ], [], ['phrase' => __('media.al.t.phrase')]);
+        ], [
+            'kind.required_if' => __('media.al.t.needMeaning'), 'tool.required_if' => __('media.al.t.needTool'),
+            'pack_query.required_if' => __('media.al.t.needPack'), 'reply.required_if' => __('media.al.t.needReply'),
+        ], ['phrase' => __('media.al.t.phrase')]);
 
-        if (! $data['kind'] && ! $data['program_id'] && ! $data['city_id']) {
-            $this->addError('kind', __('media.al.t.needMeaning'));
-
-            return;
-        }
-
-        [$service, $type] = $data['kind'] ? explode('.', $data['kind']) : [null, null];
+        $isRequest = $data['meaning'] === 'request';
+        [$service, $type] = $isRequest && $data['kind'] ? explode('.', $data['kind']) : [null, null];
         $phrase = trim(preg_replace('/\s+/u', ' ', $data['phrase']) ?? '');
+        $words = collect(preg_split('/[\n,،]+/u', (string) $data['keywords']) ?: [])->map(fn ($w) => trim(preg_replace('/\s+/u', ' ', $w) ?? ''))
+            ->filter(fn ($w) => mb_strlen($w) >= 2 && MediaAssistantLesson::normal($w) !== MediaAssistantLesson::normal($phrase))->unique()->values()->all();
+
         $lesson = MediaAssistantLesson::updateOrCreate(['phrase' => $phrase], [
+            'keywords' => $words ?: null, 'meaning' => $data['meaning'],
             'service' => $service, 'type' => $type,
-            'format' => $data['kind'] === '001.new' ? ($data['format'] ?: null) : null,
+            'format' => $isRequest && $data['kind'] === '001.new' ? ($data['format'] ?: null) : null,
+            'tool' => $data['meaning'] === 'generator' ? $data['tool'] : null,
+            'pack_query' => $data['meaning'] === 'pack' ? trim((string) $data['pack_query']) : null,
+            'reply' => $data['meaning'] === 'reply' ? trim((string) $data['reply']) : null,
             'program_id' => $data['program_id'], 'city_id' => $data['city_id'],
             'employee_id' => auth()->user()->employee_id,
         ]);
@@ -118,7 +149,6 @@ class AssistantLog extends Component
         $base = MediaAssistantLog::query();
         $programs = Program::orderBy('code')->get();
         $cities = City::orderBy('code')->get();
-        $assistant = app(MediaAssistant::class);
 
         return view('livewire.media-requests.assistant-log', [
             'rows' => $this->filter === 'lessons' ? null : MediaAssistantLog::query()
@@ -134,12 +164,11 @@ class AssistantLog extends Component
                 'all' => (clone $base)->count(),
                 'lessons' => MediaAssistantLesson::count(),
             ],
-            // How the assistant reads a line now, with what it was taught since.
-            'now' => fn (string $text) => $assistant->analyze($text, $programs, $cities),
             'canTeach' => app(MediaTeam::class)->canActAsMediaManager(auth()->user()),
             'kinds' => collect($catalog->requestServices())->mapWithKeys(fn ($s) => collect($catalog->types($s))
                 ->mapWithKeys(fn ($t) => [$s.'.'.$t => __('media.svc.'.$catalog->serviceKey($s)).' · '.__('media.type.'.$t)]))->all(),
             'formats' => $this->formats($catalog),
+            'tools' => array_keys(config('media-requests.generator.tools', [])),
             'programs' => $programs,
             'cities' => $cities,
         ]);

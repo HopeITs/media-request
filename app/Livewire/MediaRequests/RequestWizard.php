@@ -301,7 +301,10 @@ class RequestWizard extends Component
             'details' => $this->service ? $catalog->visibleFields($this->service, $this->type, $this->answers, 'details') : [],
             'extras' => $this->service ? $catalog->visibleFields($this->service, $this->type, $this->answers, 'extra') : [],
             'prefix' => $naming->prefix($program, $city, $itemCode),
-            'suggestions' => $this->step === 1 && trim($this->prompt) !== '' ? $pack->suggest($this->prompt, $programs, 4) : collect(),
+            // A ready file the media manager pointed to for these words is searched with their words.
+            'suggestions' => $this->step === 1 && trim($this->prompt) !== ''
+                ? $pack->suggest(\App\Models\MediaAssistantLesson::matching($this->prompt, 'pack')->first()?->pack_query ?: $this->prompt, $programs, 4) : collect(),
+            'reply' => $this->step === 1 && trim($this->prompt) !== '' ? \App\Models\MediaAssistantLesson::matching($this->prompt, 'reply')->first() : null,
             'generator' => $this->step === 1 && $this->editingId === null
                 ? app(HcGenerator::class)->suggest($this->prompt, $this->service, $this->type, $this->answers) : null,
             'rush' => app(MediaRequestWorkflow::class)->isRush($this->needed_by, $this->service, $this->type, $this->answers),
