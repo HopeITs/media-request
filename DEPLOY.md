@@ -110,6 +110,21 @@ Laravel's scheduler does this; it needs one line in the web server user's cronta
 
 To try it by hand: `php artisan media:remind` (safe to run again: each request is reminded at most once a day).
 
+**Email.** When a request is delivered, the requester and their program manager get an email with the details
+and a button that opens it (files are only shared in the app). Set the organisation's mail server in `.env`:
+
+```dotenv
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.office365.com        # or the server IT uses
+MAIL_PORT=587
+MAIL_USERNAME=media-requests@hcsyria.org
+MAIL_PASSWORD=...                   # set by IT, never in git
+MAIL_FROM_ADDRESS=media-requests@hcsyria.org
+MAIL_FROM_NAME="Hope Center Media"
+```
+
+Without it (`MAIL_MAILER=log`) the emails only go to the log; delivering still works.
+
 ## 4. Web server
 
 **Nginx** (the important lines):
