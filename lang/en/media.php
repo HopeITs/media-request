@@ -1010,6 +1010,7 @@ return [
     'al.t.needPack' => 'Write what to search for in HC_PACK.',
     'al.t.needReply' => 'Write what to tell the person.',
     'al.m.other' => 'Other',
+    'al.t.severalHint' => 'Fill one or more: e.g. «ريل» is a videography request, and Reels Gen too. The person sees all of them.',
     'spec.title' => 'Specialty',
     'spec.all' => 'All specialties',
     'spec.design' => 'Design and print',

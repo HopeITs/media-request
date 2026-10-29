@@ -36,25 +36,24 @@ class AssistantLog extends Component
     /** Other words for the same thing, one per line or separated by commas. */
     public string $keywords = '';
 
-    /** request | generator | pack | reply (MediaAssistantLesson::MEANINGS) */
-    public string $meaning = 'request';
-
-    public string $tool = '';
-
-    public string $pack_query = '';
-
-    public string $reply = '';
-
-    /**
-     * What the words mean, from one list: "001.new" (a kind of request), "pack" (a ready file),
-     * "generator:text" (an HC Generator tool) or "reply" (something else).
+    /*
+     * What the words mean. Any of these, one or several together: "ريل" can be a video
+     * request and Reels Gen as well, so the person sees both.
      */
-    public string $choice = '';
 
-    /** "service.type", e.g. "001.new" */
+    /** A kind of media request: "service.type", e.g. "003.shoot" */
     public string $kind = '';
 
     public string $format = '';
+
+    /** A tool on HC Generator to suggest. */
+    public string $tool = '';
+
+    /** A ready file: what to search for in HC_PACK. */
+    public string $pack_query = '';
+
+    /** Something else: what to tell the person. */
+    public string $reply = '';
 
     public ?int $program_id = null;
 
@@ -78,7 +77,6 @@ class AssistantLog extends Component
         $service = $log->final_service ?? $log->service;
         $type = $log->final_type ?? $log->type;
         $this->kind = $service && $type ? $service.'.'.$type : '';
-        $this->choice = $this->kind;
         $this->format = (string) ($log->mediaRequest?->answers['format'] ?? '');
         $this->program_id = $log->mediaRequest?->program_id;
         $this->city_id = $log->mediaRequest?->city_id;
@@ -86,18 +84,17 @@ class AssistantLog extends Component
         // Taught before: start from that lesson, to change it.
         if ($lesson = $log->lesson) {
             $this->fill([
-                'phrase' => $lesson->phrase, 'keywords' => implode("\n", $lesson->keywords ?? []), 'meaning' => $lesson->meaning,
+                'phrase' => $lesson->phrase, 'keywords' => implode("\n", $lesson->keywords ?? []),
                 'kind' => $lesson->service ? $lesson->service.'.'.$lesson->type : '', 'format' => (string) $lesson->format,
                 'tool' => (string) $lesson->tool, 'pack_query' => (string) $lesson->pack_query, 'reply' => (string) $lesson->reply,
                 'program_id' => $lesson->program_id, 'city_id' => $lesson->city_id,
             ]);
-            $this->choice = match ($lesson->meaning) { 'generator' => 'generator:'.$lesson->tool, 'pack', 'reply' => $lesson->meaning, default => $this->kind };
         }
     }
 
     public function cancelTeach(): void
     {
-        $this->reset(['teaching', 'phrase', 'keywords', 'choice', 'meaning', 'tool', 'pack_query', 'reply', 'kind', 'format', 'program_id', 'city_id']);
+        $this->reset(['teaching', 'phrase', 'keywords', 'kind', 'format', 'tool', 'pack_query', 'reply', 'program_id', 'city_id']);
         $this->resetErrorBag();
     }
 
@@ -105,43 +102,40 @@ class AssistantLog extends Component
     {
         $this->authorizeTeaching();
 
-        // The one list sets the meaning and its detail.
-        [$this->meaning, $this->kind, $this->tool] = match (true) {
-            str_starts_with($this->choice, 'generator:') => ['generator', '', substr($this->choice, 10)],
-            in_array($this->choice, ['pack', 'reply'], true) => [$this->choice, '', ''],
-            default => ['request', $this->choice, ''],
-        };
-
         $kinds = collect($catalog->requestServices())->flatMap(fn ($s) => array_map(fn ($t) => $s.'.'.$t, $catalog->types($s)))->all();
         $data = $this->validate([
             'phrase' => ['required', 'string', 'min:2', 'max:120'],
             'keywords' => ['nullable', 'string', 'max:1000'],
-            'meaning' => ['required', Rule::in(MediaAssistantLesson::MEANINGS)],
-            'kind' => ['nullable', 'required_if:meaning,request', Rule::in($kinds)],
+            'kind' => ['nullable', Rule::in($kinds)],
             'format' => ['nullable', Rule::in($this->formats($catalog))],
-            'tool' => ['nullable', 'required_if:meaning,generator', Rule::in(array_keys(config('media-requests.generator.tools', [])))],
-            'pack_query' => ['nullable', 'required_if:meaning,pack', 'string', 'max:120'],
-            'reply' => ['nullable', 'required_if:meaning,reply', 'string', 'max:500'],
+            'tool' => ['nullable', Rule::in(array_keys(config('media-requests.generator.tools', [])))],
+            'pack_query' => ['nullable', 'string', 'max:120'],
+            'reply' => ['nullable', 'string', 'max:500'],
             'program_id' => ['nullable', 'exists:programs,id'],
             'city_id' => ['nullable', 'exists:cities,id'],
-        ], [
-            'kind.required_if' => __('media.al.t.needMeaning'), 'kind.in' => __('media.al.t.needMeaning'), 'tool.required_if' => __('media.al.t.needTool'),
-            'pack_query.required_if' => __('media.al.t.needPack'), 'reply.required_if' => __('media.al.t.needReply'),
-        ], ['phrase' => __('media.al.t.phrase')]);
+        ], [], ['phrase' => __('media.al.t.phrase')]);
 
-        $isRequest = $data['meaning'] === 'request';
-        [$service, $type] = $isRequest && $data['kind'] ? explode('.', $data['kind']) : [null, null];
+        $data['pack_query'] = trim((string) $data['pack_query']);
+        $data['reply'] = trim((string) $data['reply']);
+        $meanings = array_keys(array_filter(['request' => $data['kind'], 'generator' => $data['tool'], 'pack' => $data['pack_query'], 'reply' => $data['reply']]));
+        if ($meanings === [] && ! $data['program_id'] && ! $data['city_id']) {
+            $this->addError('kind', __('media.al.t.needMeaning'));
+
+            return;
+        }
+
+        [$service, $type] = $data['kind'] ? explode('.', $data['kind']) : [null, null];
         $phrase = trim(preg_replace('/\s+/u', ' ', $data['phrase']) ?? '');
         $words = collect(preg_split('/[\n,،]+/u', (string) $data['keywords']) ?: [])->map(fn ($w) => trim(preg_replace('/\s+/u', ' ', $w) ?? ''))
             ->filter(fn ($w) => mb_strlen($w) >= 2 && MediaAssistantLesson::normal($w) !== MediaAssistantLesson::normal($phrase))->unique()->values()->all();
 
         $lesson = MediaAssistantLesson::updateOrCreate(['phrase' => $phrase], [
-            'keywords' => $words ?: null, 'meaning' => $data['meaning'],
+            'keywords' => $words ?: null, 'meaning' => $meanings[0] ?? 'request',
             'service' => $service, 'type' => $type,
-            'format' => $isRequest && $data['kind'] === '001.new' ? ($data['format'] ?: null) : null,
-            'tool' => $data['meaning'] === 'generator' ? $data['tool'] : null,
-            'pack_query' => $data['meaning'] === 'pack' ? trim((string) $data['pack_query']) : null,
-            'reply' => $data['meaning'] === 'reply' ? trim((string) $data['reply']) : null,
+            'format' => $data['kind'] === '001.new' ? ($data['format'] ?: null) : null,
+            'tool' => $data['tool'] ?: null,
+            'pack_query' => $data['pack_query'] ?: null,
+            'reply' => $data['reply'] ?: null,
             'program_id' => $data['program_id'], 'city_id' => $data['city_id'],
             'employee_id' => auth()->user()->employee_id,
         ]);

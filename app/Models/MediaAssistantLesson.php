@@ -64,7 +64,10 @@ class MediaAssistantLesson extends Model
      */
     public static function matching(string $text, ?string $meaning = null): Collection
     {
-        return self::query()->get()->when($meaning, fn ($c) => $c->where('meaning', $meaning))
+        // One lesson may mean several things at once ("ريل": a video request, and Reels Gen too).
+        $field = ['request' => 'service', 'generator' => 'tool', 'pack' => 'pack_query', 'reply' => 'reply'][$meaning] ?? null;
+
+        return self::query()->get()->when($field, fn ($c) => $c->filter(fn (self $l) => filled($l->{$field})))
             ->map(fn (self $l) => [$l, $l->foundIn($text)])->filter(fn ($p) => $p[1] !== null)
             ->sortByDesc(fn ($p) => mb_strlen($p[1]))->map(fn ($p) => $p[0])->values();
     }

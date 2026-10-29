@@ -118,7 +118,7 @@ class MediaAssistant
         // What the media manager taught comes before the built-in rules; the longest match wins.
         // A lesson that points to HC Generator, HC_PACK or a reply is read by the form (lessons()).
         foreach (\App\Models\MediaAssistantLesson::matching($text) as $lesson) {
-            if ($lesson->meaning === 'request' && $lesson->service && ! isset($taughtKind)) {
+            if ($lesson->service && ! isset($taughtKind)) {
                 $taughtKind = true;
                 [$r['service'], $r['type']] = [$lesson->service, $lesson->type];
                 $r['answers'] = $lesson->format ? ['format' => $lesson->format] : [];

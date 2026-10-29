@@ -5,15 +5,13 @@
         return $service ? __('media.svc.'.$catalog->serviceKey($service)).' · '.__('media.type.'.$type) : '—';
     };
     $place = fn ($m) => $m ? ($locale === 'ar' ? $m->name_ar : $m->name_en) : null;
-    // What a lesson means, in one line: the request, the HC Generator tool, the HC_PACK search or the reply; then program and place.
+    // What a lesson means, in one line: the request, the HC Generator tool, the HC_PACK search and the reply it has; then program and place.
     $means = function (\App\Models\MediaAssistantLesson $l) use ($guess, $place) {
         return implode(' · ', array_filter([
-            match ($l->meaning) {
-                'generator' => 'HC Generator: '.__('media.gen.tool.'.$l->tool),
-                'pack' => 'HC_PACK: «'.$l->pack_query.'»',
-                'reply' => __('media.al.t.replyShort').': '.$l->reply,
-                default => $l->service ? $guess($l->service, $l->type).($l->format ? ' · '.__('media.o.format.'.$l->format) : '') : null,
-            },
+            $l->service ? $guess($l->service, $l->type).($l->format ? ' · '.__('media.o.format.'.$l->format) : '') : null,
+            $l->tool ? 'HC Generator: '.__('media.gen.tool.'.$l->tool) : null,
+            $l->pack_query ? 'HC_PACK: «'.$l->pack_query.'»' : null,
+            $l->reply ? __('media.al.t.replyShort').': '.$l->reply : null,
             $l->program ? trim($l->program->code.' '.$l->program->slug) : null,
             $place($l->city),
         ]));
@@ -144,28 +142,17 @@
                                             <textarea id="t-words" class="inp" rows="2" dir="auto" wire:model="keywords" placeholder="{{ __('media.al.t.keywordsPh') }}"></textarea>
                                             <p class="hint">{{ __('media.al.t.keywordsHint') }}</p>
                                         </div>
-                                        {{-- One list: a kind of request, a ready file, an HC Generator tool, or something else. --}}
+                                        {{-- What it means: one or several together, e.g. «ريل» = a video request and Reels Gen. --}}
+                                        <p class="hint full" style="margin:0">{{ __('media.al.t.severalHint') }}</p>
                                         <div class="field">
-                                            <label for="t-kind">{{ __('media.al.t.means') }}</label>
-                                            <select id="t-kind" class="inp" wire:model.live="choice">
+                                            <label for="t-kind">{{ __('media.al.m.request') }}</label>
+                                            <select id="t-kind" class="inp" wire:model.live="kind">
                                                 <option value="">—</option>
-                                                <optgroup label="{{ __('media.al.m.request') }}">
-                                                    @foreach ($kinds as $k => $label)<option value="{{ $k }}">{{ $label }}</option>@endforeach
-                                                </optgroup>
-                                                <optgroup label="HC_PACK">
-                                                    <option value="pack">{{ __('media.al.m.pack') }}</option>
-                                                </optgroup>
-                                                <optgroup label="HC Generator">
-                                                    @foreach ($tools as $tl)<option value="generator:{{ $tl }}">{{ __('media.gen.tool.'.$tl) }}</option>@endforeach
-                                                </optgroup>
-                                                <optgroup label="{{ __('media.al.m.other') }}">
-                                                    <option value="reply">{{ __('media.al.m.reply') }}</option>
-                                                </optgroup>
+                                                @foreach ($kinds as $k => $label)<option value="{{ $k }}">{{ $label }}</option>@endforeach
                                             </select>
                                             @error('kind')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
-                                            @error('tool')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
                                         </div>
-                                        @if ($choice === '001.new')
+                                        @if ($kind === '001.new')
                                             <div class="field">
                                                 <label for="t-format">{{ __('media.al.t.format') }}</label>
                                                 <select id="t-format" class="inp" wire:model="format">
@@ -173,19 +160,22 @@
                                                     @foreach ($formats as $fm)<option value="{{ $fm }}">{{ __('media.o.format.'.$fm) }}</option>@endforeach
                                                 </select>
                                             </div>
-                                        @elseif ($choice === 'pack')
-                                            <div class="field">
-                                                <label for="t-pack">{{ __('media.al.t.pack') }}</label>
-                                                <input id="t-pack" class="inp" dir="auto" maxlength="120" wire:model="pack_query" placeholder="{{ __('media.hp.ph') }}">
-                                                @error('pack_query')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
-                                            </div>
-                                        @elseif ($choice === 'reply')
-                                            <div class="field full">
-                                                <label for="t-reply">{{ __('media.al.t.reply') }}</label>
-                                                <textarea id="t-reply" class="inp" rows="2" dir="auto" maxlength="500" wire:model="reply" placeholder="{{ __('media.al.t.replyPh') }}"></textarea>
-                                                @error('reply')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
-                                            </div>
                                         @endif
+                                        <div class="field">
+                                            <label for="t-tool">HC Generator</label>
+                                            <select id="t-tool" class="inp" wire:model="tool">
+                                                <option value="">—</option>
+                                                @foreach ($tools as $tl)<option value="{{ $tl }}">{{ __('media.gen.tool.'.$tl) }}</option>@endforeach
+                                            </select>
+                                        </div>
+                                        <div class="field">
+                                            <label for="t-pack">{{ __('media.al.t.pack') }}</label>
+                                            <input id="t-pack" class="inp" dir="auto" maxlength="120" wire:model="pack_query" placeholder="{{ __('media.hp.ph') }}">
+                                        </div>
+                                        <div class="field full">
+                                            <label for="t-reply">{{ __('media.al.t.reply') }}</label>
+                                            <textarea id="t-reply" class="inp" rows="2" dir="auto" maxlength="500" wire:model="reply" placeholder="{{ __('media.al.t.replyPh') }}"></textarea>
+                                        </div>
                                         <div class="field">
                                             <label for="t-program">{{ __('media.f.program') }}</label>
                                             <select id="t-program" class="inp ltr" wire:model="program_id">
