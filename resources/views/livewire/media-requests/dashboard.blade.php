@@ -28,6 +28,7 @@
 {{-- wire:key: when the server sends a different layout (reset), the home screen starts fresh. --}}
 <div wire:key="home-{{ md5(json_encode($layout)) }}"
      x-data="mrHomeScreen(@js($layout), @js($bounds), @js($looks))"
+     data-hint-press="{{ __('media.hint.longpress') }}" data-hint-out="{{ __('media.hint.editOut') }}"
      x-on:keydown.escape.window="done()">
 
     <section class="hello">
@@ -63,7 +64,7 @@
                  :style="span('{{ $key }}')"
                  :class="{ pinned: pinned('{{ $key }}'), resizing: resizing === '{{ $key }}' }"
                  x-show="shownHere('{{ $key }}')"
-                 @if ($page = $cards->isApp($key) ? null : $cards->page(auth()->user(), $key)) data-page="{{ $page }}" x-on:dblclick="openPage($event, $el)" title="{{ __('media.dash.pageOpen') }}" @endif
+                 @if ($page = $cards->isApp($key) ? null : $cards->page(auth()->user(), $key)) data-page="{{ $page }}" x-on:dblclick="openPage($event, $el)" data-hint="dblclick" data-hint-text="{{ __('media.dash.pageOpen') }}" @endif
                  wire:key="tile-{{ $key }}">
 
                 {{-- Edit controls: remove outside the top corner (like a phone), pin and resize inside the tile so they never overlap a neighbour. --}}
@@ -437,7 +438,7 @@
                                             @foreach ($showcase as $k => $s)
                                                 <figure class="slide" x-show="i === {{ $k }}" x-transition.opacity.duration.500ms @if ($k > 0) x-cloak @endif
                                                         role="group" aria-roledescription="slide" aria-label="{{ $k + 1 }} / {{ count($showcase) }}">
-                                                    <button type="button" class="slidepic" x-on:click="if (! editing) pop = slides[{{ $k }}]" aria-haspopup="dialog" aria-label="{{ __('media.show.open', ['name' => $s['name']]) }}">
+                                                    <button type="button" class="slidepic" x-on:click="if (! editing) { pop = slides[{{ $k }}]; mrHints.used('showcase') }" data-hint="showcase" data-hint-text="{{ __('media.hint.showcase') }}" aria-haspopup="dialog" aria-label="{{ __('media.show.open', ['name' => $s['name']]) }}">
                                                         <img src="{{ $s['src'] }}" alt="{{ $s['name'] }}" loading="{{ $k === 0 ? 'eager' : 'lazy' }}">
                                                     </button>
                                                     <figcaption>
@@ -483,9 +484,8 @@
                                         <label for="dash-pack" class="vh">{{ __('media.hp.ph') }}</label>
                                         <div class="search" style="max-width:none">
                                             <x-ic n="search" />
-                                            <input id="dash-pack" name="q" class="inp" type="search" placeholder="{{ __('media.dash.packPh') }}">
+                                            <input id="dash-pack" name="q" class="inp" type="search" placeholder="{{ __('media.dash.packPh') }}" x-data="mrTypewriter(@js(__('media.ex.pack')))">
                                         </div>
-                                        <p class="packhint">{{ __('media.dash.packOpen') }}</p>
                                     </form>
                                     @break
                             @endswitch

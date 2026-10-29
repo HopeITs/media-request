@@ -81,7 +81,10 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
             const outside = (t) => t instanceof Element && ! t.closest('.tile, button, a, input, select, textarea, label, dialog, .sheet-back');
             let downOut = false;
             window.addEventListener('pointerdown', (e) => { downOut = this.editing && outside(e.target); });
-            window.addEventListener('click', (e) => { if (this.editing && downOut && outside(e.target) && ! this.gallery) this.done(); downOut = false; });
+            window.addEventListener('click', (e) => {
+                if (this.editing && downOut && outside(e.target) && ! this.gallery) { this.done(); window.mrHints.used('editOut'); }
+                downOut = false;
+            });
             this.$watch('editing', (on) => {
                 if (this.sortable) this.sortable.option('disabled', ! on);
                 this.$nextTick(() => this.drawGuides());
@@ -262,8 +265,15 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
         },
 
         // ---- editing ----------------------------------------------------
-        startEdit() {
+        startEdit(byPress = false) {
             this.flip(() => { this.bake(); this.editing = true; });
+            // One tip for this moment: how to start next time (if they used the button), else how to finish.
+            if (byPress) window.mrHints.used('longpress');
+            this.$nextTick(() => setTimeout(() => {
+                // From the grid: $root would be the button pressed, which is gone by now.
+                const root = this.$refs.grid.closest('[data-hint-press]'), t = root.dataset, at = root.querySelector('.hello .btn-p');
+                (! byPress && window.mrHints.show('longpress', at, t.hintPress)) || window.mrHints.show('editOut', at, t.hintOut);
+            }, 450));
             // The tiles wiggle for about a second to show they can move, then rest.
             this.wiggling = true;
             clearTimeout(this.wiggleTimer);
@@ -298,6 +308,7 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
         openPage(e, tile) {
             if (this.editing || e.target.closest('input, textarea, select, button, a, label')) return;
             try { window.getSelection().removeAllRanges(); } catch (err) {}
+            window.mrHints.used('dblclick');
             const form = tile.querySelector('form[method="GET"]');
             if (form) form.submit();
             else if (window.Livewire && Livewire.navigate) Livewire.navigate(tile.dataset.page);
@@ -309,7 +320,7 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
             if (this.editing || e.button > 0 || e.target.closest('input, textarea, select')) return;
             this.pressed = false;
             clearTimeout(this.pressTimer);
-            this.pressTimer = setTimeout(() => { this.pressed = true; this.startEdit(); }, 520);
+            this.pressTimer = setTimeout(() => { this.pressed = true; this.startEdit(true); }, 520);
         },
         release() { clearTimeout(this.pressTimer); },
         // A long-press must not also open the link under the finger.
@@ -572,3 +583,91 @@ window.mrCelebrate = function (label, boost = false) {
     setTimeout(done, still ? 900 : (boost ? 2100 : 1600));
 };
 window.addEventListener('media-celebrate', (e) => window.mrCelebrate(e.detail && e.detail.label, !! (e.detail && e.detail.boost)));
+
+/*
+ * Quiet hints: a small tip next to something the person has not found yet
+ * ("double-click to open", "click empty space to finish"). They stay out of the way:
+ *   - shown only when the mouse rests on the thing, or at the moment it matters;
+ *   - one resting hint per page, gone by itself after a few seconds or on any click;
+ *   - at most three times each, and never again once the person uses it or presses "Got it".
+ * Remembered per person in this browser.
+ *
+ *   <div data-hint="key" data-hint-text="…">   shown when the mouse rests on it
+ *   mrHints.show('key', el, text)               shown now (the moment it matters)
+ *   mrHints.used('key')                         found it: never shown again
+ */
+window.mrHints = (() => {
+    const MAX = 3, REST = 900, STAY = 6500;
+    const slot = () => 'mr.hints.' + (document.documentElement.dataset.user || '0');
+    const read = () => { try { return JSON.parse(localStorage.getItem(slot())) || {}; } catch (e) { return {}; } };
+    const write = (s) => { try { localStorage.setItem(slot(), JSON.stringify(s)); } catch (e) {} };
+    const wanted = (key) => { const h = read()[key]; return ! h || (! h.done && (h.n || 0) < MAX); };
+    let restedOnce = false, bubble = null, timer = null, rest = null, over = null;
+
+    const hide = () => {
+        clearTimeout(timer);
+        if (! bubble) return;
+        const b = bubble;
+        bubble = null;
+        b.classList.add('out');
+        setTimeout(() => b.remove(), 200);
+    };
+    const used = (key) => {
+        const s = read();
+        s[key] = { ...(s[key] || {}), done: true };
+        write(s);
+        if (bubble && bubble.dataset.key === key) hide();
+    };
+    // `at` is where the mouse rests ({x, y}); the tip then sits by the pointer, not mid-card.
+    const show = (key, el, text, at = null) => {
+        if (! text || ! el || ! el.isConnected || ! wanted(key)) return false;
+        hide();
+        const s = read();
+        s[key] = { n: ((s[key] || {}).n || 0) + 1 };
+        write(s);
+
+        const b = document.createElement('div');
+        b.className = 'mrhint';
+        b.dataset.key = key;
+        b.setAttribute('role', 'status');
+        const t = document.createElement('span');
+        t.textContent = text;
+        const ok = document.createElement('button');
+        ok.type = 'button';
+        ok.textContent = document.documentElement.dataset.gotIt || 'Got it';
+        ok.addEventListener('click', () => used(key));
+        b.append(t, ok);
+        document.body.appendChild(b);
+
+        // Above the thing when there is room, else below; always inside the screen.
+        const r = at ? { left: at.x, width: 0, top: at.y - 8, bottom: at.y + 20 } : el.getBoundingClientRect(), w = b.offsetWidth, h = b.offsetHeight;
+        const below = r.top < h + 70;
+        b.classList.toggle('below', below);
+        const x = Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width / 2 - w / 2));
+        b.style.left = x + 'px';
+        b.style.top = (below ? Math.min(r.bottom, window.innerHeight - h - 16) + 10 : r.top - h - 10) + 'px';
+        b.style.setProperty('--ax', Math.max(14, Math.min(w - 14, r.left + r.width / 2 - x)) + 'px');
+        bubble = b;
+        timer = setTimeout(hide, STAY);
+        return true;
+    };
+
+    // The mouse resting (not moving) on a thing with a hint. Touch gets its hints at the right moment instead.
+    let pointer = null;
+    document.addEventListener('pointermove', (e) => {
+        if (e.pointerType && e.pointerType !== 'mouse') return;
+        pointer = { x: e.clientX, y: e.clientY };
+        clearTimeout(rest);
+        const el = e.target instanceof Element ? e.target.closest('[data-hint]') : null;
+        over = el;
+        if (! el || restedOnce || bubble || el.closest('.editing') || ! wanted(el.dataset.hint)) return;
+        rest = setTimeout(() => {
+            if (over === el && el.matches(':hover') && show(el.dataset.hint, el, el.dataset.hintText, pointer)) restedOnce = true;
+        }, REST);
+    }, { passive: true });
+    document.addEventListener('pointerdown', (e) => { clearTimeout(rest); if (bubble && ! bubble.contains(e.target)) hide(); }, true);
+    window.addEventListener('scroll', hide, { passive: true, capture: true });
+    document.addEventListener('livewire:navigated', () => { restedOnce = false; over = null; hide(); });
+
+    return { show, used, hide };
+})();

@@ -663,8 +663,6 @@ textarea.notes{flex:1;min-height:0;resize:none;background:var(--soft);border-col
 .load li:first-child .bar i{background:var(--brand)}
 @container w (max-width:300px){.load li{grid-template-columns:minmax(0,1fr) 26px}.load .bar{display:none}}
 .packmini{display:grid;gap:8px;align-content:center;height:100%}
-.packmini .packhint{margin:0;font-size:12px;color:var(--text-3)}
-@container w (max-height:120px){.packmini .packhint{display:none}}
 
 /* Editing: a short wiggle, edit controls appear, links do not open */
 .hs.editing .tile:not(.pinned){cursor:grab}
@@ -1168,3 +1166,15 @@ img[src*="hope-center.svg"]{filter:var(--logo)}
 .hs:not(.editing) .tile[data-empty] .wempty{flex-direction:row;justify-content:flex-start;height:auto;min-height:0;padding:0;border:0;background:none;font-size:13.5px;font-weight:500;gap:8px;text-align:start;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hs:not(.editing) .tile[data-empty] .wempty .ei{width:26px;height:26px;flex:none}
 .hs:not(.editing) .tile[data-empty] .wempty .ei .ic{width:14px;height:14px}
+
+/* Quiet hints (mrHints): a small dark tip with an arrow, gone after a few seconds. */
+.mrhint{position:fixed;z-index:90;display:flex;align-items:center;gap:10px;max-width:min(320px,calc(100vw - 16px));padding:8px 8px 8px 12px;border-radius:10px;background:var(--ink);color:var(--on-ink);font-size:13px;line-height:1.4;box-shadow:var(--shadow);animation:hint-in .22s cubic-bezier(.2,.8,.2,1)}
+[dir="rtl"] .mrhint{padding:8px 12px 8px 8px}
+.mrhint::after{content:"";position:absolute;left:calc(var(--ax,50%) - 6px);top:100%;border:6px solid transparent;border-top-color:var(--ink)}
+.mrhint.below::after{top:auto;bottom:100%;border-top-color:transparent;border-bottom-color:var(--ink)}
+.mrhint button{flex:none;min-height:28px;padding:0 10px;border:0;border-radius:7px;background:color-mix(in srgb,var(--on-ink) 16%,transparent);color:inherit;font:inherit;font-weight:700;cursor:pointer}
+.mrhint button:hover{background:color-mix(in srgb,var(--on-ink) 26%,transparent)}
+.mrhint button:focus-visible{outline:2px solid var(--on-ink);outline-offset:1px}
+.mrhint.out{opacity:0;transform:translateY(4px);transition:opacity .18s,transform .18s}
+@keyframes hint-in{from{opacity:0;transform:translateY(4px)}}
+@media (prefers-reduced-motion:reduce){.mrhint{animation:none}.mrhint.out{transition:none}}

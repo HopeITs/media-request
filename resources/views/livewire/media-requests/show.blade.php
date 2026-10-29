@@ -224,7 +224,7 @@
                     <form wire:submit="comment" class="composer">
                         <label for="mr-body" class="vh">{{ __('media.cm.label') }}</label>
                         <div class="row">
-                            <textarea id="mr-body" class="inp" rows="2" wire:model="body" placeholder="{{ __('media.cm.ph') }}"></textarea>
+                            <textarea id="mr-body" class="inp" rows="2" wire:model="body" placeholder="{{ __('media.cm.ph') }}" x-data="mrTypewriter(@js(__('media.ex.comment')))"></textarea>
                             <button type="submit" class="btn btn-p" aria-label="{{ __('media.cm.send') }}"><x-ic n="send" class="flip" /></button>
                         </div>
                         <button type="button" class="btn-q proofbtn" x-on:click="$dispatch('media-proofread-open', { text: document.getElementById('mr-body').value, target: 'body' })"><x-ic n="check" />{{ __('media.proof.check') }}</button>

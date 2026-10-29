@@ -24,7 +24,7 @@
         <form class="askbar" x-data="{ text: '' }" x-on:submit.prevent="if (text.trim()) { $dispatch('media-wizard-open', { prompt: text }); text = '' }">
             <x-ic n="spark" class="spark" />
             <label for="ask" class="vh">{{ __('media.ai.title') }}</label>
-            <input id="ask" x-model="text" type="text" autocomplete="off" placeholder="{{ __('media.ai.ph') }}">
+            <input id="ask" x-model="text" type="text" autocomplete="off" placeholder="{{ __('media.ai.ph') }}" x-data="mrTypewriter(@js(__('media.ai.examples')))">
             <button class="btn btn-o" type="submit"><x-ic n="spark" />{{ __('media.ai.go') }}</button>
         </form>
     @endactivepermission
@@ -44,7 +44,7 @@
         <div class="search">
             <x-ic n="search" />
             <label for="q" class="vh">{{ __('media.q.ph') }}</label>
-            <input id="q" class="inp" type="search" wire:model.live.debounce.350ms="search" placeholder="{{ __('media.q.ph') }}">
+            <input id="q" class="inp" type="search" wire:model.live.debounce.350ms="search" placeholder="{{ __('media.q.ph') }}" x-data="mrTypewriter(@js(__('media.ex.search')))">
         </div>
         <label for="svc" class="vh">{{ __('media.q.svc') }}</label>
         <select id="svc" class="inp" style="width:auto;min-width:170px" wire:model.live="service">

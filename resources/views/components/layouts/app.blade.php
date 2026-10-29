@@ -28,7 +28,7 @@
     }
 @endphp
 <!DOCTYPE html>
-<html lang="{{ $locale }}" dir="{{ $locale === 'ar' ? 'rtl' : 'ltr' }}">
+<html lang="{{ $locale }}" dir="{{ $locale === 'ar' ? 'rtl' : 'ltr' }}" data-user="{{ $user->id }}" data-got-it="{{ __('media.hint.gotIt') }}">
 <head>
     <x-layouts.head :title="$title ?? null" />
 </head>

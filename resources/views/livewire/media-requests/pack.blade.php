@@ -17,7 +17,7 @@
         <div class="search" style="max-width:none">
             <x-ic n="search" />
             <label for="hp-q" class="vh">{{ __('media.hp.ph') }}</label>
-            <input id="hp-q" class="inp" type="search" wire:model.live.debounce.350ms="search" placeholder="{{ __('media.hp.ph') }}">
+            <input id="hp-q" class="inp" type="search" wire:model.live.debounce.350ms="search" placeholder="{{ __('media.hp.ph') }}" x-data="mrTypewriter(@js(__('media.ex.pack')))">
         </div>
         <label for="hp-g" class="vh">{{ __('media.hp.group') }}</label>
         <select id="hp-g" class="inp" style="width:auto;min-width:200px" wire:model.live="group">

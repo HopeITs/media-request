@@ -11,7 +11,7 @@
         <div class="search" style="max-width:340px;width:100%">
             <x-ic n="search" />
             <label for="drive-q" class="vh">{{ __('media.drive.search') }}</label>
-            <input id="drive-q" class="inp" type="search" wire:model.live.debounce.300ms="search" placeholder="{{ __('media.drive.search') }}">
+            <input id="drive-q" class="inp" type="search" wire:model.live.debounce.300ms="search" placeholder="{{ __('media.drive.search') }}" x-data="mrTypewriter(@js(__('media.ex.search')))">
         </div>
     </div>
 
