@@ -176,6 +176,16 @@ class HcPack
                     }
                 }
 
+                // A file name typed (all or part, "001_HC", "001_HC.png"): found, and the exact one first.
+                $name = mb_strtolower($f['name']);
+                $typed = mb_strtolower($query);
+                if (mb_strlen($typed) > 2 && str_contains($name, $typed)) {
+                    $s += 10;
+                    if ($typed === $name || $typed === mb_strtolower(pathinfo($f['name'], PATHINFO_FILENAME))) {
+                        $s += 5;
+                    }
+                }
+
                 if ($group && $query === '') {
                     $s = 1;
                 }

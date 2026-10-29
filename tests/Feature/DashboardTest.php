@@ -67,6 +67,17 @@ class DashboardTest extends TestCase
         $this->assertSame([$file['path']], $request->pack_files);
     }
 
+    public function test_hc_pack_finds_a_file_by_its_name(): void
+    {
+        $pack = app(\App\Support\MediaRequests\HcPack::class);
+        $file = $pack->all()->first();
+        $base = pathinfo($file['name'], PATHINFO_FILENAME);
+
+        $this->assertSame($file['path'], $pack->search($file['name'])->first()['path']);   // the whole name, first
+        $this->assertSame($base, pathinfo($pack->search($base)->first()['name'], PATHINFO_FILENAME));   // without the extension (SVG first of its kinds)
+        $this->assertContains($file['path'], $pack->search(mb_substr($base, 0, 4))->pluck('path')->all());   // part of it
+    }
+
     public function test_a_size_set_by_hand_is_kept_as_set(): void
     {
         $rami = $this->user('rami');
