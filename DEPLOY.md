@@ -16,7 +16,7 @@ one database, and **one cron line** (for the deadline reminders) is enough.
 ## 2. First install
 
 ```bash
-git clone git@github.com:HopeITs/media_request.git media-requests
+git clone git@github.com:HopeITs/media-request.git media-requests
 cd media-requests
 composer install --no-dev --optimize-autoloader
 cp .env.example .env
