@@ -79,6 +79,17 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
                     onEnd: () => { this.$refs.grid.classList.remove('dragging'); this.syncOrder(); },
                 });
             }
+            // The wheel stays inside a card only where there is more to scroll there; elsewhere the
+            // page scrolls. Checked as the pointer comes onto a card (its content may have changed).
+            this.$refs.grid.addEventListener('pointerover', (e) => {
+                const tile = e.target instanceof Element && e.target.closest('.tile');
+                if (! tile) { this.overTile = null; return; }
+                if (tile === this.overTile) return;
+                this.overTile = tile;
+                for (const el of tile.querySelectorAll('.wb, .decide, .bellscroll')) {
+                    el.classList.toggle('scrolls', el.scrollHeight > el.clientHeight + 2 || el.scrollWidth > el.clientWidth + 2);
+                }
+            });
             // While editing, a click on empty space (not a tile, a control or an open sheet) means Done.
             // Both the press and the click must be outside, so ending a drag or a resize never counts.
             const outside = (t) => t instanceof Element && ! t.closest('.tile, button, a, input, select, textarea, label, dialog, .sheet-back');

@@ -569,7 +569,7 @@ select.inp{cursor:pointer}
 .wh h2{flex:1;display:flex;align-items:center;gap:8px;font-size:15px;font-weight:800;margin:0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .wh h2 .ic{color:var(--text-2)}
 .pinmark{width:16px;height:16px;color:var(--text-2)}
-.wb{padding:10px 14px 14px;flex:1;min-height:0;overflow:auto;overscroll-behavior:contain}
+.wb{padding:10px 14px 14px;flex:1;min-height:0;overflow:auto}
 @container w (max-height:120px){.wh{display:none}.wb{padding:8px 10px}}
 /* The ask bar is the tile itself (no box inside a box) */
 .is-widget[data-key="ask"] .w{justify-content:center;background:none;border:0;box-shadow:none;border-radius:20px}
@@ -1081,7 +1081,7 @@ img[src*="hope-center.svg"]{filter:var(--logo)}
 .dreq-h h2{margin:0;font-size:20px;flex:1;min-width:0}
 /* The alerts as cards: they fill their tile, and fold to fit a small one. */
 .w .lateband{margin:0;height:100%;border:0;border-radius:inherit}
-.w .decide{margin:0;padding:12px 14px;border:0;border-radius:inherit;background:none;height:100%;overflow:auto;overscroll-behavior:contain}
+.w .decide{margin:0;padding:12px 14px;border:0;border-radius:inherit;background:none;height:100%;overflow:auto}
 .w:has(.decide){border-inline-start:3px solid var(--brand)}
 .wb:has(> .lateband){padding:0}
 .wb:has(> .decide){padding:0}
@@ -1211,3 +1211,6 @@ a.ach:hover .go{color:var(--text)}
 @media (prefers-reduced-motion:reduce){.tile.mini.peek > .w{animation:none}}
 .tile.mini .t-remove{top:-2px;inset-inline-start:calc(50% - 40px)}
 .tile.mini .t-pin,.tile.mini .t-style{display:none}
+
+/* Only a part of a card that really has more to scroll keeps the wheel; any other lets the page scroll (home-screen.js sets .scrolls). */
+.tile .scrolls{overscroll-behavior:contain}
