@@ -25,6 +25,8 @@ class DashboardLayout
 
     /** Widgets: key => [icon, min [cols, rows], max [cols, rows], default [cols, rows], shown by default] */
     private const WIDGETS = [
+        'late' => ['clock', [3, 1], [12, 3], [12, 1], true],      // requests past their needed-by date
+        'decide' => ['alert', [3, 2], [12, 6], [4, 3], true],     // approvals, checks and answers waiting on you
         'ask' => ['spark', [3, 1], [12, 3], [3, 1], true],
         'flow' => ['layers', [4, 2], [12, 6], [8, 2], true],   // where every request is, stage by stage
         'clock' => ['clock', [2, 1], [12, 6], [2, 2], true],
@@ -65,9 +67,12 @@ class DashboardLayout
      * waiting; then calendar beside notes and team. Cards grow into any cells left empty.
      */
     private const ORDER = [
-        'ask', 'app.new', 'app.my', 'app.pack', 'app.drive', 'app.generator', 'app.board', 'app.approvals', 'app.stats', 'app.log', 'app.assistant',
+        'late', 'decide', 'ask', 'app.new', 'app.my', 'app.pack', 'app.drive', 'app.generator', 'app.board', 'app.approvals', 'app.stats', 'app.log', 'app.assistant',
         'app.bell', 'app.people', 'flow', 'clock', 'pack', 'showcase', 'proof', 'mine', 'bell', 'waiting', 'calendar', 'notes', 'team',
     ];
+
+    /** Cards that were fixed bars over the grid until people asked to move and resize them. */
+    private const ALERTS = ['decide', 'late'];
 
     public function __construct(private MediaTeam $team) {}
 
@@ -189,9 +194,17 @@ class DashboardLayout
             ] + $this->look($key, $item['style'] ?? null);
         }
 
+        $first = [];
         foreach ($this->defaults($user) as $item) {
+            // The alerts were above the grid before they were cards: someone who never had them gets them first.
+            if (! isset($out[$item['key']]) && in_array($item['key'], self::ALERTS, true)) {
+                $first[$item['key']] = $item;
+
+                continue;
+            }
             $out[$item['key']] ??= $item;
         }
+        $out = $first + $out;
 
         $out = array_values($out);
         usort($out, fn (array $a, array $b): int => (int) $b['pinned'] <=> (int) $a['pinned']);

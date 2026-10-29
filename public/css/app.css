@@ -1081,3 +1081,11 @@ img[src*="hope-center.svg"]{filter:var(--logo)}
 .dsub{font-size:12.5px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .dreq-h{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:14px}
 .dreq-h h2{margin:0;font-size:20px;flex:1;min-width:0}
+/* The alerts as cards: they fill their tile, and fold to fit a small one. */
+.w .lateband{margin:0;height:100%;border:0;border-radius:inherit}
+.w .decide{margin:0;padding:12px 14px;border:0;border-radius:inherit;background:none;height:100%;overflow:auto;overscroll-behavior:contain}
+.w:has(.decide){border-inline-start:3px solid var(--brand)}
+.wb:has(> .lateband){padding:0}
+.wb:has(> .decide){padding:0}
+@container w (max-width:640px){.lateband{flex-wrap:wrap;gap:8px 12px}.lateband .btn{width:100%;justify-content:center}.decide-track:not(.all) .dcard{grid-template-columns:minmax(0,1fr);grid-template-areas:"what" "name" "meta" "btn"}.decide-track:not(.all) .btn{justify-self:start;margin-top:6px}}
+@container w (max-height:90px){.lateband{padding:8px 12px}.lateband .lb-ico{width:30px;height:30px}.lateband .lb-t span{display:none}}
