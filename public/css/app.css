@@ -1224,3 +1224,21 @@ a.ach:hover .go{color:var(--text)}
 
 /* Only a part of a card that really has more to scroll keeps the wheel; any other lets the page scroll (home-screen.js sets .scrolls). */
 .tile .scrolls{overscroll-behavior:contain}
+
+/* HC_PACK on the home screen (pack-quick): search, groups or results, and the request button. */
+.pq{display:flex;flex-direction:column;gap:10px;min-height:0;height:100%;width:100%}
+.pq > .search{flex:none}
+.pq-groups{display:flex;flex-wrap:wrap;gap:6px;overflow:hidden;align-content:flex-start;min-height:0}
+.pq-groups .chip .num{color:var(--text-3);font-size:12px}
+.pq-in{align-self:flex-start}
+.pq-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:2px;overflow-y:auto;overflow-x:hidden;min-height:0;flex:1}
+.pq-list label{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:8px;cursor:pointer;min-width:0}
+.pq-list label:hover{background:var(--hover)}
+.pq-list label.on{background:var(--soft);outline:1px solid var(--line)}
+.pq-list label > span:not(.tag){flex:1;min-width:0;display:grid}
+.pq-list b,.pq-list small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pq-list b{font-size:13px;font-weight:600}
+.pq-list small{font-size:11px;color:var(--text-3)}
+.pq-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:auto}
+/* A shortcut's panel is as tall as what it shows, up to the screen. */
+@media (min-width:761px){.tile.is-app > .appcard:popover-open{bottom:auto;max-height:calc(100dvh - 32px)}.tile.is-app[data-key="app.pack"] > .appcard:popover-open{height:min(620px,calc(100dvh - 32px))}}

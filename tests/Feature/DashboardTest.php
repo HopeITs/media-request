@@ -51,6 +51,22 @@ class DashboardTest extends TestCase
         $this->assertNull($cards->page($rami, 'app.my'));   // shortcuts open with one click
     }
 
+    public function test_hc_pack_works_from_the_home_screen(): void
+    {
+        $file = app(\App\Support\MediaRequests\HcPack::class)->all()->first();
+
+        $quick = Livewire::actingAs($this->user('rami'))->test(\App\Livewire\MediaRequests\PackQuick::class)
+            ->assertSee(__('media.hp.'.$file['group']))                     // the groups before anything is typed
+            ->set('search', 'logo')
+            ->assertSeeHtml('class="pq-list"')                               // results here, no new page
+            ->set('selected', [$file['path']])
+            ->call('requestFiles');
+
+        $request = \App\Models\MediaRequest::latest('id')->first();
+        $quick->assertRedirect(route('media-requests.show', $request));
+        $this->assertSame([$file['path']], $request->pack_files);
+    }
+
     public function test_a_size_set_by_hand_is_kept_as_set(): void
     {
         $rami = $this->user('rami');

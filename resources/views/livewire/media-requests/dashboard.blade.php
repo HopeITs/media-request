@@ -492,13 +492,7 @@
                                     <livewire:media-requests.proofreader-panel :inline="true" wire:key="proof-card" />
                                     @break
                                 @case('pack')
-                                    <form method="GET" action="{{ route('media-requests.pack') }}" class="packmini">
-                                        <label for="dash-pack" class="vh">{{ __('media.hp.ph') }}</label>
-                                        <div class="search" style="max-width:none">
-                                            <x-ic n="search" />
-                                            <input id="dash-pack" name="q" class="inp" type="search" placeholder="{{ __('media.dash.packPh') }}" x-data="mrTypewriter(@js(__('media.ex.pack')))">
-                                        </div>
-                                    </form>
+                                    <livewire:media-requests.pack-quick place="card" wire:key="pq-card" />
                                     @break
                             @endswitch
                         </div>

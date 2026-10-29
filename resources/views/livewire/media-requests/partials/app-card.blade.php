@@ -19,12 +19,7 @@
             <button type="submit" class="btn btn-p btn-sm"><x-ic n="plus" />{{ __('media.dash.card.app.new') }}</button>
         </form>
     @elseif ($key === 'app.pack')
-        <form method="GET" action="{{ route('media-requests.pack') }}" class="acask">
-            <label for="pack-app" class="vh">{{ __('media.hp.ph') }}</label>
-            <div class="search" style="max-width:none"><x-ic n="search" />
-                <input id="pack-app" name="q" class="inp" type="search" placeholder="{{ __('media.dash.packPh') }}" x-data="mrTypewriter(@js(__('media.ex.pack')))">
-            </div>
-        </form>
+        <livewire:media-requests.pack-quick place="app" wire:key="pq-app" />
     @else
         @isset($d['num'])
             <p class="acnum"><b class="num">{{ $d['num'] }}</b><span>{{ $d['unit'] ?? '' }}</span></p>

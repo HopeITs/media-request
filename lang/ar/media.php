@@ -890,6 +890,7 @@ return [
     'dash.toClaim' => 'بانتظار من يستلمها',
     'dash.packPh' => 'شعار، شهادة، قالب…',
     'dash.pageOpen' => 'انقر مرتين لفتح الصفحة',
+    'dash.packAll' => 'فتح HC_PACK',
     'dash.packOpen' => 'انقر مرتين على البطاقة لفتح HC_PACK',
     'dash.card.app.new' => 'طلب جديد',
     'dash.card.app.my' => 'طلباتي',

@@ -62,6 +62,7 @@ return [
             'attachFiles' => 'media-requests.view-own',
         ],
         'media-requests.pack' => ['requestFiles' => 'media-requests.create'],
+        'media-requests.pack-quick' => ['requestFiles' => 'media-requests.create'],   // HC_PACK on the home screen
         'media-requests.log' => ['exportCsv' => 'media-requests.export'],
         // Teaching the request assistant: the page needs view-log; the component also checks the media manager.
         'media-requests.assistant-log' => ['saveLesson' => 'media-requests.view-log', 'deleteLesson' => 'media-requests.view-log', 'teach' => 'media-requests.view-log'],
