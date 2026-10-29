@@ -88,18 +88,18 @@
                 @endif
 
                 @if ($cards->isApp($key))
-                    {{-- App shortcut --}}
+                    {{-- App shortcut. On a computer one click shows its card in the side panel, two open the page; on a phone a tap opens the page. --}}
                     @if ($key === 'app.new')
                         <button type="button" class="app" x-on:click="if (! editing) $dispatch('media-wizard-open')">
                             <span class="appicon brand"><x-ic n="plus" /></span><span class="appname">{{ $label($key) }}</span>
                         </button>
                     @elseif ($key === 'app.generator')
                         {{-- The centre's do-it-yourself site, in a new tab. --}}
-                        <a class="app" href="{{ app(\App\Support\MediaRequests\HcGenerator::class)->url() }}" target="_blank" rel="noopener">
+                        <a class="app" href="{{ app(\App\Support\MediaRequests\HcGenerator::class)->url() }}" target="_blank" rel="noopener" x-on:dblclick="miniPage('{{ $key }}')" data-hint="dblclick" data-hint-text="{{ __('media.dash.pageOpen') }}">
                             <span class="appicon"><x-ic n="wand" /></span><span class="appname" lang="en">{{ $label($key) }}</span>
                         </a>
                     @else
-                        <a class="app" href="{{ route($cards->route($key)) }}" wire:navigate>
+                        <a class="app" href="{{ route($cards->route($key)) }}" x-on:dblclick="miniPage('{{ $key }}')" data-hint="dblclick" data-hint-text="{{ __('media.dash.pageOpen') }}">
                             <span class="appicon"><x-ic :n="$cards->icon($key)" />
                                 @if ($key === 'app.my' && $waiting->count())<span class="cnt num">{{ $waiting->count() }}</span>@endif
                                 @if ($key === 'app.bell' && $user->unreadNotifications()->count())<span class="cnt num">{{ $user->unreadNotifications()->count() }}</span>@endif
@@ -114,7 +114,7 @@
                 @else
                     {{-- Made small, the card is an icon (with its count) that opens it at its usual size. --}}
                     @php($count = match ($key) { 'late' => count($late['items'] ?? []), 'decide' => $decisions->count(), 'waiting' => $waiting->count(), 'mine' => $mine->filter->isOpen()->count(), 'bell' => $user->unreadNotifications()->count(), default => 0 })
-                    <button type="button" class="app wmini" x-on:click="if (! editing) peekOpen('{{ $key }}')" x-on:dblclick="miniPage('{{ $key }}')" :aria-expanded="peek === '{{ $key }}'">
+                    <button type="button" class="app wmini" x-on:click="if (! editing) peekSoon($event, '{{ $key }}')" x-on:dblclick="miniPage('{{ $key }}')" :aria-expanded="peek === '{{ $key }}'">
                         <span class="appicon"><x-ic :n="$cards->icon($key)" />@if ($count)<span class="cnt num">{{ $count }}</span>@endif</span>
                         <span class="appname">{{ $label($key) }}</span>
                     </button>

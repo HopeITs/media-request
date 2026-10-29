@@ -293,8 +293,35 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
          * the same icon closes it, and another icon shows that card in the same place.
          */
         peek: null,
+        // The card a tile shows in the panel: a widget's own card, or a shortcut's data card.
+        panelOf(key) { return this.tileEl(key)?.querySelector(':scope > .w, :scope > .appcard'); },
+        // A shortcut on a computer: one click shows its card in the panel (a new-tab or modified click still opens the page).
+        // Called from the grid's capture listener. The shortcut links have no wire:navigate (it would
+        // follow the link as the button comes up), so the page is opened here: on a phone at once.
+        appClick(e) {
+            const link = e.target instanceof Element && e.target.closest('.tile.is-app > a.app');
+            if (! link || this.editing || e.ctrlKey || e.metaKey || e.shiftKey || e.button > 0) return false;
+            const key = link.parentElement.dataset.key;
+            e.preventDefault();
+            e.stopPropagation();
+            if (this.phone() || ! this.panelOf(key)) {
+                if (link.target === '_blank') window.open(link.href, '_blank', 'noopener');
+                else if (window.Livewire && Livewire.navigate) Livewire.navigate(link.href);
+                else window.location = link.href;
+            } else {
+                this.peekSoon(e, key);
+            }
+            return true;
+        },
+        // One click opens the panel only once it is clear no second click follows (a double-click opens
+        // the page), so the panel never lands on the icon between the two clicks.
+        peekSoon(e, key) {
+            clearTimeout(this.clickTimer);
+            if (e.detail > 1) return;
+            this.clickTimer = setTimeout(() => this.peekOpen(key), 240);
+        },
         peekOpen(key) {
-            const w = this.tileEl(key)?.querySelector('.w');
+            const w = this.panelOf(key);
             if (this.editing || ! w || ! w.showPopover) return;
             if (this.peek === key) { this.closePeek(); return; }
             // The panel stays where it is: another icon only changes what it shows.
@@ -304,18 +331,23 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
             w.focus({ preventScroll: true });
         },
         closePeek() {
-            const w = this.peek && this.tileEl(this.peek)?.querySelector('.w');
+            const w = this.peek && this.panelOf(this.peek);
             this.peek = null;
             try { if (w && w.matches(':popover-open')) w.hidePopover(); } catch (e) {}
         },
         // The second click of a double-click: open the card's page, if it has one.
         miniPage(key) {
             const tile = this.tileEl(key);
-            if (this.editing || ! tile || ! tile.dataset.page) return;
+            const link = tile && tile.querySelector(':scope > a.app');
+            const page = tile && (tile.dataset.page || (link && link.href));
+            clearTimeout(this.clickTimer);
+            if (this.editing || this.phone()) return;
+            if (! page) { this.peekOpen(key); return; }   // nothing to open: the panel, as one click would
             this.closePeek();
             window.mrHints.used('dblclick');
-            if (window.Livewire && Livewire.navigate) Livewire.navigate(tile.dataset.page);
-            else window.location = tile.dataset.page;
+            if (link && link.target === '_blank') window.open(page, '_blank', 'noopener');   // HC Generator, another site
+            else if (window.Livewire && Livewire.navigate) Livewire.navigate(page);
+            else window.location = page;
         },
         // Cards with more than one look (the clock: digital or analogue).
         styleOf(key) { return this.item(key).style || (this.looks[key] || [])[0] || ''; },
@@ -395,6 +427,7 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
         // A long-press must not also open the link under the finger.
         swallowClick(e) {
             if (this.pressed) { e.preventDefault(); e.stopPropagation(); this.pressed = false; }
+            else if (this.appClick(e)) return;
             else if (this.editing && e.target.closest('a') && ! e.target.closest('.tbtn, .grip')) { e.preventDefault(); }
         },
 

@@ -1,7 +1,8 @@
 {{-- A shortcut made big enough becomes a small card: its name (opens the page), one number and a few rows.
      The icon and this card are both drawn; the tile's own size picks one (container query in app.css). --}}
 @php($d = $apps[$key] ?? ['rows' => []])
-<div class="appcard">
+<div class="appcard" tabindex="-1" popover="manual">
+    <button type="button" class="iconbtn wclose" x-on:click="closePeek()" aria-label="{{ __('media.close') }}"><x-ic n="x" /></button>
     @if ($href)
         <a class="ach" href="{{ $href }}" @if ($external) target="_blank" rel="noopener" @else wire:navigate @endif>
             <span class="appicon"><x-ic :n="$cards->icon($key)" /></span><span @if ($key === 'app.generator') lang="en" @endif>{{ $label($key) }}</span><x-ic n="arrow" class="flip go" />
