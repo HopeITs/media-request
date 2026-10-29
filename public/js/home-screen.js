@@ -76,6 +76,12 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
                     onEnd: () => { this.$refs.grid.classList.remove('dragging'); this.syncOrder(); },
                 });
             }
+            // While editing, a click on empty space (not a tile, a control or an open sheet) means Done.
+            // Both the press and the click must be outside, so ending a drag or a resize never counts.
+            const outside = (t) => t instanceof Element && ! t.closest('.tile, button, a, input, select, textarea, label, dialog, .sheet-back');
+            let downOut = false;
+            window.addEventListener('pointerdown', (e) => { downOut = this.editing && outside(e.target); });
+            window.addEventListener('click', (e) => { if (this.editing && downOut && outside(e.target) && ! this.gallery) this.done(); downOut = false; });
             this.$watch('editing', (on) => {
                 if (this.sortable) this.sortable.option('disabled', ! on);
                 this.$nextTick(() => this.drawGuides());

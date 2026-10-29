@@ -63,6 +63,7 @@
                  :style="span('{{ $key }}')"
                  :class="{ pinned: pinned('{{ $key }}'), resizing: resizing === '{{ $key }}' }"
                  x-show="shownHere('{{ $key }}')"
+                 @if ($key === 'pack') x-on:dblclick="if (! editing && ! $event.target.closest('input')) $el.querySelector('form').submit()" title="{{ __('media.dash.packOpen') }}" @endif
                  wire:key="tile-{{ $key }}">
 
                 {{-- Edit controls: remove outside the top corner (like a phone), pin and resize inside the tile so they never overlap a neighbour. --}}
@@ -484,7 +485,7 @@
                                             <x-ic n="search" />
                                             <input id="dash-pack" name="q" class="inp" type="search" placeholder="{{ __('media.dash.packPh') }}">
                                         </div>
-                                        <button type="submit" class="btn btn-o btn-sm"><x-ic n="box" />HC_PACK</button>
+                                        <p class="packhint">{{ __('media.dash.packOpen') }}</p>
                                     </form>
                                     @break
                             @endswitch
