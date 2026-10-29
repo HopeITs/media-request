@@ -1009,6 +1009,7 @@ return [
     'al.t.needTool' => 'Choose the HC Generator tool.',
     'al.t.needPack' => 'Write what to search for in HC_PACK.',
     'al.t.needReply' => 'Write what to tell the person.',
+    'al.m.other' => 'Other',
     'spec.title' => 'Specialty',
     'spec.all' => 'All specialties',
     'spec.design' => 'Design and print',

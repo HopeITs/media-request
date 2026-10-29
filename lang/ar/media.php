@@ -1009,6 +1009,7 @@ return [
     'al.t.needTool' => 'اختار أداة HC Generator.',
     'al.t.needPack' => 'اكتب شو يدوّر بـ HC_PACK.',
     'al.t.needReply' => 'اكتب شو نقول للشخص.',
+    'al.m.other' => 'غير ذلك',
     'spec.title' => 'الاختصاص',
     'spec.all' => 'كل الاختصاصات',
     'spec.design' => 'تصميم وطباعة',

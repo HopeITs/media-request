@@ -35,7 +35,7 @@ class TeachAssistantTest extends TestCase
 
         Livewire::actingAs($this->user('maya'))->test(AssistantLog::class)
             ->call('teach', $log->id)->assertSet('phrase', $text)
-            ->set('phrase', 'كرت معايدة')->set('kind', '001.new')->set('format', 'invite')
+            ->set('phrase', 'كرت معايدة')->set('choice', '001.new')->set('format', 'invite')
             ->set('city_id', City::where('slug', 'HMS')->value('id'))
             ->call('saveLesson')->assertHasNoErrors()
             ->call('setFilter', 'lessons')->assertSee('كرت معايدة');
@@ -61,20 +61,20 @@ class TeachAssistantTest extends TestCase
 
         // Several words for the same thing.
         Livewire::actingAs($maya)->test(AssistantLog::class)
-            ->set('phrase', 'لوغو')->set('keywords', "logo, شعار\nلوجو")->set('meaning', 'request')->set('kind', '001.new')->set('format', 'other')
+            ->set('phrase', 'لوغو')->set('keywords', "logo, شعار\nلوجو")->set('choice', '001.new')->set('format', 'other')
             ->call('saveLesson')->assertHasNoErrors();
         $this->assertSame('001', $read('بدي شعار جديد للمركز')['service']);
         $this->assertSame('001', $read('need a LOGO')['service']);
 
         // Done on HC Generator: the form points to the tool.
         Livewire::actingAs($maya)->test(AssistantLog::class)
-            ->set('phrase', 'تفريغ فواتير')->set('keywords', 'فواتير بدها تفريغ')->set('meaning', 'generator')->set('tool', 'text')
+            ->set('phrase', 'تفريغ فواتير')->set('keywords', 'فواتير بدها تفريغ')->set('choice', 'generator:text')
             ->call('saveLesson')->assertHasNoErrors();
         $this->assertSame('text', app(\App\Support\MediaRequests\HcGenerator::class)->suggest('عندي فواتير بدها تفريغ')['key']);
 
         // Not the media team's: the form says where it goes.
         Livewire::actingAs($maya)->test(AssistantLog::class)
-            ->set('phrase', 'طلب توظيف')->set('meaning', 'reply')->call('saveLesson')->assertHasErrors('reply')
+            ->set('phrase', 'طلب توظيف')->set('choice', 'reply')->call('saveLesson')->assertHasErrors('reply')
             ->set('reply', 'التوظيف عند الموارد البشرية')->call('saveLesson')->assertHasNoErrors();
         Livewire::actingAs($this->user('rami'))->test(\App\Livewire\MediaRequests\RequestWizard::class)
             ->call('open')->set('prompt', 'بدي اعمل طلب توظيف HR')->assertSee('التوظيف عند الموارد البشرية');

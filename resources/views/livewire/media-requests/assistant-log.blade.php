@@ -144,48 +144,42 @@
                                             <textarea id="t-words" class="inp" rows="2" dir="auto" wire:model="keywords" placeholder="{{ __('media.al.t.keywordsPh') }}"></textarea>
                                             <p class="hint">{{ __('media.al.t.keywordsHint') }}</p>
                                         </div>
-                                        <fieldset class="field full" style="border:0;padding:0;margin:0">
-                                            <legend style="font-weight:700;margin-bottom:6px">{{ __('media.al.t.means') }}</legend>
-                                            <div class="seg" role="radiogroup">
-                                                @foreach (\App\Models\MediaAssistantLesson::MEANINGS as $m)
-                                                    <button type="button" role="radio" wire:click="$set('meaning', '{{ $m }}')" aria-checked="{{ $meaning === $m ? 'true' : 'false' }}" @class(['on' => $meaning === $m])>{{ __('media.al.m.'.$m) }}</button>
-                                                @endforeach
-                                            </div>
-                                        </fieldset>
-                                        @if ($meaning === 'request')
-                                            <div class="field">
-                                                <label for="t-kind">{{ __('media.al.t.kind') }}</label>
-                                                <select id="t-kind" class="inp" wire:model.live="kind">
-                                                    <option value="">—</option>
+                                        {{-- One list: a kind of request, a ready file, an HC Generator tool, or something else. --}}
+                                        <div class="field">
+                                            <label for="t-kind">{{ __('media.al.t.means') }}</label>
+                                            <select id="t-kind" class="inp" wire:model.live="choice">
+                                                <option value="">—</option>
+                                                <optgroup label="{{ __('media.al.m.request') }}">
                                                     @foreach ($kinds as $k => $label)<option value="{{ $k }}">{{ $label }}</option>@endforeach
-                                                </select>
-                                                @error('kind')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
-                                            </div>
-                                            @if ($kind === '001.new')
-                                                <div class="field">
-                                                    <label for="t-format">{{ __('media.al.t.format') }}</label>
-                                                    <select id="t-format" class="inp" wire:model="format">
-                                                        <option value="">—</option>
-                                                        @foreach ($formats as $fm)<option value="{{ $fm }}">{{ __('media.o.format.'.$fm) }}</option>@endforeach
-                                                    </select>
-                                                </div>
-                                            @endif
-                                        @elseif ($meaning === 'generator')
+                                                </optgroup>
+                                                <optgroup label="HC_PACK">
+                                                    <option value="pack">{{ __('media.al.m.pack') }}</option>
+                                                </optgroup>
+                                                <optgroup label="HC Generator">
+                                                    @foreach ($tools as $tl)<option value="generator:{{ $tl }}">{{ __('media.gen.tool.'.$tl) }}</option>@endforeach
+                                                </optgroup>
+                                                <optgroup label="{{ __('media.al.m.other') }}">
+                                                    <option value="reply">{{ __('media.al.m.reply') }}</option>
+                                                </optgroup>
+                                            </select>
+                                            @error('kind')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
+                                            @error('tool')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
+                                        </div>
+                                        @if ($choice === '001.new')
                                             <div class="field">
-                                                <label for="t-tool">{{ __('media.al.t.tool') }}</label>
-                                                <select id="t-tool" class="inp" wire:model="tool">
+                                                <label for="t-format">{{ __('media.al.t.format') }}</label>
+                                                <select id="t-format" class="inp" wire:model="format">
                                                     <option value="">—</option>
-                                                    @foreach ($tools as $tl)<option value="{{ $tl }}">{{ __('media.gen.tool.'.$tl) }}</option>@endforeach
+                                                    @foreach ($formats as $fm)<option value="{{ $fm }}">{{ __('media.o.format.'.$fm) }}</option>@endforeach
                                                 </select>
-                                                @error('tool')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
                                             </div>
-                                        @elseif ($meaning === 'pack')
+                                        @elseif ($choice === 'pack')
                                             <div class="field">
                                                 <label for="t-pack">{{ __('media.al.t.pack') }}</label>
                                                 <input id="t-pack" class="inp" dir="auto" maxlength="120" wire:model="pack_query" placeholder="{{ __('media.hp.ph') }}">
                                                 @error('pack_query')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
                                             </div>
-                                        @else
+                                        @elseif ($choice === 'reply')
                                             <div class="field full">
                                                 <label for="t-reply">{{ __('media.al.t.reply') }}</label>
                                                 <textarea id="t-reply" class="inp" rows="2" dir="auto" maxlength="500" wire:model="reply" placeholder="{{ __('media.al.t.replyPh') }}"></textarea>

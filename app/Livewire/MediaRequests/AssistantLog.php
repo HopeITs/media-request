@@ -45,6 +45,12 @@ class AssistantLog extends Component
 
     public string $reply = '';
 
+    /**
+     * What the words mean, from one list: "001.new" (a kind of request), "pack" (a ready file),
+     * "generator:text" (an HC Generator tool) or "reply" (something else).
+     */
+    public string $choice = '';
+
     /** "service.type", e.g. "001.new" */
     public string $kind = '';
 
@@ -72,6 +78,7 @@ class AssistantLog extends Component
         $service = $log->final_service ?? $log->service;
         $type = $log->final_type ?? $log->type;
         $this->kind = $service && $type ? $service.'.'.$type : '';
+        $this->choice = $this->kind;
         $this->format = (string) ($log->mediaRequest?->answers['format'] ?? '');
         $this->program_id = $log->mediaRequest?->program_id;
         $this->city_id = $log->mediaRequest?->city_id;
@@ -84,18 +91,26 @@ class AssistantLog extends Component
                 'tool' => (string) $lesson->tool, 'pack_query' => (string) $lesson->pack_query, 'reply' => (string) $lesson->reply,
                 'program_id' => $lesson->program_id, 'city_id' => $lesson->city_id,
             ]);
+            $this->choice = match ($lesson->meaning) { 'generator' => 'generator:'.$lesson->tool, 'pack', 'reply' => $lesson->meaning, default => $this->kind };
         }
     }
 
     public function cancelTeach(): void
     {
-        $this->reset(['teaching', 'phrase', 'keywords', 'meaning', 'tool', 'pack_query', 'reply', 'kind', 'format', 'program_id', 'city_id']);
+        $this->reset(['teaching', 'phrase', 'keywords', 'choice', 'meaning', 'tool', 'pack_query', 'reply', 'kind', 'format', 'program_id', 'city_id']);
         $this->resetErrorBag();
     }
 
     public function saveLesson(MediaCatalog $catalog): void
     {
         $this->authorizeTeaching();
+
+        // The one list sets the meaning and its detail.
+        [$this->meaning, $this->kind, $this->tool] = match (true) {
+            str_starts_with($this->choice, 'generator:') => ['generator', '', substr($this->choice, 10)],
+            in_array($this->choice, ['pack', 'reply'], true) => [$this->choice, '', ''],
+            default => ['request', $this->choice, ''],
+        };
 
         $kinds = collect($catalog->requestServices())->flatMap(fn ($s) => array_map(fn ($t) => $s.'.'.$t, $catalog->types($s)))->all();
         $data = $this->validate([
@@ -110,7 +125,7 @@ class AssistantLog extends Component
             'program_id' => ['nullable', 'exists:programs,id'],
             'city_id' => ['nullable', 'exists:cities,id'],
         ], [
-            'kind.required_if' => __('media.al.t.needMeaning'), 'tool.required_if' => __('media.al.t.needTool'),
+            'kind.required_if' => __('media.al.t.needMeaning'), 'kind.in' => __('media.al.t.needMeaning'), 'tool.required_if' => __('media.al.t.needTool'),
             'pack_query.required_if' => __('media.al.t.needPack'), 'reply.required_if' => __('media.al.t.needReply'),
         ], ['phrase' => __('media.al.t.phrase')]);
 
