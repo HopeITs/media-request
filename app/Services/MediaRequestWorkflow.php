@@ -70,8 +70,18 @@ class MediaRequestWorkflow
     {
         Gate::forUser($actor)->authorize('create', MediaRequest::class);
 
-        $data = $this->validated($data);
+        // Asked outside the app (phone, email, in person): the media team enters it for that person.
+        $forId = (int) ($data['for'] ?? 0);
         $requester = $actor->profile;
+        if ($forId && $forId !== $actor->employee_id) {
+            if (! $this->team->seesArchive($actor)) {
+                throw ValidationException::withMessages(['for' => __('media.err.forTeam')]);
+            }
+            $requester = Employee::query()->where('is_active', true)->whereHas('account')->find($forId)
+                ?? throw ValidationException::withMessages(['for' => __('media.err.forTeam')]);
+        }
+
+        $data = $this->validated($data);
         $program = Program::find($data['program_id']);
         $needsProgram = $this->needsProgramApproval($requester, $program);
 
@@ -93,8 +103,12 @@ class MediaRequestWorkflow
             'title' => $request->title,
             'needed_by' => $request->needed_by?->toDateString(),
             'files' => count($files) ?: null,
+            'for' => $requester->id !== $actor->employee_id ? $requester->id : null,
         ]);
         $this->notifier->event($request, 'submitted', $actor);
+        if ($requester->id !== $actor->employee_id) {
+            $this->notifier->event($request, 'filedFor', $actor);   // the person it was entered for
+        }
 
         return $request;
     }

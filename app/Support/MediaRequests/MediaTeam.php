@@ -202,6 +202,18 @@ class MediaTeam
         return $i === false ? 99 : $i;
     }
 
+    /** An open (source) file, e.g. .ai or .psd: for the media team's archive only. */
+    public static function isOpenFile(?string $fileName): bool
+    {
+        return in_array(strtolower(pathinfo((string) $fileName, PATHINFO_EXTENSION)), config('media-requests.open_files', []), true);
+    }
+
+    /** The media team (and whoever stands in for the media manager) sees open files and the archive. */
+    public function seesArchive(?User $user): bool
+    {
+        return $user !== null && ($this->isMember($user->profile) || $this->canActAsMediaManager($user));
+    }
+
     public function isMember(?Employee $employee): bool
     {
         return $employee !== null && $employee->is_active && in_array($employee->media_role, ['member', 'manager'], true);

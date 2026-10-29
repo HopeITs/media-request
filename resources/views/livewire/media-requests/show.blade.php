@@ -171,7 +171,8 @@
                     <h2>{{ __('media.d.files') }}</h2>
                     <x-media.results :r="$r" />
                     <ul class="files">
-                        @foreach (array_filter(['draft' => $r->draft_link, 'result' => $r->result_link, 'archive' => $r->archive_link]) as $kind => $href)
+                        {{-- The archive (open files) is the media team's only. --}}
+                        @foreach (array_filter(['draft' => $r->draft_link, 'result' => $r->result_link, 'archive' => $team->seesArchive(auth()->user()) ? $r->archive_link : null]) as $kind => $href)
                             <li><a href="{{ $href }}" target="_blank" rel="noopener noreferrer"><x-ic n="link" />{{ __('media.link.'.$kind) }}</a></li>
                         @endforeach
                         @foreach ($packFiles as $file)
@@ -184,7 +185,7 @@
                     @if (! $r->draft_link && ! $r->result_link && ! $r->archive_link && $packFiles->isEmpty() && $r->getMedia('attachments')->isEmpty() && $r->getMedia('results')->isEmpty())
                         <p class="sub">{{ __('media.att.empty') }}</p>
                     @endif
-                    @if ($r->archive_name)
+                    @if ($r->archive_name && $team->seesArchive(auth()->user()))
                         <p class="sub" style="margin-top:10px">{{ __('media.d.archName') }}: <code class="ltr">{{ $r->archive_name }}</code></p>
                     @endif
                     @can('attach', $r)

@@ -169,6 +169,18 @@
                 @if ($step === 3)
                     <h3 class="sth"><x-ic n="user" /><x-media.bi k="media.wz.s3t" /></h3>
                     <div class="fgrid">
+                        {{-- Media team: a request asked outside the app is entered here, for the person who asked. --}}
+                        @if ($forPeople->isNotEmpty())
+                            <div class="field full">
+                                <label for="mr-for"><x-media.bi k="media.f.for" /></label>
+                                <select id="mr-for" class="inp" wire:model.live="forEmployeeId">
+                                    <option value="">{{ __('media.f.forMe') }}</option>
+                                    @foreach ($forPeople as $p)<option value="{{ $p->id }}">{{ $p->nameForLocale($locale) }}</option>@endforeach
+                                </select>
+                                <p class="hint">{{ __('media.h.for') }}</p>
+                                @error('for')<p class="err" role="alert"><x-ic n="alert" />{{ $message }}</p>@enderror
+                            </div>
+                        @endif
                         <div class="field">
                             <label for="mr-program"><x-media.bi k="media.f.program" /><span class="req" aria-hidden="true">*</span></label>
                             <select id="mr-program" class="inp ltr" wire:model.live="program_id" {{ $err('program_id') }}>
@@ -241,21 +253,14 @@
                             <button type="button" class="btn-q proofbtn" x-on:click="$dispatch('media-proofread-open', { text: document.getElementById('mr-desc').value, target: 'description' })"><x-ic n="check" />{{ __('media.proof.check') }}</button>
                         </div>
 
-                        <fieldset class="field full">
-                            <legend><x-media.bi k="media.f.channel" /></legend>
-                            <div class="choices">
-                                @foreach (config('media-requests.delivery_channels') as $channel)
-                                    <label class="choice">
-                                        <input type="radio" value="{{ $channel }}" wire:model.live="delivery_channel" name="delivery_channel">
-                                        <span><x-ic n="check" class="ck" />{{ __('media.o.channel.'.$channel) }}</span>
-                                    </label>
-                                @endforeach
+                        {{-- Checking the text is up to the requester; a reminder, never a block. Delivery is in the app, so nothing to choose. --}}
+                        @unless ($service === '000')
+                            <div class="banner soft full proofhint">
+                                <x-ic n="check" />
+                                <span><b>{{ __('media.wz.proofTitle') }}</b> {{ __('media.wz.proofText') }}
+                                    <button type="button" class="btn-q" x-on:click="$dispatch('media-proofread-open', { text: document.getElementById('mr-desc')?.value ?? '', target: 'description' })">{{ __('media.wz.proofGo') }}</button></span>
                             </div>
-                            @if ($delivery_channel)
-                                <label for="mr-contact" class="lbl" style="margin-top:8px">{{ __('media.f.contact.'.$delivery_channel) }}</label>
-                                <input id="mr-contact" class="inp" type="text" wire:model.blur="delivery_contact">
-                            @endif
-                        </fieldset>
+                        @endunless
 
                         <div class="field full">
                             <span class="lbl"><x-media.bi k="media.f.attach" /></span>

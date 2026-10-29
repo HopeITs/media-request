@@ -66,6 +66,9 @@ class RequestWizard extends Component
 
     public string $delivery_contact = '';
 
+    /** Media team only: the request is entered for someone else (asked by phone or email); they become the requester. */
+    public ?int $forEmployeeId = null;
+
     public array $uploads = [];
 
     public string $prompt = '';
@@ -260,7 +263,7 @@ class RequestWizard extends Component
             $request = $workflow->update($user, MediaRequest::findOrFail($this->editingId), $data);
             $workflow->attach($user, $request, $this->uploads);
         } else {
-            $request = $workflow->submit($user, $data, $this->uploads);
+            $request = $workflow->submit($user, $data + ['for' => $this->forEmployeeId], $this->uploads);
             $this->linkAssistant($request);
         }
 
@@ -284,9 +287,14 @@ class RequestWizard extends Component
         $program = $programs->firstWhere('id', $this->program_id);
         $city = $cities->firstWhere('id', $this->city_id);
         $itemCode = $this->service ? $naming->itemCode($this->service, (string) $this->type, $this->answers) : 'Design';
-        $requester = auth()->user()->profile;
+        $team = app(MediaTeam::class);
+        $canFileFor = $this->editingId === null && $team->seesArchive(auth()->user());
+        $requester = ($canFileFor && $this->forEmployeeId ? \App\Models\Employee::find($this->forEmployeeId) : null) ?? auth()->user()->profile;
 
         return view('livewire.media-requests.request-wizard', [
+            // Media team: people to enter a request for (asked by phone, email or in person).
+            'forPeople' => $canFileFor ? \App\Models\Employee::query()->where('is_active', true)->whereHas('account')
+                ->whereKeyNot(auth()->user()->employee_id)->orderBy('first_name_en')->get() : collect(),
             'catalog' => $catalog,
             'programs' => $programs,
             'cities' => $cities,
@@ -398,7 +406,7 @@ class RequestWizard extends Component
     {
         $this->reset([
             'step', 'editingId', 'presetDate', 'changeEventDate', 'service', 'type', 'answers', 'program_id', 'city_id', 'title',
-            'description', 'needed_by', 'rush_reason', 'delivery_channel', 'delivery_contact',
+            'description', 'needed_by', 'rush_reason', 'delivery_channel', 'delivery_contact', 'forEmployeeId',
             'uploads', 'prompt', 'questions', 'questionAnswers', 'assistantUsed', 'assistantMissed', 'assistantLogId',
         ]);
         $this->resetErrorBag();

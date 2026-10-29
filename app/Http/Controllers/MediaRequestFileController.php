@@ -23,6 +23,9 @@ class MediaRequestFileController extends Controller
 
         abort_unless($request instanceof MediaRequest && in_array($media->collection_name, ['attachments', 'results'], true), Response::HTTP_NOT_FOUND);
         Gate::authorize('view', $request);
+        // Open files the team sent (.ai, .psd, …) stay with the media team; the requester gets the finished files.
+        abort_if($media->collection_name === 'results' && \App\Support\MediaRequests\MediaTeam::isOpenFile($media->file_name)
+            && ! app(\App\Support\MediaRequests\MediaTeam::class)->seesArchive($http->user()), Response::HTTP_FORBIDDEN);
         abort_unless(is_file($media->getPath()), Response::HTTP_NOT_FOUND);
 
         $inline = $http->boolean('view') && in_array($media->mime_type, self::VIEWABLE, true);

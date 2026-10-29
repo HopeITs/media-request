@@ -3,7 +3,8 @@
     open in the page (?view=1); everything else downloads. With "latest", only the newest.
 --}}
 @props(['r', 'latest' => false])
-@php($groups = $r->getMedia('results')->sortByDesc('id')->groupBy(fn ($m) => ($m->getCustomProperty('kind') ?? 'result').':'.($m->getCustomProperty('version') ?? 1)))
+@php($archive = app(\App\Support\MediaRequests\MediaTeam::class)->seesArchive(auth()->user()))
+@php($groups = $r->getMedia('results')->reject(fn ($m) => ! $archive && \App\Support\MediaRequests\MediaTeam::isOpenFile($m->file_name))->sortByDesc('id')->groupBy(fn ($m) => ($m->getCustomProperty('kind') ?? 'result').':'.($m->getCustomProperty('version') ?? 1)))
 @php($groups = $latest ? $groups->take(1) : $groups)
 
 @foreach ($groups as $key => $files)

@@ -174,6 +174,12 @@ return [
         'agreement' => ['RQA', 'DZR', 'HSK'], // Al-Jazira
     ],
 
+    /*
+    | Open (source) files: kept for the media team's archive, never given to the
+    | requester. Everyone else sees the finished files (JPG, PNG, PDF, video, …).
+    */
+    'open_files' => ['ai', 'psd', 'psb', 'eps', 'indd', 'idml', 'cdr', 'aep', 'prproj', 'drp', 'fig', 'sketch', 'xd', 'afdesign', 'afphoto'],
+
     'priorities' => ['high', 'normal', 'low'],
 
     'delivery_channels' => ['telegram', 'email', 'folder', 'hand'],

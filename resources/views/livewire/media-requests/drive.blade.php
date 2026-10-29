@@ -56,7 +56,7 @@
                 <a href="{{ route('media-requests.show', $r) }}" wire:navigate class="btn btn-o btn-sm"><x-ic n="eye" />{{ __('media.drive.openRequest') }}</a>
             </div>
 
-            @php($links = array_filter(['draft' => $r->draft_link, 'result' => $r->result_link, 'archive' => $r->archive_link]))
+            @php($links = array_filter(['draft' => $r->draft_link, 'result' => $r->result_link, 'archive' => app(\App\Support\MediaRequests\MediaTeam::class)->seesArchive(auth()->user()) ? $r->archive_link : null]))
             @if ($links)
                 <ul class="drivegrid">
                     @foreach ($links as $kind => $href)

@@ -32,7 +32,7 @@ class MediaRequestNotifier
             'assigned' => $this->owners($r)->merge($this->requester($r)),
             // A result to review goes to the requester and the program manager: either may approve it.
             'intOk', 'sentReq' => $this->requester($r)->merge($this->team->accounts($this->team->programManagers($r->program))),
-            'claimed', 'started', 'draft', 'ready', 'delivered', 'packDone',
+            'filedFor', 'claimed', 'started', 'draft', 'ready', 'delivered', 'packDone',
             'info', 'rejected', 'hold' => $this->requester($r),
             'sentInt' => $this->owners($r),
             'intBack', 'changes', 'reqOk' => $this->assignee($r),
@@ -49,6 +49,16 @@ class MediaRequestNotifier
             ->reject(fn (User $u) => $actor !== null && $u->id === $actor->id)
             ->unique('id')
             ->values();
+
+        // Delivered: an email too, to the requester and their program manager, with the details.
+        // A mail server that is down never stops the delivery itself.
+        if ($event === 'delivered') {
+            $mail = $this->requester($r)->merge($this->team->accounts($this->team->programManagers($r->program)))
+                ->filter(fn ($u) => $u instanceof User && filled($u->email))->unique('id')->values();
+            if ($mail->isNotEmpty()) {
+                rescue(fn () => Notification::send($mail, new \App\Notifications\MediaRequestDelivered($r)), report: true);
+            }
+        }
 
         if ($recipients->isEmpty()) {
             return;
