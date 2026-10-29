@@ -114,12 +114,14 @@
                 @else
                     {{-- Made small, the card is an icon (with its count) that opens it at its usual size. --}}
                     @php($count = match ($key) { 'late' => count($late['items'] ?? []), 'decide' => $decisions->count(), 'waiting' => $waiting->count(), 'mine' => $mine->filter->isOpen()->count(), 'bell' => $user->unreadNotifications()->count(), default => 0 })
-                    <button type="button" class="app wmini" x-on:click="if (! editing) peekOpen('{{ $key }}')" :aria-expanded="peek === '{{ $key }}'">
+                    <button type="button" class="app wmini" x-on:click="if (! editing) peekOpen('{{ $key }}')" x-on:dblclick="miniPage('{{ $key }}')" :aria-expanded="peek === '{{ $key }}'">
                         <span class="appicon"><x-ic :n="$cards->icon($key)" />@if ($count)<span class="cnt num">{{ $count }}</span>@endif</span>
                         <span class="appname">{{ $label($key) }}</span>
                     </button>
                     {{-- Widget --}}
-                    <section class="w" aria-labelledby="wt-{{ $key }}" tabindex="-1">
+                    {{-- popover: made small, the card opens from its icon in a side panel (see peekOpen). --}}
+                    <section class="w" aria-labelledby="wt-{{ $key }}" tabindex="-1" popover="manual">
+                        <button type="button" class="iconbtn wclose" x-on:click="closePeek()" aria-label="{{ __('media.close') }}"><x-ic n="x" /></button>
                         @unless (in_array($key, ['clock', 'ask', 'late', 'decide'], true))
                             <header class="wh">
                                 <h2 id="wt-{{ $key }}"><x-ic :n="$cards->icon($key)" />{{ $label($key) }}</h2>

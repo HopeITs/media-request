@@ -1204,11 +1204,17 @@ a.ach:hover .go{color:var(--text)}
 .tile.mini{container-type:size}
 .tile.mini > .wmini{display:flex}
 .tile.mini > .w{display:none}
-.tile.mini.peek{z-index:40}
-.tile.mini.peek > .w{display:flex;position:absolute;top:var(--py,0);left:var(--px,0);width:var(--pw,320px);height:var(--ph,260px);box-shadow:0 22px 60px rgba(0,0,0,.35),0 0 0 1px var(--line);animation:peek-in .2s cubic-bezier(.2,.8,.2,1);outline:none}
+/* Every card is a popover (for its side panel) but lays out as a normal card: undo the browser's popover look. */
+.w[popover]{position:static;inset:auto;margin:0;padding:0;color:inherit;width:auto;height:100%;max-width:none;max-height:none}
+/* Opened from its icon: a panel along the screen's end edge, the card at a comfortable size. */
+.tile.mini > .w:popover-open{display:flex;position:fixed;inset:16px;inset-inline-start:auto;width:min(460px,calc(100vw - 32px));height:auto;max-height:calc(100dvh - 32px);box-shadow:0 22px 60px rgba(0,0,0,.35),0 0 0 1px var(--line);outline:none}
 .tile.mini.peek > .wmini .appicon{border-color:var(--text);box-shadow:var(--shadow)}
-@keyframes peek-in{from{opacity:0;transform:scale(.96)}}
-@media (prefers-reduced-motion:reduce){.tile.mini.peek > .w{animation:none}}
+/* Its close button, only in the panel. */
+.wclose{display:none}
+.w:popover-open > .wclose{display:grid;position:absolute;top:8px;inset-inline-end:8px;z-index:2}
+.w:popover-open > .wh{padding-inline-end:52px}
+/* A phone: a sheet from the bottom. */
+@media (max-width:760px){.tile.mini > .w:popover-open,[dir="rtl"] .tile.mini > .w:popover-open{inset:auto 0 0 0;width:100%;height:min(78dvh,640px);max-height:none;border-radius:20px 20px 0 0}}
 .tile.mini .t-remove{top:-2px;inset-inline-start:calc(50% - 40px)}
 .tile.mini .t-pin,.tile.mini .t-style{display:none}
 

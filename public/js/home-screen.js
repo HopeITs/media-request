@@ -96,8 +96,6 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
             let downOut = false;
             window.addEventListener('pointerdown', (e) => {
                 downOut = this.editing && outside(e.target);
-                // An opened small card closes on a press anywhere else (its own icon toggles it).
-                if (this.peek && e.target instanceof Element && ! e.target.closest('.tile.peek, dialog, .swal2-container, .mrhint')) this.closePeek();
             });
             window.addEventListener('click', (e) => {
                 if (this.editing && downOut && outside(e.target) && ! this.gallery) { this.done(); window.mrHints.used('editOut'); }
@@ -153,10 +151,7 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
         span(key) {
             // The same places while customising as after: what is seen is what is saved.
             const p = this.packed[key];
-            const b = this.peek === key && this.peekBox;
-            // Always the same keys: an empty value clears the variable when the card closes.
-            const pk = { '--pw': b ? b.W + 'px' : '', '--ph': b ? b.H + 'px' : '', '--px': b ? b.x + 'px' : '', '--py': b ? b.y + 'px' : '' };
-            if (p) return { gridColumn: (p.x + 1) + ' / span ' + p.w, gridRow: (p.y + 1) + ' / span ' + p.h, ...pk };
+            if (p) return { gridColumn: (p.x + 1) + ' / span ' + p.w, gridRow: (p.y + 1) + ' / span ' + p.h };
             const [c, r] = parse(this.item(key).size);
             return { gridColumn: 'span ' + Math.min(c, this.cols), gridRow: 'span ' + r };
         },
@@ -290,27 +285,38 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
             const p = ! this.editing && this.packed[key];
             return this.iconish(key, p ? p.w + 'x' + p.h : this.item(key).size);
         },
-        // The icon opens the card at its usual size, over the others and kept on screen; nothing moves.
+        /*
+         * One click on the icon: the card opens in a side panel (a sheet from the bottom on a phone).
+         * Two clicks: its own page. The panel is the card itself, shown as a popover (the browser's
+         * top layer), so it is not moved in the page and its buttons keep working. It stays put while
+         * the person works on the page (no fade, no closing on a click elsewhere); its ×, Escape or
+         * the same icon closes it, and another icon shows that card in the same place.
+         */
         peek: null,
-        peekBox: null,
         peekOpen(key) {
-            const tile = this.tileEl(key);
-            if (this.editing || ! tile) return;
+            const w = this.tileEl(key)?.querySelector('.w');
+            if (this.editing || ! w || ! w.showPopover) return;
             if (this.peek === key) { this.closePeek(); return; }
-            const { gap, rowH, colW } = this.metrics();
-            const [fw, fh] = (this.bounds[key] || {}).full || [4, 3];
-            const w = Math.min(fw, this.cols), W = w * colW + (w - 1) * gap, H = fh * rowH + (fh - 1) * gap;
-            const t = tile.getBoundingClientRect(), g = this.$refs.grid.getBoundingClientRect();
-            const rtl = getComputedStyle(this.$refs.grid).direction === 'rtl';
-            let x = rtl ? t.width - W : 0;
-            x = Math.max(g.left - t.left, Math.min(g.right - t.left - W, x));
-            let y = Math.min(0, window.innerHeight - 16 - H - t.top);
-            y = Math.max(y, Math.max(g.top, 70) - t.top);
-            this.peekBox = { W, H, x, y };
+            // The panel stays where it is: another icon only changes what it shows.
+            this.closePeek();
+            try { w.showPopover(); } catch (e) { return; }
             this.peek = key;
-            this.$nextTick(() => tile.querySelector('.w')?.focus({ preventScroll: true }));
+            w.focus({ preventScroll: true });
         },
-        closePeek() { this.peek = null; },
+        closePeek() {
+            const w = this.peek && this.tileEl(this.peek)?.querySelector('.w');
+            this.peek = null;
+            try { if (w && w.matches(':popover-open')) w.hidePopover(); } catch (e) {}
+        },
+        // The second click of a double-click: open the card's page, if it has one.
+        miniPage(key) {
+            const tile = this.tileEl(key);
+            if (this.editing || ! tile || ! tile.dataset.page) return;
+            this.closePeek();
+            window.mrHints.used('dblclick');
+            if (window.Livewire && Livewire.navigate) Livewire.navigate(tile.dataset.page);
+            else window.location = tile.dataset.page;
+        },
         // Cards with more than one look (the clock: digital or analogue).
         styleOf(key) { return this.item(key).style || (this.looks[key] || [])[0] || ''; },
         cycleStyle(key) {
