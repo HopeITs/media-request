@@ -48,6 +48,10 @@ Route::middleware('auth')->group(function () {
             Route::get('/files/{media}', [MediaRequestFileController::class, 'download'])
                 ->middleware(['active_permission:media-requests.view-own', 'throttle:60,1'])
                 ->name('files');
+            // A finished, approved design shown on everyone's home screen (the request itself stays private).
+            Route::get('/showcase/{media}', [MediaRequestFileController::class, 'showcase'])
+                ->middleware(['active_permission:media-requests.view-own', 'throttle:120,1'])
+                ->name('showcase');
             Route::get('/{mediaRequest}', MediaRequests\Show::class)
                 ->whereNumber('mediaRequest')
                 ->middleware('active_permission:media-requests.view-own')

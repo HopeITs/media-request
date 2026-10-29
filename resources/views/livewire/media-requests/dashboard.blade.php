@@ -426,9 +426,9 @@
                                     @if ($showcase === [])
                                         <div class="wempty"><span class="ei"><x-ic n="image" /></span><span>{{ __('media.show.empty') }}</span></div>
                                     @else
-                                        <div class="showcase" x-data="{ i: 0, n: {{ count($showcase) }}, paused: false, t: null,
+                                        <div class="showcase" x-data="{ i: 0, n: {{ count($showcase) }}, paused: false, t: null, pop: null, slides: @js($showcase),
                                                 go(d) { this.i = (this.i + d + this.n) % this.n },
-                                                init() { if (! matchMedia('(prefers-reduced-motion: reduce)').matches) this.t = setInterval(() => { if (! this.paused && ! document.hidden) this.go(1) }, 5000) },
+                                                init() { if (! matchMedia('(prefers-reduced-motion: reduce)').matches) this.t = setInterval(() => { if (! this.paused && ! this.pop && ! document.hidden) this.go(1) }, 5000) },
                                                 destroy() { clearInterval(this.t) } }"
                                              x-on:mouseenter="paused = true" x-on:mouseleave="paused = false" x-on:focusin="paused = true" x-on:focusout="paused = false"
                                              x-on:keydown.left.prevent="go(document.dir === 'rtl' ? 1 : -1)" x-on:keydown.right.prevent="go(document.dir === 'rtl' ? -1 : 1)"
@@ -436,7 +436,7 @@
                                             @foreach ($showcase as $k => $s)
                                                 <figure class="slide" x-show="i === {{ $k }}" x-transition.opacity.duration.500ms @if ($k > 0) x-cloak @endif
                                                         role="group" aria-roledescription="slide" aria-label="{{ $k + 1 }} / {{ count($showcase) }}">
-                                                    <button type="button" class="slidepic" x-on:click="if (! editing) $wire.openRequest({{ $s['id'] }})" aria-label="{{ __('media.show.open', ['name' => $s['name']]) }}">
+                                                    <button type="button" class="slidepic" x-on:click="if (! editing) pop = slides[{{ $k }}]" aria-haspopup="dialog" aria-label="{{ __('media.show.open', ['name' => $s['name']]) }}">
                                                         <img src="{{ $s['src'] }}" alt="{{ $s['name'] }}" loading="{{ $k === 0 ? 'eager' : 'lazy' }}">
                                                     </button>
                                                     <figcaption>
@@ -452,6 +452,24 @@
                                                     @foreach ($showcase as $k => $s)<button type="button" role="tab" x-on:click="i = {{ $k }}" :aria-selected="i === {{ $k }}" :class="{ on: i === {{ $k }} }" aria-label="{{ $k + 1 }}"></button>@endforeach
                                                 </div>
                                             @endif
+
+                                            {{-- The design, large. Its tracking only for people who may open the request; everyone else sees the picture. --}}
+                                            <template x-teleport="body">
+                                                <div class="sheet-back showpop-back" x-show="pop" x-cloak x-transition.opacity x-on:click.self="pop = null"
+                                                     x-on:keydown.escape.window="pop = null">
+                                                    <div class="showpop" role="dialog" aria-modal="true" :aria-label="pop?.name">
+                                                        <button type="button" class="iconbtn showpop-x" x-on:click="pop = null" aria-label="{{ __('media.close') }}"><x-ic n="x" /></button>
+                                                        <img :src="pop?.src" :alt="pop?.name">
+                                                        <div class="showpop-f">
+                                                            <div>
+                                                                <b class="ltr" x-text="pop?.name"></b>
+                                                                <span class="sub"><span x-text="pop?.program"></span><span x-show="pop?.by"> · <span x-text="pop?.by"></span></span> · <span class="num" x-text="pop?.on"></span></span>
+                                                            </div>
+                                                            <button type="button" class="btn btn-o btn-sm" x-show="pop?.canOpen" x-on:click="const id = pop.id; pop = null; $wire.openRequest(id)"><x-ic n="list" />{{ __('media.show.track') }}</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </template>
                                         </div>
                                     @endif
                                     @break

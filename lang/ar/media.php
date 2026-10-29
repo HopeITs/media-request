@@ -975,6 +975,7 @@ return [
     'dash.card.decide' => 'قرارات بانتظارك',
     'late.none' => 'ما في شي متأخر عن موعده.',
     'decide.none' => 'ما في قرار ناطرك.',
+    'show.track' => 'تتبّع الطلب',
     'spec.title' => 'الاختصاص',
     'spec.all' => 'كل الاختصاصات',
     'spec.design' => 'تصميم وطباعة',

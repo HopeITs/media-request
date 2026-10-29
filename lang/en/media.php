@@ -975,6 +975,7 @@ return [
     'dash.card.decide' => 'Decisions for you',
     'late.none' => 'Nothing is past its deadline.',
     'decide.none' => 'No decision waits for you.',
+    'show.track' => 'Request tracking',
     'spec.title' => 'Specialty',
     'spec.all' => 'All specialties',
     'spec.design' => 'Design and print',

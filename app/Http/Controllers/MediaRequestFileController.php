@@ -17,6 +17,29 @@ class MediaRequestFileController extends Controller
     /** Shown in the page (previews) instead of downloaded: only these, never SVG or HTML. */
     private const VIEWABLE = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'];
 
+    /** Pictures the Latest designs slideshow may show to anyone signed in. */
+    public const SHOWCASE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+    /**
+     * A design on the home screen slideshow, for anyone signed in: only a picture (never SVG or
+     * an open file), only one the team sent as the result (not a draft), only of a delivered
+     * request (approved by the media manager and the requester's side). Nothing else of the
+     * request is given out; opening the request still needs MediaRequestPolicy::view.
+     */
+    public function showcase(Media $media): BinaryFileResponse
+    {
+        $request = $media->model;
+
+        abort_unless($request instanceof MediaRequest && $request->status === \App\Enums\MediaRequestStatus::Delivered
+            && $media->collection_name === 'results' && ($media->getCustomProperty('kind') ?? 'result') === 'result'
+            && in_array($media->mime_type, self::SHOWCASE_TYPES, true) && is_file($media->getPath()), Response::HTTP_NOT_FOUND);
+
+        $response = response()->file($media->getPath(), ['Content-Type' => $media->mime_type, 'Content-Disposition' => 'inline', 'X-Content-Type-Options' => 'nosniff']);
+        $response->headers->set('Cache-Control', 'private, max-age=3600');
+
+        return $response;
+    }
+
     public function download(\Illuminate\Http\Request $http, Media $media): BinaryFileResponse
     {
         $request = $media->model;

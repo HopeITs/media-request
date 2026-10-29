@@ -189,27 +189,30 @@ class Dashboard extends Component
     // ------------------------------------------------------------------
 
     /**
-     * The latest designs delivered, for the slideshow: one picture per request (the first image
-     * of its last version), newest first, only of requests this person may open. SVG and open
-     * files (.ai, .psd…) are never shown.
+     * The latest approved designs, for everyone's slideshow: delivered requests only (approved by
+     * the media manager and the requester's side), one picture each (the newest image the team
+     * sent as the result; never a draft, SVG or open file), newest first. Whether the person may
+     * also open the request and its tracking is decided per design (MediaRequestPolicy::view).
      *
-     * @return array<int, array{id: int, src: string, name: string, program: string, by: ?string, on: ?string}>
+     * @return array<int, array{id: int, src: string, name: string, program: string, by: ?string, on: ?string, canOpen: bool}>
      */
     private function showcase(User $user): array
     {
         $locale = app()->getLocale();
-        $images = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        $images = \App\Http\Controllers\MediaRequestFileController::SHOWCASE_TYPES;
+        $isResult = fn ($m) => ($m->getCustomProperty('kind') ?? 'result') === 'result' && in_array($m->mime_type, $images, true);
 
-        return MediaRequest::query()->visibleTo($user)->where('status', S::Delivered)
+        return MediaRequest::query()->where('status', S::Delivered)
             ->whereHas('media', fn ($q) => $q->where('collection_name', 'results')->whereIn('mime_type', $images))
             ->with(['media', 'program', 'city', 'assignee'])
             ->orderByDesc('delivered_at')->limit(12)->get()
-            ->map(function (MediaRequest $r) use ($images, $locale): ?array {
-                $pic = $r->getMedia('results')->whereIn('mime_type', $images)->sortByDesc('id')->first();
+            ->map(function (MediaRequest $r) use ($isResult, $locale, $user): ?array {
+                $pic = $r->getMedia('results')->filter($isResult)->sortByDesc('id')->first();
 
                 return $pic ? [
                     'id' => $r->id,
-                    'src' => route('media-requests.files', ['media' => $pic, 'view' => 1]),
+                    'canOpen' => Gate::forUser($user)->allows('view', $r),
+                    'src' => route('media-requests.showcase', $pic),
                     'name' => $r->displayName(),
                     'program' => $r->program ? trim($r->program->code.' '.$r->program->slug) : '',
                     'by' => $r->assignee?->nameForLocale($locale),
