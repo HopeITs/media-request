@@ -141,7 +141,7 @@
                                         <ol class="flowline" role="tablist">
                                             @foreach ($flow['stages'] as $stage => $items)
                                                 @continue($stage === 'stopped' && $items->isEmpty())
-                                                <li @class(['empty' => $items->isEmpty(), 'end' => in_array($stage, ['done', 'stopped'], true)])>
+                                                <li @class(['fnone' => $items->isEmpty(), 'end' => in_array($stage, ['done', 'stopped'], true)])>
                                                     <button type="button" role="tab" class="fnode" @disabled($items->isEmpty())
                                                             x-on:click="stage = @js($stage)" :aria-selected="stage === @js($stage)" :class="{ on: stage === @js($stage) }" aria-haspopup="dialog">
                                                         <span class="fi"><x-ic :n="\App\Support\MediaRequests\RequestFlow::ICONS[$stage]" /></span>
