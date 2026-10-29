@@ -165,7 +165,7 @@ class Dashboard extends Component
         $layout = $cards->clean($user, $this->record()->layout);
         $keys = array_column($layout, 'key');
 
-        return view('livewire.media-requests.dashboard', [
+        $view = [
             'layout' => $layout,
             'cards' => $cards,
             // Always counted: the greeting says how many wait on you, even with the card hidden.
@@ -183,7 +183,19 @@ class Dashboard extends Component
             'openRequest' => $this->open ? MediaRequest::find($this->open) : null,
             'dayRequests' => $this->pickedDay ? MediaRequest::query()->visibleTo($user)->whereDate('needed_by', $this->pickedDay)
                 ->whereNotIn('status', [S::Rejected, S::Cancelled])->with(['assignee'])->orderBy('status')->get() : collect(),
-        ]);
+        ];
+
+        // Cards with nothing in them right now go last, as one closed line (the grid does it; see home-screen.js).
+        $view['empty'] = array_keys(array_filter([
+            'late' => ! $view['late'],
+            'decide' => $view['decisions']->isEmpty(),
+            'waiting' => $view['waiting']->isEmpty(),
+            'mine' => in_array('mine', $keys, true) && $view['mine']->isEmpty(),
+            'bell' => $view['bell'] !== null && ($view['bell']['total'] ?? 0) === 0,
+            'showcase' => in_array('showcase', $keys, true) && $view['showcase'] === [],
+        ]));
+
+        return view('livewire.media-requests.dashboard', $view);
     }
 
     // ------------------------------------------------------------------

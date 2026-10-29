@@ -146,14 +146,19 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
         shownHere(key) { return ! this.hidden(key) && ! (this.phone() && ['showcase', 'app.new'].includes(key)); },
         clockLook() { return this.phone() ? 'digital' : this.styleOf('clock'); },
         get packed() {
-            const shown = this.items.filter((i) => this.shownHere(i.key))
-                .map((i) => (this.phone() && PHONE_SIZE[i.key] ? { ...i, size: PHONE_SIZE[i.key] } : i));
-            const own = this.packOrder(shown);
+            // Cards with nothing in them right now (marked by the server) go last, one line high and
+            // closed, so the screen starts with what has something; the saved order is not changed.
+            const empty = (i) => this.tileEl(i.key)?.dataset.empty === '1';
+            const visible = this.items.filter((i) => this.shownHere(i.key))
+                .map((i) => (empty(i) ? { ...i, size: Math.min(4, this.cols) + 'x1' } : (this.phone() && PHONE_SIZE[i.key] ? { ...i, size: PHONE_SIZE[i.key] } : i)));
+            const full = visible.filter((i) => ! empty(i)), closed = visible.filter(empty);
+            const flat = new Set(closed.map((i) => i.key));   // they stay one line: never grown taller
             const isApp = (i) => i.key.startsWith('app.');
-            const gaps = this.packOrder([...shown.filter((i) => ! isApp(i)), ...shown.filter(isApp)]);
+            const own = this.packOrder([...full, ...closed], flat);
+            const gaps = this.packOrder([...full.filter((i) => ! isApp(i)), ...full.filter(isApp), ...closed], flat);
             return gaps.holes < own.holes ? gaps.out : own.out;
         },
-        packOrder(list) {
+        packOrder(list, flat = new Set()) {
             const cols = this.cols;
             const used = [];   // used[row][col] = true
             const free = (x, y, w, h) => {
@@ -178,10 +183,12 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
                 if (n) fill[it.key] = Math.min(max, w + n <= cols ? Math.max(w, cols - n) : cols);
             });
 
+            let floor = null;   // the closed cards start below everything else, not in a gap above
             for (const it of list) {
                 let [w, h] = parse(it.size);
                 w = Math.min(fill[it.key] || w, cols);
-                let y = 0, x = 0;
+                if (flat.has(it.key) && floor === null) floor = used.length;
+                let y = flat.has(it.key) ? floor : 0, x = 0;
                 for (;; y++) { x = 0; while (x + w <= cols && ! free(x, y, w, h)) x++; if (x + w <= cols) break; }
                 take(x, y, w, h);
                 out[it.key] = { x, y, w, h };
@@ -227,7 +234,7 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
 
             const cards = Object.keys(out).filter((k) => ! k.startsWith('app.'));
             for (const k of cards) while (grow(k, 1, 0));
-            for (const k of cards) while (grow(k, 0, 1));
+            for (const k of cards) if (! flat.has(k)) while (grow(k, 0, 1));
 
             let holes = 0;
             for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) if (! (used[y] && used[y][x])) holes++;

@@ -58,7 +58,7 @@
          x-on:click.capture="swallowClick($event)" x-on:contextmenu="if (editing || pressed) $event.preventDefault()">
         @foreach ($layout as $item)
             @php($key = $item['key'])
-            <div class="tile {{ $cards->isApp($key) ? 'is-app' : 'is-widget' }}" data-key="{{ $key }}"
+            <div class="tile {{ $cards->isApp($key) ? 'is-app' : 'is-widget' }}" data-key="{{ $key }}" @if (in_array($key, $empty, true)) data-empty="1" @endif
                  style="{{ $span($item['size']) }}{{ $item['hidden'] ? 'display:none;' : '' }}"
                  :style="span('{{ $key }}')"
                  :class="{ pinned: pinned('{{ $key }}'), resizing: resizing === '{{ $key }}' }"

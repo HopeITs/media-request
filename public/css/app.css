@@ -1156,3 +1156,15 @@ img[src*="hope-center.svg"]{filter:var(--logo)}
 .teachform .full{grid-column:1/-1}
 .teachform .field{margin:0}
 .chip.ok{border-color:var(--ok,#2e7d32);color:var(--text)}
+
+/* Cards with nothing in them now: at the end, one closed line (the title and "nothing here"). Customise shows them whole. */
+.hs:not(.editing) .tile[data-empty] .w{flex-direction:row;align-items:center;gap:4px 12px;opacity:.72;transition:opacity .2s}
+.hs:not(.editing) .tile[data-empty]:hover .w{opacity:1}
+.hs:not(.editing) .tile[data-empty] .wh{flex:none;padding-block:0;margin:0;border:0}
+.hs:not(.editing) .tile[data-empty] .wh h2{font-size:14.5px}
+.hs:not(.editing) .tile[data-empty] .wb{flex:1;min-width:0;padding:0 14px;overflow:hidden;display:flex;align-items:center}
+.hs:not(.editing) .tile[data-empty] .wb > :not(.wempty):not(:has(.wempty)){display:none}
+.hs:not(.editing) .tile[data-empty] .wb :has(> .wempty) > :not(.wempty){display:none}
+.hs:not(.editing) .tile[data-empty] .wempty{flex-direction:row;justify-content:flex-start;height:auto;min-height:0;padding:0;border:0;background:none;font-size:13.5px;font-weight:500;gap:8px;text-align:start;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hs:not(.editing) .tile[data-empty] .wempty .ei{width:26px;height:26px;flex:none}
+.hs:not(.editing) .tile[data-empty] .wempty .ei .ic{width:14px;height:14px}
