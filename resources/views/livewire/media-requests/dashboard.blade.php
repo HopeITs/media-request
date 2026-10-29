@@ -62,7 +62,7 @@
                  style="{{ $span($item['size']) }}{{ $item['hidden'] ? 'display:none;' : '' }}"
                  :style="span('{{ $key }}')"
                  :class="{ pinned: pinned('{{ $key }}'), resizing: resizing === '{{ $key }}' }"
-                 x-show="! hidden('{{ $key }}')"
+                 x-show="shownHere('{{ $key }}')"
                  wire:key="tile-{{ $key }}">
 
                 {{-- Edit controls: remove outside the top corner (like a phone), pin and resize inside the tile so they never overlap a neighbour. --}}
@@ -184,7 +184,7 @@
                                     @break
                                 @case('clock')
                                     {{-- Damascus time. Digital, or an analogue face; the look is chosen in Customise. --}}
-                                    <div class="clock" :class="{ analog: styleOf('clock') === 'analog' }" x-data="{
+                                    <div class="clock" :class="{ analog: clockLook() === 'analog' }" x-data="{
                                             now: new Date(), loc: @js($locale === 'ar' ? 'ar-SY-u-nu-latn' : 'en-GB'),
                                             t() { return this.now.toLocaleTimeString(this.loc, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'Asia/Damascus' }) },
                                             wd() { return this.now.toLocaleDateString(this.loc, { weekday: 'long', timeZone: 'Asia/Damascus' }) },
@@ -192,14 +192,14 @@
                                             part(p) { return +new Intl.DateTimeFormat('en-GB', { hour: 'numeric', minute: 'numeric', second: 'numeric', hourCycle: 'h23', timeZone: 'Asia/Damascus' }).formatToParts(this.now).find((x) => x.type === p).value },
                                             angle(hand) { const h = this.part('hour'), m = this.part('minute'), s = this.part('second'); return { h: (h % 12 + m / 60) * 30, m: (m + s / 60) * 6, s: s * 6 }[hand]; },
                                          }" x-init="setInterval(() => now = new Date(), 1000)">
-                                        <template x-if="styleOf('clock') !== 'analog'">
+                                        <template x-if="clockLook() !== 'analog'">
                                             <div style="display:contents">
                                                 <span class="cwd2" x-text="wd()"></span>
                                                 <span class="ct num" x-text="t()">{{ now()->format('H:i') }}</span>
                                                 <span class="cdate" x-text="d()"></span>
                                             </div>
                                         </template>
-                                        <template x-if="styleOf('clock') === 'analog'">
+                                        <template x-if="clockLook() === 'analog'">
                                             <div style="display:contents">
                                                 <svg class="face" viewBox="0 0 100 100" role="img" :aria-label="t()">
                                                     <circle class="rim" cx="50" cy="50" r="47" />

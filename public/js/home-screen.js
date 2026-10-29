@@ -137,8 +137,14 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
          * leaves fewer empty cells wins (the person's order on a tie).
          * Only what is shown changes; the saved sizes stay as the person set them.
          */
+        // A phone (4 columns) keeps the screen light: no slideshow, no New request shortcut (the
+        // + is in the bottom bar), and a small digital clock. The saved layout is not changed.
+        phone() { return this.cols <= 4; },
+        shownHere(key) { return ! this.hidden(key) && ! (this.phone() && ['showcase', 'app.new'].includes(key)); },
+        clockLook() { return this.phone() ? 'digital' : this.styleOf('clock'); },
         get packed() {
-            const shown = this.items.filter((i) => ! i.hidden);
+            const shown = this.items.filter((i) => this.shownHere(i.key))
+                .map((i) => (this.phone() && i.key === 'clock' ? { ...i, size: '4x1' } : i));
             const own = this.packOrder(shown);
             const isApp = (i) => i.key.startsWith('app.');
             const gaps = this.packOrder([...shown.filter((i) => ! isApp(i)), ...shown.filter(isApp)]);
