@@ -51,6 +51,23 @@ class DashboardTest extends TestCase
         $this->assertNull($cards->page($rami, 'app.my'));   // shortcuts open with one click
     }
 
+    public function test_a_size_set_by_hand_is_kept_as_set(): void
+    {
+        $rami = $this->user('rami');
+        $layout = app(DashboardLayout::class)->defaults($rami);
+        foreach ($layout as &$item) {
+            if ($item['key'] === 'calendar') {
+                $item = ['size' => '3x3', 'fixed' => true] + $item;
+            }
+        }
+
+        Livewire::actingAs($rami)->test(Dashboard::class)->call('saveLayout', $layout);
+        $saved = collect($this->layoutOf($rami))->keyBy('key');
+
+        $this->assertSame(['3x3', true], [$saved['calendar']['size'], $saved['calendar']['fixed']]);
+        $this->assertArrayNotHasKey('fixed', $saved['notes']);
+    }
+
     public function test_a_big_shortcut_shows_its_data_as_a_card(): void
     {
         $this->assertSame([4, 4], app(DashboardLayout::class)->bounds('app.stats')['max']);

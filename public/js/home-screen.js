@@ -73,6 +73,9 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
                     chosenClass: 'tile-chosen',
                     dragClass: 'tile-drag',
                     onStart: () => { this.stopWiggle(); this.$refs.grid.classList.add('dragging'); },
+                    // Tiles are placed by number, so moving one in the list moves nothing by itself:
+                    // follow the new order at once, and the others glide to where they will end up.
+                    onChange: () => this.flip(() => this.followDom()),
                     onEnd: () => { this.$refs.grid.classList.remove('dragging'); this.syncOrder(); },
                 });
             }
@@ -137,7 +140,8 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
         // At rest each tile gets its packed place (gaps filled); while editing, plain spans,
         // so the DOM order SortableJS changes is what the person sees.
         span(key) {
-            const p = this.editing ? null : this.packed[key];
+            // The same places while customising as after: what is seen is what is saved.
+            const p = this.packed[key];
             const b = this.peek === key && this.peekBox;
             // Always the same keys: an empty value clears the variable when the card closes.
             const pk = { '--pw': b ? b.W + 'px' : '', '--ph': b ? b.H + 'px' : '', '--px': b ? b.x + 'px' : '', '--py': b ? b.y + 'px' : '' };
@@ -164,7 +168,8 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
         get packed() {
             // Cards with nothing in them right now (marked by the server) go last, one line high and
             // closed, so the screen starts with what has something; the saved order is not changed.
-            const empty = (i) => this.tileEl(i.key)?.dataset.empty === '1';
+            // While customising they show whole, so they can still be moved and sized.
+            const empty = (i) => ! this.editing && this.tileEl(i.key)?.dataset.empty === '1';
             const visible = this.items.filter((i) => this.shownHere(i.key))
                 .map((i) => (empty(i) ? { ...i, size: Math.min(4, this.cols) + 'x1' } : (this.phone() && PHONE_SIZE[i.key] ? { ...i, size: PHONE_SIZE[i.key] } : i)));
             const full = visible.filter((i) => ! empty(i)), closed = visible.filter(empty);
@@ -191,7 +196,7 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
             // that row, so the cards after it start on a clean row instead of squeezing in beside it.
             const fill = {};
             list.forEach((it, i) => {
-                if (icons.has(it.key)) return;
+                if (icons.has(it.key) || it.fixed) return;
                 const [w, h] = parse(it.size);
                 if (h !== 1) return;
                 let n = 0;
@@ -250,7 +255,9 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
                 }
             }
 
-            const cards = Object.keys(out).filter((k) => ! icons.has(k));
+            // A card the person sized by hand keeps that size; the others grow into the gaps.
+            const fixed = new Set(list.filter((it) => it.fixed).map((it) => it.key));
+            const cards = Object.keys(out).filter((k) => ! icons.has(k) && ! fixed.has(k));
             for (const k of cards) while (grow(k, 1, 0));
             for (const k of cards) if (! flat.has(k)) while (grow(k, 0, 1));
 
@@ -404,7 +411,7 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
             [c, r] = this.clamp(key, c, r);
             const size = c + 'x' + r;
             if (size === this.item(key).size) return false;
-            this.flip(() => { this.item(key).size = size; }, key);
+            this.flip(() => { this.item(key).size = size; this.item(key).fixed = true; }, key);
             return true;
         },
 
@@ -505,10 +512,13 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
 
         // The DOM order is the truth after a drag; hidden tiles keep their place.
         syncOrder() {
+            this.followDom();
+            this.save();
+        },
+        followDom() {
             const order = [...this.$refs.grid.querySelectorAll('.tile')].map((t) => t.dataset.key);
             this.items.sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key));
             this.items.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
-            this.save();
         },
 
         save() {

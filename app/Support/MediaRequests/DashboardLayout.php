@@ -212,7 +212,8 @@ class DashboardLayout
                 'size' => $this->size($key, $item['size'] ?? null),
                 'pinned' => (bool) ($item['pinned'] ?? false),
                 'hidden' => (bool) ($item['hidden'] ?? false),
-            ] + $this->look($key, $item['style'] ?? null);
+            ] + (! empty($item['fixed']) ? ['fixed' => true] : [])   // sized by the person: shown at exactly that size, never grown
+              + $this->look($key, $item['style'] ?? null);
         }
 
         $first = [];
