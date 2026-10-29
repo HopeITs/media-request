@@ -115,6 +115,25 @@ class MediaAssistant
             }
         }
 
+        // What the media manager taught comes before the built-in rules; a longer phrase wins.
+        $normal = \App\Models\MediaAssistantLesson::normal($text);
+        foreach (\App\Models\MediaAssistantLesson::query()->get()->sortByDesc(fn ($l) => mb_strlen($l->phrase)) as $lesson) {
+            if ($lesson->phrase === '' || ! str_contains($normal, \App\Models\MediaAssistantLesson::normal($lesson->phrase))) {
+                continue;
+            }
+            if ($lesson->service && ! isset($taughtKind)) {
+                $taughtKind = true;
+                [$r['service'], $r['type']] = [$lesson->service, $lesson->type];
+                $r['answers'] = $lesson->format ? ['format' => $lesson->format] : [];
+            }
+            if ($lesson->program_id && ! isset($taughtProgram) && $programs->contains('id', $lesson->program_id)) {
+                [$taughtProgram, $r['program_id']] = [true, $lesson->program_id];
+            }
+            if ($lesson->city_id && ! isset($taughtCity) && $cities->contains('id', $lesson->city_id)) {
+                [$taughtCity, $r['city_id']] = [true, $lesson->city_id];
+            }
+        }
+
         $r['needed_by'] = $this->date($text);
         $r['questions'] = $r['service'] ? $this->questions($r) : [];
         $r['pack'] = collect();

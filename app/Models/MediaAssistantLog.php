@@ -10,7 +10,7 @@ class MediaAssistantLog extends Model
 {
     protected $fillable = [
         'employee_id', 'text', 'understood', 'service', 'type', 'answers', 'program_id', 'city_id',
-        'needed_by', 'asked', 'media_request_id', 'final_service', 'final_type', 'corrected',
+        'needed_by', 'asked', 'media_request_id', 'final_service', 'final_type', 'corrected', 'lesson_id',
     ];
 
     protected $casts = [
@@ -34,6 +34,11 @@ class MediaAssistantLog extends Model
     public function city(): BelongsTo
     {
         return $this->belongsTo(City::class);
+    }
+
+    public function lesson(): BelongsTo
+    {
+        return $this->belongsTo(MediaAssistantLesson::class);
     }
 
     public function mediaRequest(): BelongsTo

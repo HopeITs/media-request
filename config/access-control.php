@@ -63,6 +63,8 @@ return [
         ],
         'media-requests.pack' => ['requestFiles' => 'media-requests.create'],
         'media-requests.log' => ['exportCsv' => 'media-requests.export'],
+        // Teaching the request assistant: the page needs view-log; the component also checks the media manager.
+        'media-requests.assistant-log' => ['saveLesson' => 'media-requests.view-log', 'deleteLesson' => 'media-requests.view-log', 'teach' => 'media-requests.view-log'],
         // Standalone only: managing people is for super-admin.
         'people.index' => ['save' => 'people.manage', 'edit' => 'people.manage', 'toggleActive' => 'people.manage', 'quickAdd' => 'people.manage'],
     ],
@@ -77,7 +79,7 @@ return [
         'media-requests.show' => ['refreshRequest', 'applyProof', 'dropResultUpload'],
         'media-requests.log' => ['resetFilters'],
         // A filter on a read-only list; the route needs media-requests.view-log.
-        'media-requests.assistant-log' => ['setFilter'],
+        'media-requests.assistant-log' => ['setFilter', 'cancelTeach'],   // closing the lesson form only clears it
         // The home page: every action reads and writes only the signed-in
         // person's own layout and notes (media_dashboards.user_id = auth id),
         // and the layout is cleaned against what that person may see.

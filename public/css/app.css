@@ -1149,3 +1149,10 @@ img[src*="hope-center.svg"]{filter:var(--logo)}
   .proofinline .proofgem .pg-t{display:none}
   .proofinline .hint{font-size:12.5px}
 }
+
+/* Teaching the assistant: the lesson form opens under its line */
+.teachrow td{background:var(--soft)}
+.teachform{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px 14px;align-items:start;padding:6px 0}
+.teachform .full{grid-column:1/-1}
+.teachform .field{margin:0}
+.chip.ok{border-color:var(--ok,#2e7d32);color:var(--text)}
