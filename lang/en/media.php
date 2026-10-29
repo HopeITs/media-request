@@ -976,6 +976,7 @@ return [
     'late.none' => 'Nothing is past its deadline.',
     'decide.none' => 'No decision waits for you.',
     'show.track' => 'Request tracking',
+    'nav.more' => 'More',
     'spec.title' => 'Specialty',
     'spec.all' => 'All specialties',
     'spec.design' => 'Design and print',

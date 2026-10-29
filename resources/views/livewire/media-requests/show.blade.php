@@ -464,7 +464,4 @@
         </aside>
     </div>
 
-    @can('update', $r)
-        <livewire:media-requests.request-wizard />
-    @endcan
 </div>

@@ -350,7 +350,7 @@
                                                 <b>{{ trans_choice('media.late.'.$late['scope'], $late['items']->count(), ['n' => $late['items']->count()]) }}</b>
                                                 <span>{{ $late['items']->take(3)->map(fn ($r) => ($r->title ?: $r->item_code).($late['scope'] === 'team' && $r->assignee ? ' ('.$r->assignee->nameForLocale($locale).')' : ''))->implode($locale === 'ar' ? '، ' : ', ') }}@if ($late['items']->count() > 3) …@endif</span>
                                             </span>
-                                            <button type="button" class="btn btn-p btn-sm" wire:click="openRequest({{ $oldest->id }})"><x-ic n="arrow" class="flip" />{{ __('media.late.open', ['days' => $oldest->needed_by->diffForHumans(null, true)]) }}</button>
+                                            <button type="button" class="btn btn-p btn-sm" wire:click="openRequest({{ $oldest->id }})" aria-label="{{ __('media.late.open', ['days' => $oldest->needed_by->diffForHumans(null, true)]) }}"><x-ic n="arrow" class="flip" /><span class="lb-go">{{ __('media.late.open', ['days' => $oldest->needed_by->diffForHumans(null, true)]) }}</span></button>
                                         </section>
                                 @else
                                     <div class="wempty"><span class="ei"><x-ic n="check" /></span><span>{{ __('media.late.none') }}</span></div>
@@ -577,5 +577,4 @@
         </div>
     @endif
 
-    <livewire:media-requests.request-wizard />
 </div>

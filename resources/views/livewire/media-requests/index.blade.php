@@ -70,5 +70,4 @@
         </ul>
     @endif
 
-    <livewire:media-requests.request-wizard />
 </div>

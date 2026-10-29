@@ -90,6 +90,76 @@
     <main id="main" @class(['in', 'wide' => $wide]) tabindex="-1">
         {{ $slot }}
     </main>
+
+    {{--
+        On a phone the app looks like an app: a bar at the bottom with Home, the main page for the
+        person, a raised + in the middle (new request, from any page), the notifications, and More
+        (every other page and the settings, in a sheet). The top bar keeps the logo only.
+    --}}
+    @php
+        $canCreate = $user->hasActivePermission('media-requests.create');
+        // The second tab: the board for the media team, their requests for everyone else; none for people with the home screen only.
+        $find = fn (string $route) => collect($nav)->firstWhere(0, $route);
+        $second = $requesterOnly ? null : ($find('media-requests.board') ?? $find('media-requests.index'));
+        $more = collect($nav)->reject(fn ($n) => in_array($n[0], ['media-requests.home', $second[0] ?? ''], true));
+    @endphp
+    <nav class="tabbar" aria-label="{{ __('media.app') }}" x-data="{ more: false }" x-on:keydown.escape.window="more = false">
+        <a href="{{ route('media-requests.home') }}" wire:navigate @if (request()->routeIs('media-requests.home') && ! request('bell')) aria-current="page" @endif>
+            <x-ic n="home" /><span>{{ __('media.nav.home') }}</span>
+        </a>
+        @if ($second)
+            <a href="{{ route($second[0]) }}" wire:navigate @if (request()->routeIs(...$second[4])) aria-current="page" @endif>
+                <x-ic :n="$second[2]" /><span>{{ __('media.'.$second[1]) }}</span>
+            </a>
+        @endif
+        @if ($canCreate)
+            <button type="button" class="tb-new" x-on:click="$dispatch('media-wizard-open')" aria-label="{{ __('media.dash.card.app.new') }}"><x-ic n="plus" /></button>
+        @endif
+        <a href="{{ route('media-requests.home', ['bell' => 1]) }}" wire:navigate @if (request('bell')) aria-current="page" @endif>
+            <span class="tb-ic"><x-ic n="bell" />@if ($unread)<span class="cnt num" aria-hidden="true">{{ $unread > 99 ? '99+' : $unread }}</span>@endif</span>
+            <span>{{ __('media.bell.title') }}</span>
+        </a>
+        <button type="button" x-on:click="more = true" :aria-expanded="more" aria-haspopup="dialog">
+            <x-ic n="more" /><span>{{ __('media.nav.more') }}</span>
+        </button>
+
+        <template x-teleport="body">
+            <div class="sheet-back tb-sheet-back" x-show="more" x-cloak x-transition.opacity x-on:click.self="more = false">
+                <div class="tb-sheet" role="dialog" aria-modal="true" aria-label="{{ __('media.nav.more') }}" x-show="more" x-transition:enter.duration.200ms>
+                    <span class="tb-grab" aria-hidden="true"></span>
+                    <div class="tb-who"><span class="av" aria-hidden="true">{{ $initials }}</span><span><b>{{ $name }}</b><small class="ltr">{{ $user->email }}</small></span></div>
+                    @if ($more->isNotEmpty())
+                        <div class="tb-grid">
+                            @foreach ($more as [$route, $label, $icon, , $active])
+                                <a href="{{ route($route) }}" wire:navigate x-on:click="more = false" @if (request()->routeIs(...$active)) aria-current="page" @endif>
+                                    <span class="appicon"><x-ic :n="$icon" /></span><span>{{ __('media.'.$label) }}</span>
+                                </a>
+                            @endforeach
+                            @if ($canCreate)
+                                <a href="{{ app(\App\Support\MediaRequests\HcGenerator::class)->url() }}" target="_blank" rel="noopener">
+                                    <span class="appicon"><x-ic n="wand" /></span><span lang="en">HC Generator</span>
+                                </a>
+                            @endif
+                        </div>
+                    @endif
+                    <div class="tb-rows">
+                        <button type="button" x-data="{ dark: document.documentElement.dataset.theme ? document.documentElement.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches }"
+                                x-on:click="dark = ! dark; document.documentElement.dataset.theme = dark ? 'dark' : 'light'; try { localStorage.setItem('mr-theme', dark ? 'dark' : 'light') } catch (e) {}">
+                            <x-ic n="moon" x-show="! dark" /><x-ic n="sun" x-show="dark" x-cloak />{{ __('media.theme.dark') }}
+                        </button>
+                        <a href="{{ route('lang', $locale === 'ar' ? 'en' : 'ar') }}" lang="{{ $locale === 'ar' ? 'en' : 'ar' }}"><x-ic n="globe" />{{ $locale === 'ar' ? 'English' : 'العربية' }}</a>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit"><x-ic n="logout" class="flip" />{{ __('media.logout') }}</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </nav>
+
+    {{-- The request form, once for every page: the + above, the home screen and the request pages open it. --}}
+    <livewire:media-requests.request-wizard />
     @stack('scripts')
     {{-- The proofreader, opened from the home screen card or a form field (event media-proofread-open). --}}
     <livewire:media-requests.proofreader-panel />
