@@ -76,6 +76,21 @@ someone@hcsyria.org,Some One,,HMS,member,"Photographer / Videographer (on need) 
 New people get a password, printed once at the end; pass each one on privately. Running it again
 updates people (same email) and keeps their passwords.
 
+**The old Google sheet (once, after `media:team`).** The requests from the old "MEDIA Request (Responses)"
+sheet come in as history: dates, who asked, program, place, what, who did it, how it ended. Export the sheet
+as CSV and put it, with the name map `sheet-map.json` that Fares sends (it joins names written several ways),
+in `storage/app/private/`:
+
+```bash
+php artisan media:import-sheet "storage/app/private/MEDIA Request (Responses).csv" --dry-run
+php artisan media:import-sheet "storage/app/private/MEDIA Request (Responses).csv"
+```
+
+Done requests come in as delivered (the sheet had no delivery dates, so they are left out of on-time
+statistics), rejected as rejected, open ones from the last 45 days as open, older open ones not at all.
+Publishing rows are kept aside in `storage/app/private/sheet-publishing.csv`. Running it again adds nothing twice.
+Do it before people start using the app, so the request numbers stay in date order.
+
 Once the file is in place, the list also works by itself: anyone on it whom Fares adds on the People page
 (even with quick add as "Team"), or who signs in while not yet on the team, takes their place on the team
 right away (role, specialties, city, hours). `media:admin` for Fares reads his row too. Changes made later

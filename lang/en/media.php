@@ -965,6 +965,7 @@ return [
     'wz.proofTitle' => 'Before you send:',
     'wz.proofText' => 'it is best to check the text of the design (titles, numbers, names, contact details) for mistakes.',
     'wz.proofGo' => 'Check the text',
+    'stats.unknownTiming' => ':n delivered requests come from the old sheet, which has no delivery dates: they are not in these shares.',
     'spec.title' => 'Specialty',
     'spec.all' => 'All specialties',
     'spec.design' => 'Design and print',

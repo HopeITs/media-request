@@ -115,7 +115,9 @@ class TeamRoster
         if ($user?->profile) {
             $user->profile->update($fields);
         } else {
-            $employee = Employee::create($fields + ['username' => Str::before($email, '@'), 'first_name_ar' => $fields['first_name_en']]);
+            // Already here from the old sheet (no account yet): that person, not a second one.
+            $employee = Employee::findByName($name, unclaimed: true);
+            $employee ? $employee->update($fields) : $employee = Employee::create($fields + ['username' => Str::before($email, '@'), 'first_name_ar' => $fields['first_name_en']]);
             if ($user) {
                 $user->update(['employee_id' => $employee->id]);
             } else {

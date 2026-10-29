@@ -41,7 +41,8 @@ class DatabaseSeeder extends Seeder
         foreach ([
             ['001', 'HC', 'Christian Hope Center'], ['002', 'MP', 'Micro Projects'], ['003', 'RLF', 'Relief'],
             ['004', 'S2S', 'School to School'], ['005', 'DISC', 'Development Impact and Support Center'],
-            ['006', 'SZ', 'Study Zone'], ['008', 'CU', 'Children University'], ['009', 'CYG', null], ['010', 'LEAP', null],
+            ['006', 'SZ', 'Study Zone'], ['008', 'CU', 'Children University'], ['009', 'CYG', null], ['010', 'LEAP', null], ['011', 'ITP', null],
+            ['000', 'PARTNER', 'Partners and donors'],   // asked directly by a donor or partner, under no program
         ] as [$code, $slug, $name]) {
             Program::firstOrCreate(['slug' => $slug], ['code' => $code, 'name' => $name]);
         }

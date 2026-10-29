@@ -4,6 +4,8 @@
     $periods = \App\Livewire\MediaRequests\Stats::PERIODS;
     $pct = fn (int $n, int $of) => $of > 0 ? (int) round($n * 100 / $of) : 0;
     $delivered = $s['requests']['delivered'];
+    // Requests from the old sheet have no delivery date: shares are of the ones whose timing is known.
+    $timed = $delivered - ($s['timing']['unknown'] ?? 0);
     $timingRows = [
         ['early', 'arrow', $s['timing']['early']],
         ['onTime', 'check', $s['timing']['onTime']],
@@ -51,7 +53,7 @@
     <div class="tiles">
         <div class="tile-n"><span class="v num">{{ $s['requests']['created'] }}</span><span class="l">{{ __('media.stats.created') }}</span></div>
         <div class="tile-n"><span class="v num">{{ $delivered }}</span><span class="l">{{ __('media.stats.delivered') }}</span></div>
-        <div class="tile-n"><span class="v num">{{ $delivered ? $pct($s['timing']['early'] + $s['timing']['onTime'], $delivered).'%' : '—' }}</span><span class="l">{{ __('media.stats.onTimeRate') }}</span></div>
+        <div class="tile-n"><span class="v num">{{ $timed ? $pct($s['timing']['early'] + $s['timing']['onTime'], $timed).'%' : '—' }}</span><span class="l">{{ __('media.stats.onTimeRate') }}</span></div>
         <div class="tile-n"><span class="v num">{{ $s['avgDays'] ?? '—' }}</span><span class="l">{{ __('media.stats.avgDays') }}</span></div>
         <div class="tile-n"><span class="v num">{{ $s['returned'] }}</span><span class="l">{{ __('media.stats.returned') }}</span></div>
     </div>
@@ -60,19 +62,20 @@
         {{-- Delivery timing --}}
         <section class="card statcard" aria-labelledby="st-time">
             <h3 id="st-time">{{ __('media.stats.timing') }}</h3>
-            @if ($delivered === 0)
+            @if ($timed === 0)
                 <p class="sub">{{ __('media.stats.noDeliveries') }}</p>
             @else
                 <ul class="hbars">
                     @foreach ($timingRows as [$key, $icon, $n])
-                        <li title="{{ $n }} · {{ $pct($n, $delivered) }}%">
+                        <li title="{{ $n }} · {{ $pct($n, $timed) }}%">
                             <span class="k"><x-ic :n="$icon" />{{ __('media.stats.t.'.$key) }}</span>
-                            <span class="bar"><i style="width:{{ $pct($n, $delivered) }}%"></i></span>
-                            <b class="num">{{ $n }} <small>{{ $pct($n, $delivered) }}%</small></b>
+                            <span class="bar"><i style="width:{{ $pct($n, $timed) }}%"></i></span>
+                            <b class="num">{{ $n }} <small>{{ $pct($n, $timed) }}%</small></b>
                         </li>
                     @endforeach
                 </ul>
             @endif
+            @if ($s['timing']['unknown'] ?? 0)<p class="sub" style="margin-top:10px">{{ __('media.stats.unknownTiming', ['n' => $s['timing']['unknown']]) }}</p>@endif
         </section>
 
         {{-- By field --}}
@@ -129,7 +132,7 @@
                                 <th scope="row">{{ $p['employee']->nameForLocale($locale) }}
                                     @foreach ($p['skills'] as $sk)<x-ic :n="config('media-requests.specialties.'.$sk.'.icon')" class="skill" title="{{ __('media.spec.'.$sk) }}" />@endforeach</th>
                                 <td class="n num">{{ $p['delivered'] }}</td>
-                                <td class="n num">{{ $p['delivered'] ? $pct($p['onTime'], $p['delivered']).'%' : '—' }}</td>
+                                <td class="n num">{{ $p['timed'] ? $pct($p['onTime'], $p['timed']).'%' : '—' }}</td>
                                 <td class="n num">@if ($p['early'])<span class="earlyme"><x-ic n="bolt" />{{ $p['early'] }}</span>@else 0 @endif</td>
                                 <td class="n num">{{ $p['returned'] }}</td>
                                 <td class="n num">{{ $p['working'] }}</td>
