@@ -412,6 +412,41 @@
                                         @endforeach
                                     </ul>
                                     @break
+                                @case('showcase')
+                                    {{-- The latest designs delivered: one at a time, every few seconds; paused on hover or focus;
+                                         arrows, dots and the keyboard move it; a picture opens its request. --}}
+                                    @if ($showcase === [])
+                                        <div class="wempty"><span class="ei"><x-ic n="image" /></span><span>{{ __('media.show.empty') }}</span></div>
+                                    @else
+                                        <div class="showcase" x-data="{ i: 0, n: {{ count($showcase) }}, paused: false, t: null,
+                                                go(d) { this.i = (this.i + d + this.n) % this.n },
+                                                init() { if (! matchMedia('(prefers-reduced-motion: reduce)').matches) this.t = setInterval(() => { if (! this.paused && ! document.hidden) this.go(1) }, 5000) },
+                                                destroy() { clearInterval(this.t) } }"
+                                             x-on:mouseenter="paused = true" x-on:mouseleave="paused = false" x-on:focusin="paused = true" x-on:focusout="paused = false"
+                                             x-on:keydown.left.prevent="go(document.dir === 'rtl' ? 1 : -1)" x-on:keydown.right.prevent="go(document.dir === 'rtl' ? -1 : 1)"
+                                             role="region" aria-roledescription="carousel" aria-label="{{ __('media.dash.card.showcase') }}" tabindex="0">
+                                            @foreach ($showcase as $k => $s)
+                                                <figure class="slide" x-show="i === {{ $k }}" x-transition.opacity.duration.500ms @if ($k > 0) x-cloak @endif
+                                                        role="group" aria-roledescription="slide" aria-label="{{ $k + 1 }} / {{ count($showcase) }}">
+                                                    <button type="button" class="slidepic" x-on:click="if (! editing) $wire.openRequest({{ $s['id'] }})" aria-label="{{ __('media.show.open', ['name' => $s['name']]) }}">
+                                                        <img src="{{ $s['src'] }}" alt="{{ $s['name'] }}" loading="{{ $k === 0 ? 'eager' : 'lazy' }}">
+                                                    </button>
+                                                    <figcaption>
+                                                        <b class="ltr">{{ $s['name'] }}</b>
+                                                        <span class="sub">@if ($s['by']){{ $s['by'] }} · @endif<span class="num">{{ $s['on'] }}</span></span>
+                                                    </figcaption>
+                                                </figure>
+                                            @endforeach
+                                            @if (count($showcase) > 1)
+                                                <button type="button" class="iconbtn snav prev" x-on:click="go(-1)" aria-label="{{ __('media.show.prev') }}"><x-ic n="back" class="flip" /></button>
+                                                <button type="button" class="iconbtn snav next" x-on:click="go(1)" aria-label="{{ __('media.show.next') }}"><x-ic n="arrow" class="flip" /></button>
+                                                <div class="sdots" role="tablist">
+                                                    @foreach ($showcase as $k => $s)<button type="button" role="tab" x-on:click="i = {{ $k }}" :aria-selected="i === {{ $k }}" :class="{ on: i === {{ $k }} }" aria-label="{{ $k + 1 }}"></button>@endforeach
+                                                </div>
+                                            @endif
+                                        </div>
+                                    @endif
+                                    @break
                                 @case('proof')
                                     {{-- The whole proofreader in the card: type or upload a file, check, read the result here. --}}
                                     <livewire:media-requests.proofreader-panel :inline="true" wire:key="proof-card" />

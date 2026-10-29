@@ -34,6 +34,7 @@ class DashboardLayout
         'team' => ['users', [2, 2], [12, 8], [4, 2], true],
         'pack' => ['box', [2, 1], [12, 4], [2, 2], true],
         'proof' => ['check', [3, 3], [12, 8], [4, 4], true],   // the proofreader, for everyone
+        'showcase' => ['image', [3, 2], [12, 8], [4, 3], true],   // a slideshow of the latest designs delivered
         // Shown by default only to people who just ask for work (they have no other pages).
         'mine' => ['inbox', [3, 2], [12, 8], [4, 4], false],
         'bell' => ['bell', [3, 2], [12, 8], [4, 2], false],
@@ -65,7 +66,7 @@ class DashboardLayout
      */
     private const ORDER = [
         'ask', 'app.new', 'app.my', 'app.pack', 'app.drive', 'app.generator', 'app.board', 'app.approvals', 'app.stats', 'app.log', 'app.assistant',
-        'app.bell', 'app.people', 'flow', 'clock', 'pack', 'proof', 'mine', 'bell', 'waiting', 'calendar', 'notes', 'team',
+        'app.bell', 'app.people', 'flow', 'clock', 'pack', 'showcase', 'proof', 'mine', 'bell', 'waiting', 'calendar', 'notes', 'team',
     ];
 
     public function __construct(private MediaTeam $team) {}

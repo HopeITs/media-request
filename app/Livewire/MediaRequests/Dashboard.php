@@ -178,6 +178,7 @@ class Dashboard extends Component
             'mine' => in_array('mine', $keys, true) ? $this->mine($user) : collect(),
             'flow' => in_array('flow', $keys, true) ? app(\App\Support\MediaRequests\RequestFlow::class)->for($user) : null,
             'bell' => in_array('bell', $keys, true) || $this->bellOpen ? $this->notificationGroups($user) : null,
+            'showcase' => in_array('showcase', $keys, true) ? $this->showcase($user) : [],
             'late' => $this->late($user),
             'openRequest' => $this->open ? MediaRequest::find($this->open) : null,
             'dayRequests' => $this->pickedDay ? MediaRequest::query()->visibleTo($user)->whereDate('needed_by', $this->pickedDay)
@@ -186,6 +187,36 @@ class Dashboard extends Component
     }
 
     // ------------------------------------------------------------------
+
+    /**
+     * The latest designs delivered, for the slideshow: one picture per request (the first image
+     * of its last version), newest first, only of requests this person may open. SVG and open
+     * files (.ai, .psd…) are never shown.
+     *
+     * @return array<int, array{id: int, src: string, name: string, program: string, by: ?string, on: ?string}>
+     */
+    private function showcase(User $user): array
+    {
+        $locale = app()->getLocale();
+        $images = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+        return MediaRequest::query()->visibleTo($user)->where('status', S::Delivered)
+            ->whereHas('media', fn ($q) => $q->where('collection_name', 'results')->whereIn('mime_type', $images))
+            ->with(['media', 'program', 'city', 'assignee'])
+            ->orderByDesc('delivered_at')->limit(12)->get()
+            ->map(function (MediaRequest $r) use ($images, $locale): ?array {
+                $pic = $r->getMedia('results')->whereIn('mime_type', $images)->sortByDesc('id')->first();
+
+                return $pic ? [
+                    'id' => $r->id,
+                    'src' => route('media-requests.files', ['media' => $pic, 'view' => 1]),
+                    'name' => $r->displayName(),
+                    'program' => $r->program ? trim($r->program->code.' '.$r->program->slug) : '',
+                    'by' => $r->assignee?->nameForLocale($locale),
+                    'on' => $r->delivered_at?->format('d-m-Y'),
+                ] : null;
+            })->filter()->values()->all();
+    }
 
     /** Open requests that wait on this person, most urgent first. */
     private function waiting(User $user): Collection
