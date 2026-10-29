@@ -80,7 +80,11 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
             // Both the press and the click must be outside, so ending a drag or a resize never counts.
             const outside = (t) => t instanceof Element && ! t.closest('.tile, button, a, input, select, textarea, label, dialog, .sheet-back');
             let downOut = false;
-            window.addEventListener('pointerdown', (e) => { downOut = this.editing && outside(e.target); });
+            window.addEventListener('pointerdown', (e) => {
+                downOut = this.editing && outside(e.target);
+                // An opened small card closes on a press anywhere else (its own icon toggles it).
+                if (this.peek && e.target instanceof Element && ! e.target.closest('.tile.peek, dialog, .swal2-container, .mrhint')) this.closePeek();
+            });
             window.addEventListener('click', (e) => {
                 if (this.editing && downOut && outside(e.target) && ! this.gallery) { this.done(); window.mrHints.used('editOut'); }
                 downOut = false;
@@ -134,7 +138,10 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
         // so the DOM order SortableJS changes is what the person sees.
         span(key) {
             const p = this.editing ? null : this.packed[key];
-            if (p) return { gridColumn: (p.x + 1) + ' / span ' + p.w, gridRow: (p.y + 1) + ' / span ' + p.h };
+            const b = this.peek === key && this.peekBox;
+            // Always the same keys: an empty value clears the variable when the card closes.
+            const pk = { '--pw': b ? b.W + 'px' : '', '--ph': b ? b.H + 'px' : '', '--px': b ? b.x + 'px' : '', '--py': b ? b.y + 'px' : '' };
+            if (p) return { gridColumn: (p.x + 1) + ' / span ' + p.w, gridRow: (p.y + 1) + ' / span ' + p.h, ...pk };
             const [c, r] = parse(this.item(key).size);
             return { gridColumn: 'span ' + Math.min(c, this.cols), gridRow: 'span ' + r };
         },
@@ -162,7 +169,7 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
                 .map((i) => (empty(i) ? { ...i, size: Math.min(4, this.cols) + 'x1' } : (this.phone() && PHONE_SIZE[i.key] ? { ...i, size: PHONE_SIZE[i.key] } : i)));
             const full = visible.filter((i) => ! empty(i)), closed = visible.filter(empty);
             const flat = new Set(closed.map((i) => i.key));   // they stay one line: never grown taller
-            const isApp = (i) => i.key.startsWith('app.');
+            const isApp = (i) => this.iconish(i.key, i.size);
             const own = this.packOrder([...full, ...closed], flat);
             const gaps = this.packOrder([...full.filter((i) => ! isApp(i)), ...full.filter(isApp), ...closed], flat);
             return gaps.holes < own.holes ? gaps.out : own.out;
@@ -177,16 +184,18 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
             };
             const take = (x, y, w, h) => { for (let r = y; r < y + h; r++) { used[r] = used[r] || []; for (let c = x; c < x + w; c++) used[r][c] = true; } };
             const out = {};
+            // Shortcuts, and cards made so small they show as an icon: placed, never grown.
+            const icons = new Set(list.filter((it) => ! flat.has(it.key) && this.iconish(it.key, it.size)).map((it) => it.key));
 
             // A one-row card followed by shortcuts (the ask bar and its apps) takes the rest of
             // that row, so the cards after it start on a clean row instead of squeezing in beside it.
             const fill = {};
             list.forEach((it, i) => {
-                if (it.key.startsWith('app.')) return;
+                if (icons.has(it.key)) return;
                 const [w, h] = parse(it.size);
                 if (h !== 1) return;
                 let n = 0;
-                while (list[i + 1 + n] && list[i + 1 + n].key.startsWith('app.')) n++;
+                while (list[i + 1 + n] && icons.has(list[i + 1 + n].key)) n++;
                 const max = Math.min((this.bounds[it.key] || { max: [w, 1] }).max[0], cols);
                 // Too many to fit beside it (a phone): it takes the whole row and they go below.
                 if (n) fill[it.key] = Math.min(max, w + n <= cols ? Math.max(w, cols - n) : cols);
@@ -221,7 +230,7 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
                 const k = cols - end;
                 if (! k) continue;
                 const run = Object.keys(out)
-                    .filter((key) => key.startsWith('app.') && out[key].y === y && out[key].x < end)
+                    .filter((key) => icons.has(key) && out[key].y === y && out[key].x < end)
                     .sort((a, b) => out[b].x - out[a].x);
                 const moving = [];
                 let edge = end;
@@ -231,7 +240,7 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
                     edge--;
                 }
                 // Only worth it when a card sits just before them, one row high here, to take the space.
-                const before = edge > 0 && Object.keys(out).find((key) => ! key.startsWith('app.')
+                const before = edge > 0 && Object.keys(out).find((key) => ! icons.has(key)
                     && out[key].y === y && out[key].h === 1 && out[key].x + out[key].w === edge);
                 if (! moving.length || ! before) continue;
                 for (const key of moving) {
@@ -241,7 +250,7 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
                 }
             }
 
-            const cards = Object.keys(out).filter((k) => ! k.startsWith('app.'));
+            const cards = Object.keys(out).filter((k) => ! icons.has(k));
             for (const k of cards) while (grow(k, 1, 0));
             for (const k of cards) if (! flat.has(k)) while (grow(k, 0, 1));
 
@@ -249,6 +258,41 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
             for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) if (! (used[y] && used[y][x])) holes++;
             return { out, holes };
         },
+        // ---- a card made small: an icon that opens it -------------------
+        // A card below the smallest size it can show itself at (bounds.card) is drawn as an icon.
+        iconish(key, size) {
+            if (key.startsWith('app.')) return true;
+            const c = (this.bounds[key] || {}).card;
+            if (! c) return false;
+            const [w, h] = parse(size);
+            return Math.min(w, this.cols) < Math.min(c[0], this.cols) || h < c[1];
+        },
+        mini(key) {
+            if (key.startsWith('app.') || (! this.editing && this.tileEl(key)?.dataset.empty === '1')) return false;
+            const p = ! this.editing && this.packed[key];
+            return this.iconish(key, p ? p.w + 'x' + p.h : this.item(key).size);
+        },
+        // The icon opens the card at its usual size, over the others and kept on screen; nothing moves.
+        peek: null,
+        peekBox: null,
+        peekOpen(key) {
+            const tile = this.tileEl(key);
+            if (this.editing || ! tile) return;
+            if (this.peek === key) { this.closePeek(); return; }
+            const { gap, rowH, colW } = this.metrics();
+            const [fw, fh] = (this.bounds[key] || {}).full || [4, 3];
+            const w = Math.min(fw, this.cols), W = w * colW + (w - 1) * gap, H = fh * rowH + (fh - 1) * gap;
+            const t = tile.getBoundingClientRect(), g = this.$refs.grid.getBoundingClientRect();
+            const rtl = getComputedStyle(this.$refs.grid).direction === 'rtl';
+            let x = rtl ? t.width - W : 0;
+            x = Math.max(g.left - t.left, Math.min(g.right - t.left - W, x));
+            let y = Math.min(0, window.innerHeight - 16 - H - t.top);
+            y = Math.max(y, Math.max(g.top, 70) - t.top);
+            this.peekBox = { W, H, x, y };
+            this.peek = key;
+            this.$nextTick(() => tile.querySelector('.w')?.focus({ preventScroll: true }));
+        },
+        closePeek() { this.peek = null; },
         // Cards with more than one look (the clock: digital or analogue).
         styleOf(key) { return this.item(key).style || (this.looks[key] || [])[0] || ''; },
         cycleStyle(key) {
@@ -266,6 +310,7 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
 
         // ---- editing ----------------------------------------------------
         startEdit(byPress = false) {
+            this.closePeek();
             this.flip(() => { this.bake(); this.editing = true; });
             // One tip for this moment: how to start next time (if they used the button), else how to finish.
             if (byPress) window.mrHints.used('longpress');
@@ -317,7 +362,7 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
 
         // Long-press anywhere on a tile (not while typing in it) starts editing.
         press(e) {
-            if (this.editing || e.button > 0 || e.target.closest('input, textarea, select')) return;
+            if (this.editing || e.button > 0 || ! (e.target instanceof Element) || e.target.closest('input, textarea, select')) return;
             this.pressed = false;
             clearTimeout(this.pressTimer);
             this.pressTimer = setTimeout(() => { this.pressed = true; this.startEdit(true); }, 520);

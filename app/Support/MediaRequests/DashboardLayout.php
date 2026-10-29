@@ -139,14 +139,17 @@ class DashboardLayout
         return self::APPS[$key][1] ?? null;
     }
 
-    /** @return array{min: array{0: int, 1: int}, max: array{0: int, 1: int}} */
+    /** @return array{min: array{0: int, 1: int}, max: array{0: int, 1: int}, card?: array{0: int, 1: int}, full?: array{0: int, 1: int}} */
     public function bounds(string $key): array
     {
         if (isset(self::APPS[$key])) {
             return ['min' => [1, 1], 'max' => [4, 4]];   // bigger, a shortcut becomes a small card with its data
         }
 
-        return ['min' => self::WIDGETS[$key][1] ?? [1, 1], 'max' => self::WIDGETS[$key][2] ?? [1, 1]];
+        // Any card can go down to one cell. Below `card` (the smallest it can show itself at) it is an
+        // icon that opens the card at `full` (its default size) above the others.
+        return ['min' => [1, 1], 'max' => self::WIDGETS[$key][2] ?? [1, 1],
+            'card' => self::WIDGETS[$key][1] ?? [1, 1], 'full' => self::WIDGETS[$key][3] ?? [1, 1]];
     }
 
     public function canResize(string $key): bool

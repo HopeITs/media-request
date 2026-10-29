@@ -1199,3 +1199,15 @@ a.ach:hover .go{color:var(--text)}
 .acask:has(textarea){flex:1;min-height:0;grid-template-rows:minmax(0,1fr) auto}
 .acask textarea{resize:none;min-height:0;height:100%;overflow:hidden}
 .acask .btn{justify-self:start}
+/* A card made small: an icon (with its count); a click opens the card at its usual size over the others. */
+.wmini{display:none}
+.tile.mini{container-type:size}
+.tile.mini > .wmini{display:flex}
+.tile.mini > .w{display:none}
+.tile.mini.peek{z-index:40}
+.tile.mini.peek > .w{display:flex;position:absolute;top:var(--py,0);left:var(--px,0);width:var(--pw,320px);height:var(--ph,260px);box-shadow:0 22px 60px rgba(0,0,0,.35),0 0 0 1px var(--line);animation:peek-in .2s cubic-bezier(.2,.8,.2,1);outline:none}
+.tile.mini.peek > .wmini .appicon{border-color:var(--text);box-shadow:var(--shadow)}
+@keyframes peek-in{from{opacity:0;transform:scale(.96)}}
+@media (prefers-reduced-motion:reduce){.tile.mini.peek > .w{animation:none}}
+.tile.mini .t-remove{top:-2px;inset-inline-start:calc(50% - 40px)}
+.tile.mini .t-pin,.tile.mini .t-style{display:none}

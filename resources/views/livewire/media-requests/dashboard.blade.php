@@ -29,7 +29,7 @@
 <div wire:key="home-{{ md5(json_encode($layout)) }}"
      x-data="mrHomeScreen(@js($layout), @js($bounds), @js($looks))"
      data-hint-press="{{ __('media.hint.longpress') }}" data-hint-out="{{ __('media.hint.editOut') }}"
-     x-on:keydown.escape.window="done()">
+     x-on:keydown.escape.window="peek ? closePeek() : done()">
 
     <section class="hello">
         <div>
@@ -62,7 +62,7 @@
             <div class="tile {{ $cards->isApp($key) ? 'is-app' : 'is-widget' }}" data-key="{{ $key }}" @if (in_array($key, $empty, true)) data-empty="1" @endif
                  style="{{ $span($item['size']) }}{{ $item['hidden'] ? 'display:none;' : '' }}"
                  :style="span('{{ $key }}')"
-                 :class="{ pinned: pinned('{{ $key }}'), resizing: resizing === '{{ $key }}' }"
+                 :class="{ pinned: pinned('{{ $key }}'), resizing: resizing === '{{ $key }}', mini: mini('{{ $key }}'), peek: peek === '{{ $key }}' }"
                  x-show="shownHere('{{ $key }}')"
                  @if ($page = $cards->isApp($key) ? null : $cards->page(auth()->user(), $key)) data-page="{{ $page }}" x-on:dblclick="openPage($event, $el)" data-hint="dblclick" data-hint-text="{{ __('media.dash.pageOpen') }}" @endif
                  wire:key="tile-{{ $key }}">
@@ -112,8 +112,14 @@
                         'external' => $key === 'app.generator',
                     ])
                 @else
+                    {{-- Made small, the card is an icon (with its count) that opens it at its usual size. --}}
+                    @php($count = match ($key) { 'late' => count($late['items'] ?? []), 'decide' => $decisions->count(), 'waiting' => $waiting->count(), 'mine' => $mine->filter->isOpen()->count(), 'bell' => $user->unreadNotifications()->count(), default => 0 })
+                    <button type="button" class="app wmini" x-on:click="if (! editing) peekOpen('{{ $key }}')" :aria-expanded="peek === '{{ $key }}'">
+                        <span class="appicon"><x-ic :n="$cards->icon($key)" />@if ($count)<span class="cnt num">{{ $count }}</span>@endif</span>
+                        <span class="appname">{{ $label($key) }}</span>
+                    </button>
                     {{-- Widget --}}
-                    <section class="w" aria-labelledby="wt-{{ $key }}">
+                    <section class="w" aria-labelledby="wt-{{ $key }}" tabindex="-1">
                         @unless (in_array($key, ['clock', 'ask', 'late', 'decide'], true))
                             <header class="wh">
                                 <h2 id="wt-{{ $key }}"><x-ic :n="$cards->icon($key)" />{{ $label($key) }}</h2>

@@ -54,9 +54,11 @@ class DashboardTest extends TestCase
     public function test_a_big_shortcut_shows_its_data_as_a_card(): void
     {
         $this->assertSame([4, 4], app(DashboardLayout::class)->bounds('app.stats')['max']);
+        // And the other way: a card goes down to an icon, which opens it at its usual size.
+        $this->assertSame(['min' => [1, 1], 'max' => [12, 6], 'card' => [4, 3], 'full' => [8, 3]], app(DashboardLayout::class)->bounds('flow'));
 
         Livewire::actingAs($this->user('maya'))->test(Dashboard::class)
-            ->assertSeeHtml('class="appcard"')
+            ->assertSeeHtml('class="appcard"')->assertSeeHtml('class="app wmini"')
             ->assertSee(__('media.dash.ac.deliveredMonth'))
             ->assertSee(__('media.dash.ac.toTeach'))
             ->assertSee('Meeting Transcription');
@@ -71,7 +73,7 @@ class DashboardTest extends TestCase
         $sent = [
             ['key' => 'clock', 'size' => '19x9', 'pinned' => false, 'hidden' => false],   // too big: kept inside the clock's maximum (12×6)
             ['key' => 'calendar', 'size' => '6x5', 'pinned' => true, 'hidden' => false],
-            ['key' => 'notes', 'size' => '1x1', 'pinned' => false, 'hidden' => false],    // too small: raised to the minimum (2×1)
+            ['key' => 'notes', 'size' => '0x1', 'pinned' => false, 'hidden' => false],    // too small: raised to the minimum (1×1, an icon)
             ['key' => 'waiting', 'size' => 'nonsense', 'pinned' => false, 'hidden' => false], // unreadable: the default (4×6)
             ['key' => 'team', 'size' => '4x2', 'pinned' => false, 'hidden' => false],     // not Rami's: dropped
             ['key' => 'app.pack', 'size' => '5x5', 'pinned' => false, 'hidden' => true],  // shortcuts go up to 4×4 (a card)
@@ -85,7 +87,7 @@ class DashboardTest extends TestCase
         $this->assertSame('calendar', $this->layoutOf($rami)[0]['key']);   // pinned first
         $this->assertSame('6x5', $saved['calendar']['size']);
         $this->assertSame('12x6', $saved['clock']['size']);
-        $this->assertSame('2x1', $saved['notes']['size']);
+        $this->assertSame('1x1', $saved['notes']['size']);
         $this->assertSame('4x6', $saved['waiting']['size']);
         $this->assertSame('4x4', $saved['app.pack']['size']);
         $this->assertTrue($saved['app.pack']['hidden']);
