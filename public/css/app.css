@@ -1178,3 +1178,24 @@ img[src*="hope-center.svg"]{filter:var(--logo)}
 .mrhint.out{opacity:0;transform:translateY(4px);transition:opacity .18s,transform .18s}
 @keyframes hint-in{from{opacity:0;transform:translateY(4px)}}
 @media (prefers-reduced-motion:reduce){.mrhint{animation:none}.mrhint.out{transition:none}}
+/* A shortcut made big (about 2x2 and up) becomes a small card with its data; smaller, it stays an icon. */
+.appcard{display:none;flex-direction:column;gap:8px;width:100%;height:100%;padding:12px 14px;border-radius:var(--r-lg);background:var(--card);border:1px solid var(--line-soft);box-shadow:var(--shadow-sm);overflow:hidden;min-width:0}
+@container (min-width:200px) and (min-height:160px){.tile.is-app > .app{display:none}.appcard{display:flex}}
+.ach{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;color:var(--text);text-decoration:none;min-width:0}
+.ach > span:not(.appicon){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ach .appicon{width:30px;border-radius:9px}
+.ach .appicon .ic{width:16px}
+.ach .go{width:16px;height:16px;margin-inline-start:auto;color:var(--text-3);flex:none}
+a.ach:hover .go{color:var(--text)}
+.acnum{margin:0;display:flex;align-items:baseline;gap:8px;color:var(--text-2);font-size:13px;min-width:0}
+.acnum b{font-size:clamp(26px,14cqh,44px);line-height:1;color:var(--text);font-weight:800}
+.aclist{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:2px;min-height:0;overflow:hidden}
+.aclist li > a,.aclist li > span{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:5px 6px;margin:0 -6px;border-radius:7px;color:var(--text);text-decoration:none;font-size:13px;min-width:0}
+.aclist li > a:hover{background:var(--hover)}
+.aclist li span[dir]{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.aclist small{flex:none;color:var(--text-3);font-size:12px;max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acempty{margin:auto 0;color:var(--text-3);font-size:13px}
+.acask{display:grid;gap:8px;margin-top:auto}
+.acask:has(textarea){flex:1;min-height:0;grid-template-rows:minmax(0,1fr) auto}
+.acask textarea{resize:none;min-height:0;height:100%;overflow:hidden}
+.acask .btn{justify-self:start}

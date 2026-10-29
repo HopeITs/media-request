@@ -143,7 +143,7 @@ class DashboardLayout
     public function bounds(string $key): array
     {
         if (isset(self::APPS[$key])) {
-            return ['min' => [1, 1], 'max' => [3, 3]];   // a shortcut can be a bigger icon, to fill a gap
+            return ['min' => [1, 1], 'max' => [4, 4]];   // bigger, a shortcut becomes a small card with its data
         }
 
         return ['min' => self::WIDGETS[$key][1] ?? [1, 1], 'max' => self::WIDGETS[$key][2] ?? [1, 1]];

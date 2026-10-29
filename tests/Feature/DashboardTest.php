@@ -51,6 +51,17 @@ class DashboardTest extends TestCase
         $this->assertNull($cards->page($rami, 'app.my'));   // shortcuts open with one click
     }
 
+    public function test_a_big_shortcut_shows_its_data_as_a_card(): void
+    {
+        $this->assertSame([4, 4], app(DashboardLayout::class)->bounds('app.stats')['max']);
+
+        Livewire::actingAs($this->user('maya'))->test(Dashboard::class)
+            ->assertSeeHtml('class="appcard"')
+            ->assertSee(__('media.dash.ac.deliveredMonth'))
+            ->assertSee(__('media.dash.ac.toTeach'))
+            ->assertSee('Meeting Transcription');
+    }
+
     public function test_the_browser_layout_is_saved_and_cleaned(): void
     {
         $rami = $this->user('rami');
@@ -63,7 +74,7 @@ class DashboardTest extends TestCase
             ['key' => 'notes', 'size' => '1x1', 'pinned' => false, 'hidden' => false],    // too small: raised to the minimum (2×1)
             ['key' => 'waiting', 'size' => 'nonsense', 'pinned' => false, 'hidden' => false], // unreadable: the default (4×6)
             ['key' => 'team', 'size' => '4x2', 'pinned' => false, 'hidden' => false],     // not Rami's: dropped
-            ['key' => 'app.pack', 'size' => '5x5', 'pinned' => false, 'hidden' => true],  // shortcuts go up to 3×3
+            ['key' => 'app.pack', 'size' => '5x5', 'pinned' => false, 'hidden' => true],  // shortcuts go up to 4×4 (a card)
             ['key' => 'made-up', 'size' => '4x4'],
             ...$byKey->except(['clock', 'calendar', 'notes', 'waiting', 'app.pack'])->values()->all(),
         ];
@@ -76,7 +87,7 @@ class DashboardTest extends TestCase
         $this->assertSame('12x6', $saved['clock']['size']);
         $this->assertSame('2x1', $saved['notes']['size']);
         $this->assertSame('4x6', $saved['waiting']['size']);
-        $this->assertSame('3x3', $saved['app.pack']['size']);
+        $this->assertSame('4x4', $saved['app.pack']['size']);
         $this->assertTrue($saved['app.pack']['hidden']);
         $this->assertFalse($saved->has('team'));
         $this->assertFalse($saved->has('made-up'));

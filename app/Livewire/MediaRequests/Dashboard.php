@@ -195,6 +195,9 @@ class Dashboard extends Component
             'showcase' => in_array('showcase', $keys, true) && $view['showcase'] === [],
         ]));
 
+        // Hidden ones too: one added back from the gallery is drawn at once, without a reload.
+        $view['apps'] = $this->appCards($user, array_values(array_filter($keys, fn ($k) => $cards->isApp($k))), $view);
+
         return view('livewire.media-requests.dashboard', $view);
     }
 
@@ -231,6 +234,82 @@ class Dashboard extends Component
                     'on' => $r->delivered_at?->format('d-m-Y'),
                 ] : null;
             })->filter()->values()->all();
+    }
+
+    /**
+     * What a shortcut shows once it is made big enough to be a card (see app-card.blade.php):
+     * one number and a few short rows, simplified from its page. Only for the shortcuts on
+     * this person's screen; each query is small and capped.
+     *
+     * @param  array<int, string>  $keys
+     * @return array<string, array{num?: int, unit?: string, rows: array<int, array{t: string, s?: string, href?: string}>, empty?: string}>
+     */
+    private function appCards(User $user, array $keys, array $view): array
+    {
+        $locale = app()->getLocale();
+        $show = fn (MediaRequest $r) => route('media-requests.show', $r);
+        $req = fn (MediaRequest $r, ?string $sub = null) => ['t' => $r->displayName(), 's' => $sub ?? S::label($r->status, $r->type), 'href' => $show($r)];
+        $out = [];
+
+        foreach ($keys as $key) {
+            $out[$key] = match ($key) {
+                'app.my' => (function () use ($user, $req) {
+                    $mine = $this->mine($user);
+
+                    return ['num' => $mine->filter->isOpen()->count(), 'unit' => __('media.dash.ac.open'),
+                        'rows' => $mine->take(4)->map(fn ($r) => $req($r))->all(), 'empty' => __('media.dash.ac.noMine')];
+                })(),
+                'app.approvals' => (function () use ($view, $req, $locale) {
+                    $mine = $view['decisions']->whereIn('status', [S::ProgramApproval, S::MediaApproval]);
+
+                    return ['num' => $mine->count(), 'unit' => __('media.dash.ac.toApprove'),
+                        'rows' => $mine->take(4)->map(fn ($r) => $req($r, $r->requester?->nameForLocale($locale)))->values()->all(), 'empty' => __('media.dash.ac.noApprove')];
+                })(),
+                'app.board' => (function () {
+                    $n = MediaRequest::query()->whereIn('status', [S::ToClaim, S::Assigned, S::InProgress, S::InternalReview])
+                        ->selectRaw('status, count(*) as n')->groupBy('status')->pluck('n', 'status');
+
+                    return ['num' => (int) ($n[S::ToClaim] ?? 0), 'unit' => S::label(S::ToClaim), 'rows' => [
+                        ['t' => S::label(S::InProgress), 's' => (string) (($n[S::Assigned] ?? 0) + ($n[S::InProgress] ?? 0))],
+                        ['t' => S::label(S::InternalReview), 's' => (string) ($n[S::InternalReview] ?? 0)],
+                    ]];
+                })(),
+                'app.drive' => [
+                    'rows' => MediaRequest::query()->visibleTo($user)->where('status', S::Delivered)->orderByDesc('delivered_at')->limit(4)->get()
+                        ->map(fn ($r) => $req($r, $r->delivered_at?->format('d-m-Y')))->all(),
+                    'empty' => __('media.dash.ac.noFiles'),
+                ],
+                'app.stats' => (function () {
+                    $month = now()->startOfMonth();
+
+                    return ['num' => MediaRequest::query()->where('status', S::Delivered)->where('delivered_at', '>=', $month)->count(), 'unit' => __('media.dash.ac.deliveredMonth'), 'rows' => [
+                        ['t' => __('media.dash.ac.receivedMonth'), 's' => (string) MediaRequest::query()->whereNull('imported_from')->where('created_at', '>=', $month)->count()],
+                        ['t' => __('media.dash.ac.openNow'), 's' => (string) MediaRequest::query()->open()->count()],
+                    ]];
+                })(),
+                'app.log' => ['rows' => \Spatie\Activitylog\Models\Activity::query()->where('log_name', MediaRequest::LOG_NAME)
+                    ->with(['causer.profile', 'subject'])->latest()->limit(4)->get()
+                    ->map(fn ($a) => ['t' => __('media.lg.'.$a->description).($a->subject instanceof MediaRequest ? ' · '.$a->subject->displayName() : ''),
+                        's' => trim(($a->causer?->profile?->nameForLocale($locale) ?? '').' · '.$a->created_at->diffForHumans(), ' ·')])->all()],
+                'app.assistant' => (function () {
+                    $missed = \App\Models\MediaAssistantLog::query()->where('understood', false)->whereNull('lesson_id');
+
+                    return ['num' => (clone $missed)->count(), 'unit' => __('media.dash.ac.toTeach'),
+                        'rows' => $missed->latest()->limit(3)->pluck('text')->map(fn ($t) => ['t' => \Illuminate\Support\Str::limit($t, 70)])->all(), 'empty' => __('media.dash.ac.noTeach')];
+                })(),
+                'app.bell' => ['num' => $user->unreadNotifications()->count(), 'unit' => __('media.dash.ac.unread'),
+                    'rows' => $user->notifications()->latest()->limit(4)->get()
+                        ->map(fn ($n) => ['t' => $n->data['body'][$locale] ?? '', 's' => $n->created_at->diffForHumans()])->all(),
+                    'empty' => __('media.bell.none')],
+                'app.people' => ['num' => \App\Models\Employee::query()->count(), 'unit' => __('media.dash.ac.people'),
+                    'rows' => [['t' => __('media.dash.ac.team'), 's' => (string) app(MediaTeam::class)->members()->count()]]],
+                'app.generator' => ['rows' => collect(config('media-requests.generator.tools', []))
+                    ->map(fn ($tool, $k) => ['t' => __('media.gen.tool.'.$k), 'href' => app(\App\Support\MediaRequests\HcGenerator::class)->url($tool['path'])])->values()->all()],
+                default => ['rows' => []],   // app.new and app.pack draw their own card
+            };
+        }
+
+        return $out;
     }
 
     /** Open requests that wait on this person, most urgent first. */

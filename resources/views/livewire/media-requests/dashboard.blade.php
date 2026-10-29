@@ -107,6 +107,10 @@
                             <span class="appname">{{ $label($key) }}</span>
                         </a>
                     @endif
+                    @include('livewire.media-requests.partials.app-card', [
+                        'href' => $key === 'app.new' ? null : ($key === 'app.generator' ? app(\App\Support\MediaRequests\HcGenerator::class)->url() : route($cards->route($key))),
+                        'external' => $key === 'app.generator',
+                    ])
                 @else
                     {{-- Widget --}}
                     <section class="w" aria-labelledby="wt-{{ $key }}">
