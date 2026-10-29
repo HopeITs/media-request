@@ -41,6 +41,25 @@ class Employee extends Model
         return $hours > 0 ? min(1.0, round($hours / 8, 2)) : 1.0;
     }
 
+    /**
+     * This person's working hours as minutes after midnight: their own (part time) or the usual day.
+     *
+     * @return array{0: int, 1: int}
+     */
+    public function workMinutes(): array
+    {
+        foreach ([(string) $this->work_hours, (string) config('media-requests.workday.hours')] as $hours) {
+            if (preg_match('/^(\d{1,2})(?::(\d{2}))?-(\d{1,2})(?::(\d{2}))?$/', $hours, $m)) {
+                [$from, $to] = [(int) $m[1] * 60 + (int) ($m[2] ?? 0), (int) $m[3] * 60 + (int) ($m[4] ?? 0)];
+                if ($to > $from) {
+                    return [$from, $to];
+                }
+            }
+        }
+
+        return [8 * 60, 16 * 60];
+    }
+
     protected $casts = ['is_active' => 'boolean'];
 
     /** Same as the HR app: the name in the asked language, falling back to the other. */

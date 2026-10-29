@@ -608,7 +608,8 @@ select.inp{cursor:pointer}
 
 /* Clock: fills its tile. Digital (big numbers) or analogue (a face with hands). */
 .is-widget[data-key="clock"] .wb{padding:0;overflow:hidden}
-.clock{height:100%;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:6% 8%}
+.clockbox{height:100%;display:flex;flex-direction:column;min-height:0}
+.clock{flex:1;min-height:0;container-type:size;display:flex;flex-direction:column;justify-content:center;gap:4px;padding:6% 8%}
 .cwd2{font-size:clamp(12px,7cqh,17px);font-weight:700;color:var(--brand)}
 .ct{font-size:clamp(34px,min(44cqh,30cqw),160px);font-weight:700;line-height:.95;letter-spacing:-.02em}
 .cdate{font-size:clamp(12px,6.5cqh,16px);color:var(--text-2)}
@@ -1242,3 +1243,25 @@ a.ach:hover .go{color:var(--text)}
 .pq-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:auto}
 /* A shortcut's panel is as tall as what it shows, up to the screen. */
 @media (min-width:761px){.tile.is-app > .appcard:popover-open{bottom:auto;max-height:calc(100dvh - 32px)}.tile.is-app[data-key="app.pack"] > .appcard:popover-open{height:min(620px,calc(100dvh - 32px))}}
+/* A big clock: the working day (time left, a bar, time done) and who of the team is online.
+   Shown only once the card is tall enough; a small clock stays just a clock. */
+.cwork,.clockbox .presence{display:none}
+.cwork{padding:0 16px 12px;flex:none}
+.cw-main{margin:0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;color:var(--text-2);font-size:13px}
+.cw-main b{font-size:22px;font-weight:800;color:var(--text)}
+.cw-bar{height:6px;border-radius:99px;background:var(--soft);overflow:hidden;margin:8px 0 6px}
+.cw-bar i{display:block;height:100%;background:var(--brand);border-radius:inherit}
+.cw-sub{margin:0;display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--text-3)}
+.cw-sub b{color:var(--text-2)}
+.clockbox .presence{flex:1;min-height:0;padding:10px 16px 12px;border-top:1px solid var(--line-soft);flex-direction:column;gap:6px}
+.pres-h{margin:0;display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:var(--text-2)}
+.presence ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:2px 12px;overflow-y:auto;min-height:0}
+.presence li{display:flex;align-items:center;gap:8px;min-width:0;font-size:13px;padding:3px 0}
+.presence li > span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.presence li small{margin-inline-start:auto;flex:none;color:var(--text-3);font-size:11px}
+.presence .dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--line)}
+.presence li.on .dot{background:#2E9E5B;box-shadow:0 0 0 3px color-mix(in srgb,#2E9E5B 22%,transparent)}
+.presence li:not(.on){color:var(--text-2)}
+@container w (min-height:250px){.cwork{display:block}}
+@container w (min-height:250px) and (min-width:380px){.cwork{padding-inline:20px}}
+@container w (min-height:380px) and (min-width:300px){.clockbox .presence{display:flex}.clockbox .clock{flex:0 0 34%}}

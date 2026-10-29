@@ -152,6 +152,18 @@ return [
     ],
 
     /*
+    | The working day (Damascus time), for the clock card: how long until the
+    | end of the day, and how long since it began. A part-timer's own hours
+    | (employees.work_hours) come first. Days: 0 = Sunday … 6 = Saturday.
+    | "online_minutes": seen this recently counts as online.
+    */
+    'workday' => [
+        'hours' => env('MEDIA_WORK_HOURS', '08:00-16:00'),
+        'days' => array_map('intval', explode(',', env('MEDIA_WORK_DAYS', '0,1,2,3,4'))),
+        'online_minutes' => 5,
+    ],
+
+    /*
     | Which team covers which governorate. Design and video editing are done by
     | the whole Syria team for everyone; a photo or video shoot is done by the
     | team of the place (a team member's governorate), unless the media manager

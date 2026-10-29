@@ -15,6 +15,9 @@
         return 'grid-column: span '.min($c, \App\Support\MediaRequests\DashboardLayout::COLUMNS).'; grid-row: span '.$r.';';
     };
     $label = fn (string $key) => __('media.dash.card.'.$key);
+    // This person's working hours (their own if part time), for the big clock.
+    $work = $user->profile?->workMinutes() ?? [480, 960];
+    $hhmm = fn (int $m) => sprintf('%d:%02d', intdiv($m, 60), $m % 60);
     // People who only ask for work stay on this screen: a request opens in the panel here.
     $here = app(\App\Support\MediaRequests\MediaTeam::class)->isRequesterOnly($user);
     // "Nothing is waiting for you" is for the media team, who do the work; everyone else is offered help.
@@ -198,14 +201,28 @@
                                     @break
                                 @case('clock')
                                     {{-- Damascus time. Digital, or an analogue face; the look is chosen in Customise. --}}
-                                    <div class="clock" :class="{ analog: clockLook() === 'analog' }" x-data="{
+                                    {{-- Made big, it also shows the working day (time left, time done) and who of the team is online. --}}
+                                    <div class="clockbox" x-data="{
                                             now: new Date(), loc: @js($locale === 'ar' ? 'ar-SY-u-nu-latn' : 'en-GB'),
+                                            work: @js($work), days: @js(config('media-requests.workday.days')),
+                                            // Minutes since midnight and the weekday (0 = Sunday), Damascus time.
+                                            mins() { return this.part('hour') * 60 + this.part('minute') + this.part('second') / 60 },
+                                            wday() { return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(new Intl.DateTimeFormat('en-GB', { weekday: 'short', timeZone: 'Asia/Damascus' }).format(this.now)) },
+                                            hm(m) { m = Math.max(0, Math.round(m)); return Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0') },
+                                            day() {
+                                                const [a, b] = this.work, m = this.mins();
+                                                if (! this.days.includes(this.wday())) return { state: 'off' };
+                                                if (m < a) return { state: 'before', left: a - m };
+                                                if (m >= b) return { state: 'after' };
+                                                return { state: 'on', left: b - m, done: m - a, pct: (m - a) / (b - a) * 100 };
+                                            },
                                             t() { return this.now.toLocaleTimeString(this.loc, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'Asia/Damascus' }) },
                                             wd() { return this.now.toLocaleDateString(this.loc, { weekday: 'long', timeZone: 'Asia/Damascus' }) },
                                             d() { return this.now.toLocaleDateString(this.loc, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Damascus' }) },
                                             part(p) { return +new Intl.DateTimeFormat('en-GB', { hour: 'numeric', minute: 'numeric', second: 'numeric', hourCycle: 'h23', timeZone: 'Asia/Damascus' }).formatToParts(this.now).find((x) => x.type === p).value },
                                             angle(hand) { const h = this.part('hour'), m = this.part('minute'), s = this.part('second'); return { h: (h % 12 + m / 60) * 30, m: (m + s / 60) * 6, s: s * 6 }[hand]; },
                                          }" x-init="setInterval(() => now = new Date(), 1000)">
+                                    <div class="clock" :class="{ analog: clockLook() === 'analog' }">
                                         <template x-if="clockLook() !== 'analog'">
                                             <div style="display:contents">
                                                 <span class="cwd2" x-text="wd()"></span>
@@ -236,6 +253,20 @@
                                                 </span>
                                             </div>
                                         </template>
+                                    </div>
+                                    <div class="cwork" :data-state="day().state">
+                                        <template x-if="day().state === 'on'">
+                                            <div>
+                                                <p class="cw-main"><b class="num" x-text="hm(day().left)"></b><span>{{ __('media.dash.work.left') }}</span></p>
+                                                <div class="cw-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="Math.round(day().pct)"><i :style="'width:' + day().pct + '%'"></i></div>
+                                                <p class="cw-sub"><span>{{ __('media.dash.work.done') }} <b class="num" x-text="hm(day().done)"></b></span><span class="num">{{ $hhmm($work[0]) }} – {{ $hhmm($work[1]) }}</span></p>
+                                            </div>
+                                        </template>
+                                        <p class="cw-main" x-show="day().state === 'before'" x-cloak><span>{{ __('media.dash.work.starts') }}</span><b class="num" x-text="hm(day().left)"></b></p>
+                                        <p class="cw-main" x-show="day().state === 'after'" x-cloak><span>{{ __('media.dash.work.over') }}</span></p>
+                                        <p class="cw-main" x-show="day().state === 'off'" x-cloak><span>{{ __('media.dash.work.off') }}</span></p>
+                                    </div>
+                                    <livewire:media-requests.team-presence wire:key="presence" />
                                     </div>
                                     @break
 

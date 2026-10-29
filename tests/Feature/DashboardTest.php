@@ -78,6 +78,25 @@ class DashboardTest extends TestCase
         $this->assertContains($file['path'], $pack->search(mb_substr($base, 0, 4))->pluck('path')->all());   // part of it
     }
 
+    public function test_a_big_clock_knows_the_working_day_and_who_is_online(): void
+    {
+        $maya = $this->user('maya');
+        $this->assertSame([8 * 60, 16 * 60], $maya->profile->workMinutes());          // the usual day
+        $maya->profile->update(['work_hours' => '10:00-14:30']);
+        $this->assertSame([600, 870], $maya->fresh()->profile->workMinutes());     // a part-timer's own hours
+
+        config(['session.driver' => 'database']);
+        \Illuminate\Support\Facades\DB::table('sessions')->insert([
+            'id' => 'test-session', 'user_id' => $maya->id, 'ip_address' => '127.0.0.1', 'user_agent' => 'test',
+            'payload' => '', 'last_activity' => now()->getTimestamp(),
+        ]);
+
+        Livewire::actingAs($this->user('rami'))->test(\App\Livewire\MediaRequests\TeamPresence::class)
+            ->assertSeeHtml('class="on"')
+            ->assertSee($maya->profile->nameForLocale(app()->getLocale()))
+            ->assertSee(__('media.dash.pres.count', ['n' => 1, 'all' => app(\App\Support\MediaRequests\MediaTeam::class)->members()->count()]));
+    }
+
     public function test_a_size_set_by_hand_is_kept_as_set(): void
     {
         $rami = $this->user('rami');
