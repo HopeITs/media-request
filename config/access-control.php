@@ -86,7 +86,7 @@ return [
         // person's own layout and notes (media_dashboards.user_id = auth id),
         // and the layout is cleaned against what that person may see.
         // openRequest checks the request's view policy; the notification ones act on the caller's own notifications.
-        'media-requests.dashboard' => ['saveLayout', 'resetLayout', 'saveNotes', 'shiftMonth', 'thisMonth', 'openRequest', 'closeRequest', 'openNotification', 'markAllRead', 'toggleBell', 'openRequestNotes', 'bellShow', 'bellMore', 'pickDay', 'closeDay'],
+        'media-requests.dashboard' => ['saveLayout', 'resetLayout', 'applyPreset', 'saveNotes', 'shiftMonth', 'thisMonth', 'openRequest', 'closeRequest', 'openNotification', 'markAllRead', 'toggleBell', 'openRequestNotes', 'bellShow', 'bellMore', 'pickDay', 'closeDay'],
         // Standalone only. Sign-in is before a session exists; markAllRead
         // and the form reset act only on the caller's own data or form state.
         // The proofreader: open/close only change the window; check is limited per person per day.

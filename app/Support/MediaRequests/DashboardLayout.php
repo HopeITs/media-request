@@ -58,21 +58,31 @@ class DashboardLayout
     ];
 
     /**
-     * What a new screen shows, by what the person does; everything else they may use waits in
-     * "Add a card". Few cards each, and no shortcut to a page the top bar already links to
-     * (HC Generator is another site, so it stays).
+     * Ready layouts, each laid out by hand to tile 8 columns with no gap (a wider screen
+     * grows the cards into the extra columns). Anyone may pick one in Customise and then
+     * change it as they like; a new screen, and "Reset", start from the one for what the
+     * person does (KIND). A card the person may not use is left out. Only what is listed
+     * shows; everything else waits in "Add a card". No shortcut to a page the top bar
+     * already links to (HC Generator is another site, so it stays).
      */
-    private const SHOWN = [
-        // Asks for work only: their requests and what came back, ways to ask, ready files.
-        'requester' => ['decide', 'ask', 'app.new', 'app.generator', 'mine', 'bell', 'pack', 'showcase', 'proof'],
-        // Manages programs: what waits for their approval, and how their requests move.
-        'programs' => ['late', 'decide', 'ask', 'app.new', 'app.generator', 'flow', 'waiting', 'pack', 'showcase'],
-        // On the media team: their work, the team, the days ahead, the tools they use.
-        // (The ask bar too: the team files requests for people who phone or write.)
-        'team' => ['late', 'ask', 'decide', 'waiting', 'app.new', 'app.generator', 'team', 'clock', 'pack', 'calendar', 'proof'],
+    public const PRESETS = [
+        // Asks for work: their requests and what came back, ways to ask, ready files.
+        'simple' => [['ask', '6x1'], ['app.new', '1x1'], ['app.generator', '1x1'], ['decide', '4x3'], ['mine', '4x3'],
+            ['bell', '4x2'], ['pack', '4x2'], ['showcase', '4x3'], ['proof', '4x3']],
+        // Manages programs: what waits for their approval, and how the requests move.
+        'programs' => [['late', '12x1'], ['ask', '6x1'], ['app.new', '1x1'], ['app.generator', '1x1'], ['decide', '4x3'], ['waiting', '4x3'],
+            ['flow', '8x3'], ['showcase', '4x3'], ['pack', '4x3']],
+        // On the media team: their work, the team, the days ahead, the tools they use
+        // (the ask bar too: the team files requests for people who phone or write).
+        'team' => [['late', '12x1'], ['ask', '6x1'], ['app.new', '1x1'], ['app.generator', '1x1'], ['waiting', '4x6'], ['decide', '4x3'], ['team', '4x3'],
+            ['clock', '4x2'], ['pack', '4x2'], ['calendar', '4x4'], ['proof', '4x4']],
         // Runs the team: the whole flow, who has what, what is late or waits on them.
-        'manager' => ['late', 'ask', 'decide', 'flow', 'app.new', 'app.generator', 'clock', 'team', 'waiting', 'calendar'],
+        'manager' => [['late', '12x1'], ['ask', '6x1'], ['app.new', '1x1'], ['app.generator', '1x1'], ['flow', '8x3'], ['decide', '4x3'], ['team', '4x3'],
+            ['waiting', '4x4'], ['calendar', '4x4'], ['clock', '4x2'], ['notes', '4x2']],
     ];
+
+    /** The ready layout a new screen starts from, by what the person does (kind()). */
+    private const KIND = ['requester' => 'simple', 'programs' => 'programs', 'team' => 'team', 'manager' => 'manager'];
 
     /** Earlier named sizes, read from layouts saved before free sizes. */
     private const LEGACY = ['1' => '1x1', 's' => '2x2', 'm' => '4x2', 'l' => '4x4', 'w' => '8x2', 'bar' => '8x1'];
@@ -192,14 +202,36 @@ class DashboardLayout
     /** @return array<int, array{key: string, size: string, pinned: bool, hidden: bool}> */
     public function defaults(User $user): array
     {
-        $shown = self::SHOWN[$this->kind($user)];
+        return $this->preset($user, $this->suggested($user));
+    }
 
-        return array_map(fn (string $key): array => [
-            'key' => $key,
-            'size' => $this->defaultSize($key),
-            'pinned' => false,
-            'hidden' => ! in_array($key, $shown, true),
-        ] + $this->look($key, null), $this->available($user));
+    /** The ready layout that fits what this person does. */
+    public function suggested(User $user): string
+    {
+        return self::KIND[$this->kind($user)];
+    }
+
+    /**
+     * A ready layout for this person: its cards in its order and sizes, then everything else
+     * they may use, hidden, so "Add a card" still offers it.
+     *
+     * @return array<int, array{key: string, size: string, pinned: bool, hidden: bool}>
+     */
+    public function preset(User $user, string $name): array
+    {
+        $available = $this->available($user);
+        $out = [];
+
+        foreach (self::PRESETS[$name] ?? self::PRESETS['simple'] as [$key, $size]) {
+            if (in_array($key, $available, true)) {
+                $out[$key] = ['key' => $key, 'size' => $this->size($key, $size), 'pinned' => false, 'hidden' => false] + $this->look($key, null);
+            }
+        }
+        foreach ($available as $key) {
+            $out[$key] ??= ['key' => $key, 'size' => $this->defaultSize($key), 'pinned' => false, 'hidden' => true] + $this->look($key, null);
+        }
+
+        return array_values($out);
     }
 
     /** Which default screen fits this person: requester, programs, team or manager. */

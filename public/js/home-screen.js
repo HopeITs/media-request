@@ -35,6 +35,7 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
         cols: 8,
         editing: false,
         gallery: false,
+        presets: false,       // the ready layouts sheet
         wiggling: false,
         resizing: null,       // key of the tile being resized
         resizeLabel: '',
@@ -98,7 +99,7 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
                 downOut = this.editing && outside(e.target);
             });
             window.addEventListener('click', (e) => {
-                if (this.editing && downOut && outside(e.target) && ! this.gallery) { this.done(); window.mrHints.used('editOut'); }
+                if (this.editing && downOut && outside(e.target) && ! this.gallery && ! this.presets) { this.done(); window.mrHints.used('editOut'); }
                 downOut = false;
             });
             this.$watch('editing', (on) => {
@@ -402,7 +403,7 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
         },
         // Any movement ends the wiggle at once, so it never fights a drag or a resize.
         stopWiggle() { clearTimeout(this.wiggleTimer); this.wiggling = false; },
-        done() { this.flip(() => { this.editing = false; }); this.gallery = false; this.stopWiggle(); },
+        done() { this.flip(() => { this.editing = false; }); this.gallery = false; this.presets = false; this.stopWiggle(); },
 
         // Double-click on a card that has a page opens it (not while editing, nor on its own controls).
         // A card with a search form (HC_PACK) opens with what is typed.

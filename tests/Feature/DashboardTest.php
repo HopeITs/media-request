@@ -163,6 +163,29 @@ class DashboardTest extends TestCase
         }
     }
 
+    public function test_a_ready_layout_can_be_picked_and_then_changed(): void
+    {
+        $maya = $this->user('maya');
+        $component = Livewire::actingAs($maya)->test(Dashboard::class)
+            ->assertSee(__('media.preset.manager'))->assertSee(__('media.dash.presetYours'))
+            ->call('applyPreset', 'team');
+
+        $shown = collect($this->layoutOf($maya))->where('hidden', false);
+        $this->assertSame(['late', 'ask', 'app.new', 'app.generator', 'waiting', 'decide', 'team', 'clock', 'pack', 'calendar', 'proof'], $shown->pluck('key')->all());
+        $this->assertSame('4x6', $shown->firstWhere('key', 'waiting')['size']);
+        $this->assertTrue(collect($this->layoutOf($maya))->firstWhere('key', 'notes')['hidden']);   // still in "Add a card"
+
+        // Then changed as before.
+        $layout = $this->layoutOf($maya);
+        foreach ($layout as &$item) {
+            if ($item['key'] === 'notes') {
+                $item['hidden'] = false;
+            }
+        }
+        $component->call('saveLayout', $layout)->call('applyPreset', 'made-up');
+        $this->assertFalse(collect($this->layoutOf($maya))->firstWhere('key', 'notes')['hidden']);   // an unknown name changes nothing
+    }
+
     public function test_the_browser_layout_is_saved_and_cleaned(): void
     {
         $rami = $this->user('rami');

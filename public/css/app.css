@@ -1284,3 +1284,16 @@ a.ach:hover .go{color:var(--text)}
 @container w (min-height:250px){.cwork{display:block}}
 @container w (min-height:250px) and (min-width:380px){.cwork{padding-inline:20px}}
 @container w (min-height:380px) and (min-width:300px){.clockbox .presence{display:flex}.clockbox .clock{flex:0 0 34%}}
+/* Ready layouts: each drawn small (8 columns), its name and what it is for. */
+.pre-lead{margin:0;padding:0 18px 12px;color:var(--text-2);font-size:13px}
+.presets{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;padding:0 18px 18px;overflow-y:auto;min-height:0}
+.preset{display:grid;gap:6px;padding:12px;border:1px solid var(--line-soft);border-radius:var(--r-lg);background:var(--soft);color:var(--text);text-align:start;font:inherit;cursor:pointer}
+.preset:hover{border-color:var(--line);background:var(--hover)}
+.preset:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.pre-map{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-auto-rows:14px;gap:3px;padding:6px;border-radius:10px;background:var(--bg);margin-bottom:4px}
+.pre-map i{display:grid;place-items:center;border-radius:4px;background:var(--surface);color:var(--text-3);overflow:hidden}
+.pre-map i.app{background:var(--line-soft)}
+.pre-map .ic{width:10px;height:10px}
+.pre-t{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pre-t b{font-size:15px}
+.preset small{color:var(--text-2);font-size:13px;line-height:1.45}

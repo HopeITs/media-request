@@ -46,6 +46,7 @@
             <template x-if="editing">
                 <span class="btnline">
                     <button type="button" class="btn btn-g" x-on:click="mrConfirm(@js(__('media.dash.resetConfirm')), { ok: @js(__('media.dash.reset')), cancel: @js(__('media.confirm.back')) }).then((yes) => yes && $wire.resetLayout())"><x-ic n="reset" />{{ __('media.dash.reset') }}</button>
+                    <button type="button" class="btn btn-o" x-on:click="presets = true"><x-ic n="layers" />{{ __('media.dash.presets') }}</button>
                     <button type="button" class="btn btn-o" x-on:click="gallery = true" :disabled="hiddenItems().length === 0"><x-ic n="plus" />{{ __('media.dash.add') }}</button>
                     <button type="button" class="btn btn-p" x-on:click="done()"><x-ic n="check" />{{ __('media.dash.done') }}</button>
                 </span>
@@ -549,6 +550,32 @@
                         <span @class(['appicon', 'brand' => $key === 'app.new'])><x-ic :n="$cards->icon($key)" /></span>
                         <span><b>{{ $label($key) }}</b><small>{{ __($cards->isApp($key) ? 'media.dash.kindApp' : 'media.dash.kindWidget') }}</small></span>
                         <x-ic n="plus" />
+                    </button>
+                @endforeach
+            </div>
+        </div>
+    </div>
+
+    {{-- Ready layouts: each drawn small as it will look; picking one replaces the screen, which is then changed as before. --}}
+    <div class="sheet-back" x-show="presets" x-cloak x-transition.opacity x-on:click.self="presets = false">
+        <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pre-t" x-show="presets" x-transition:enter="sheet-in" x-transition:leave="sheet-out">
+            <div class="sheet-h">
+                <h2 id="pre-t">{{ __('media.dash.presets') }}</h2>
+                <button type="button" class="iconbtn" x-on:click="presets = false" aria-label="{{ __('media.close') }}"><x-ic n="x" /></button>
+            </div>
+            <p class="pre-lead">{{ __('media.dash.presetsLead') }}</p>
+            <div class="presets">
+                @foreach (array_keys(\App\Support\MediaRequests\DashboardLayout::PRESETS) as $name)
+                    <button type="button" class="preset" x-on:click="mrConfirm(@js(__('media.dash.presetConfirm', ['name' => __('media.preset.'.$name)])), { ok: @js(__('media.dash.presetUse')), cancel: @js(__('media.confirm.back')) }).then((yes) => yes && $wire.applyPreset('{{ $name }}'))">
+                        <span class="pre-map" aria-hidden="true">
+                            @foreach ($cards->preset($user, $name) as $p)
+                                @continue($p['hidden'])
+                                @php([$pc, $pr] = array_map('intval', explode('x', $p['size'])))
+                                <i @class(['app' => $cards->isApp($p['key'])]) style="grid-column:span {{ min($pc, 8) }};grid-row:span {{ $pr }}"><x-ic :n="$cards->icon($p['key'])" /></i>
+                            @endforeach
+                        </span>
+                        <span class="pre-t"><b>{{ __('media.preset.'.$name) }}</b>@if ($name === $cards->suggested($user))<span class="tag soft">{{ __('media.dash.presetYours') }}</span>@endif</span>
+                        <small>{{ __('media.preset.'.$name.'.d') }}</small>
                     </button>
                 @endforeach
             </div>

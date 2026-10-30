@@ -75,6 +75,16 @@ class Dashboard extends Component
         $this->record()->update(['layout' => null]);
     }
 
+    /** Start from one of the ready layouts (then change it as before). Unknown names do nothing. */
+    public function applyPreset(string $name): void
+    {
+        if (! isset(DashboardLayout::PRESETS[$name])) {
+            return;
+        }
+
+        $this->record()->update(['layout' => app(DashboardLayout::class)->preset(auth()->user(), $name)]);
+    }
+
     #[Renderless]
     public function saveNotes(): void
     {
