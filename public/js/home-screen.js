@@ -97,6 +97,9 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
             let downOut = false;
             window.addEventListener('pointerdown', (e) => {
                 downOut = this.editing && outside(e.target);
+                // A press outside the open panel closes it; on another icon, that icon shows its card instead.
+                if (this.peek && e.target instanceof Element
+                    && ! e.target.closest(':popover-open, .tile.mini > .wmini, .tile.is-app > a.app, dialog, .swal2-container, .mrhint')) this.closePeek();
             });
             window.addEventListener('click', (e) => {
                 if (this.editing && downOut && outside(e.target) && ! this.gallery && ! this.presets) { this.done(); window.mrHints.used('editOut'); }
@@ -289,9 +292,9 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
         /*
          * One click on the icon: the card opens in a side panel (a sheet from the bottom on a phone).
          * Two clicks: its own page. The panel is the card itself, shown as a popover (the browser's
-         * top layer), so it is not moved in the page and its buttons keep working. It stays put while
-         * the person works on the page (no fade, no closing on a click elsewhere); its ×, Escape or
-         * the same icon closes it, and another icon shows that card in the same place.
+         * top layer), so it is not moved in the page and its buttons keep working. It does not fade or
+         * jump; a click outside it, its ×, Escape or the same icon closes it, and another icon shows
+         * that card in the same place.
          */
         peek: null,
         // The card a tile shows in the panel: a widget's own card, or a shortcut's data card.
