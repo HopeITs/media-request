@@ -144,6 +144,25 @@ class DashboardTest extends TestCase
             ->assertSee('Meeting Transcription');
     }
 
+    public function test_each_role_starts_with_a_few_cards_of_its_own(): void
+    {
+        $cards = app(DashboardLayout::class);
+        $shown = fn (string $who) => collect($cards->defaults($this->user($who)))->where('hidden', false)->pluck('key')->all();
+
+        $this->assertSame(['requester', 'programs', 'team', 'manager'], array_map(fn ($w) => $cards->kind($this->user($w)), ['rami', 'lina', 'fadi', 'maya']));
+        $this->assertContains('mine', $shown('rami'));
+        $this->assertNotContains('flow', $shown('rami'));
+        $this->assertContains('flow', $shown('lina'));
+        $this->assertContains('waiting', $shown('fadi'));
+        $this->assertContains('team', $shown('maya'));
+
+        foreach (['rami', 'lina', 'fadi', 'maya'] as $who) {
+            $this->assertLessThanOrEqual(11, count($shown($who)));
+            // No shortcut to a page the top bar already links to.
+            $this->assertEmpty(array_intersect($shown($who), ['app.my', 'app.pack', 'app.drive', 'app.board', 'app.approvals']));
+        }
+    }
+
     public function test_the_browser_layout_is_saved_and_cleaned(): void
     {
         $rami = $this->user('rami');

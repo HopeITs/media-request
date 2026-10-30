@@ -90,6 +90,16 @@ img{max-width:100%}
 .nav a:hover{color:var(--text);background:var(--hover)}
 .nav a[aria-current="page"]{color:var(--text);border-bottom-color:var(--brand)}
 .nav .ic{width:1.1em;height:1.1em}
+/* "More": the occasional pages, in a small menu under the bar. */
+.navmore{min-height:64px;padding:0 12px;border:0;border-bottom:3px solid transparent;background:none;font:inherit;font-weight:600;color:var(--text-2);display:flex;align-items:center;gap:8px;white-space:nowrap;cursor:pointer}
+.navmore:hover{color:var(--text);background:var(--hover)}
+.navmore[aria-current="page"]{color:var(--text);border-bottom-color:var(--brand)}
+.navmenu{position:fixed;inset:auto;margin:0;padding:6px;min-width:200px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--card);color:var(--text);box-shadow:var(--shadow)}
+.navmenu:popover-open{display:grid;gap:2px}
+.navmenu a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--text);text-decoration:none;font-weight:600}
+.navmenu a:hover{background:var(--hover)}
+.navmenu a[aria-current="page"]{color:var(--brand)}
+.navmenu .ic{width:1.1em;height:1.1em;color:var(--text-2)}
 .tools{margin-inline-start:auto;display:flex;gap:6px;align-items:center}
 .iconbtn{position:relative;min-width:44px;min-height:44px;border:0;background:none;border-radius:8px;display:grid;place-items:center;cursor:pointer;color:var(--text-2);text-decoration:none}
 .iconbtn:hover{background:var(--hover);color:var(--text)}
@@ -182,6 +192,13 @@ h1{font-size:clamp(26px,4vw,34px);font-weight:800;line-height:1.2;text-wrap:bala
 .hello .lead{min-height:3.4em;min-height:2lh;margin-bottom:0}
 .hello h1 small{display:block;font-size:15px;font-weight:600;color:var(--text-2);margin-bottom:2px}
 @media (max-width:640px){.hello{grid-template-columns:minmax(0,1fr)}.hello .btn{width:100%}}
+/* A phone: the greeting and a small Customise icon on one line; the how-to line only while customising. */
+@media (max-width:640px){
+  .hello:has(.hs-custom){grid-template-columns:minmax(0,1fr) auto;margin-bottom:14px}
+  .hello .lead.quiet{display:none}
+  .hello .hs-custom{width:44px;height:44px;padding:0;justify-content:center}
+  .hello .hs-custom .bl{display:none}
+}
 .askbar{display:flex;gap:10px;align-items:center;padding:10px 10px 10px 16px;border:1.5px solid var(--line);border-radius:var(--r-lg);background:var(--card);box-shadow:var(--shadow-sm);margin-bottom:24px;transition:border-color .15s,box-shadow .15s}
 [dir="rtl"] .askbar{padding:10px 16px 10px 10px}
 .askbar:focus-within{border-color:var(--brand);box-shadow:0 0 0 4px rgba(190,31,36,.12)}

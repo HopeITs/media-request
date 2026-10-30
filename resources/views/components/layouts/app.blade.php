@@ -42,13 +42,36 @@
                 <span class="app">{{ __('media.app') }}</span>
             </a>
 
+            {{-- The everyday pages in the bar; the occasional ones (log, teaching, people) under "More". --}}
+            @php
+                $occasional = ['media-requests.log', 'media-requests.assistant', 'people.index'];
+                $navMore = collect($nav)->filter(fn ($n) => in_array($n[0], $occasional, true));
+            @endphp
             <nav class="nav" aria-label="{{ __('media.app') }}">
                 @foreach ($nav as [$route, $label, $icon, , $active])
+                    @continue(in_array($route, $occasional, true))
                     <a href="{{ route($route) }}" wire:navigate @if (request()->routeIs(...$active)) aria-current="page" @endif>
                         <x-ic :n="$icon" />{{ __('media.'.$label) }}
                     </a>
                 @endforeach
+                @if ($navMore->isNotEmpty())
+                    <button type="button" class="navmore" popovertarget="nav-more" @if ($navMore->contains(fn ($n) => request()->routeIs(...$n[4]))) aria-current="page" @endif
+                            x-data x-on:click="const r = $el.getBoundingClientRect(), m = document.getElementById('nav-more'); m.style.top = (r.bottom + 4) + 'px';
+                                requestAnimationFrame(() => { const w = m.offsetWidth, rtl = document.dir === 'rtl'; m.style.left = Math.max(8, Math.min(innerWidth - w - 8, rtl ? r.right - w : r.left)) + 'px'; })">
+                        <x-ic n="more" />{{ __('media.nav.more') }}
+                    </button>
+                @endif
             </nav>
+            @if ($navMore->isNotEmpty())
+                {{-- A popover (the top layer), so the bar's scrolling never cuts it off. --}}
+                <div id="nav-more" class="navmenu" popover>
+                    @foreach ($navMore as [$route, $label, $icon, , $active])
+                        <a href="{{ route($route) }}" wire:navigate x-data x-on:click="document.getElementById('nav-more').hidePopover()" @if (request()->routeIs(...$active)) aria-current="page" @endif>
+                            <x-ic :n="$icon" />{{ __('media.'.$label) }}
+                        </a>
+                    @endforeach
+                </div>
+            @endif
 
             <div class="tools">
                 @if ($user->hasActivePermission('media-requests.create'))

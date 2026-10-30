@@ -161,9 +161,8 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
          *     a phone's home screen, and CSS "dense");
          *  2. a card with empty cells beside it grows into them, then into empty
          *     cells below it, never past its own maximum.
-         * Two orders are tried: the person's own, and the same cards with the
-         * shortcuts dropped into the gaps between them afterwards. Whichever
-         * leaves fewer empty cells wins (the person's order on a tie).
+         * Always in the person's own order; a shortcut never jumps back up into a
+         * gap, so the shortcuts stay together where they were put.
          * Only what is shown changes; the saved sizes stay as the person set them.
          */
         // A phone (4 columns) keeps the screen light: no slideshow, no New request shortcut (the
@@ -180,10 +179,9 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
                 .map((i) => (empty(i) ? { ...i, size: Math.min(4, this.cols) + 'x1' } : (this.phone() && PHONE_SIZE[i.key] ? { ...i, size: PHONE_SIZE[i.key] } : i)));
             const full = visible.filter((i) => ! empty(i)), closed = visible.filter(empty);
             const flat = new Set(closed.map((i) => i.key));   // they stay one line: never grown taller
-            const isApp = (i) => this.iconish(i.key, i.size);
-            const own = this.packOrder([...full, ...closed], flat);
-            const gaps = this.packOrder([...full.filter((i) => ! isApp(i)), ...full.filter(isApp), ...closed], flat);
-            return gaps.holes < own.holes ? gaps.out : own.out;
+            // Always the person's own order: moving the shortcuts into gaps between the cards
+            // scattered them over the screen, so none could be found where it was put.
+            return this.packOrder([...full, ...closed], flat).out;
         },
         packOrder(list, flat = new Set()) {
             const cols = this.cols;
@@ -213,14 +211,16 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
             });
 
             let floor = null;   // the closed cards start below everything else, not in a gap above
+            let row = 0;        // a shortcut goes on from where the tile before it went, never back up into a gap
             for (const it of list) {
                 let [w, h] = parse(it.size);
                 w = Math.min(fill[it.key] || w, cols);
                 if (flat.has(it.key) && floor === null) floor = used.length;
-                let y = flat.has(it.key) ? floor : 0, x = 0;
+                let y = flat.has(it.key) ? floor : (icons.has(it.key) ? row : 0), x = 0;
                 for (;; y++) { x = 0; while (x + w <= cols && ! free(x, y, w, h)) x++; if (x + w <= cols) break; }
                 take(x, y, w, h);
                 out[it.key] = { x, y, w, h };
+                row = y;
             }
 
             const rows = used.length;

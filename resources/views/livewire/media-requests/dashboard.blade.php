@@ -37,11 +37,11 @@
     <section class="hello">
         <div>
             <h1><small>{{ __('media.home.hi', ['name' => $first]) }}</small>{{ $waiting->count() ? trans_choice('media.home.waiting', $waiting->count(), ['n' => $waiting->count()]) : ($onTeam ? __('media.home.clear') : __('media.home.help')) }}</h1>
-            <p class="lead" x-text="editing ? @js(__('media.dash.editLead')) : @js(__('media.dash.lead'))">{{ __('media.dash.lead') }}</p>
+            <p class="lead" :class="{ quiet: ! editing }" x-text="editing ? @js(__('media.dash.editLead')) : @js(__('media.dash.lead'))">{{ __('media.dash.lead') }}</p>
         </div>
         <div class="btnline">
             <template x-if="! editing">
-                <button type="button" class="btn btn-o" x-on:click="startEdit()"><x-ic n="layers" />{{ __('media.dash.customise') }}</button>
+                <button type="button" class="btn btn-o hs-custom" x-on:click="startEdit()" aria-label="{{ __('media.dash.customise') }}" title="{{ __('media.dash.customise') }}"><x-ic n="layers" /><span class="bl">{{ __('media.dash.customise') }}</span></button>
             </template>
             <template x-if="editing">
                 <span class="btnline">

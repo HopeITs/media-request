@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Route;
  * A size is "CxR": columns × rows of grid cells (12 columns on a wide screen,
  * 8 on a computer, 4 on a phone; a tile wider than the grid takes its full width). Each widget may be any size between its own minimum and
  * maximum, so the calendar never gets too small to read; app shortcuts are
- * 1x1 up to 3x3 (a bigger icon). The person drags a tile's corner to change it cell by cell.
+ * 1x1 up to 4x4 (bigger, a card with its data). The person drags a tile's corner to change it cell by cell.
  *
  * A layout is an ordered list of [key, size, pinned, hidden]. Whatever is
  * stored is cleaned against this catalogue every time it is read, so a card
@@ -23,52 +23,68 @@ class DashboardLayout
 {
     public const COLUMNS = 8;
 
-    /** Widgets: key => [icon, min [cols, rows], max [cols, rows], default [cols, rows], shown by default] */
+    /** Widgets: key => [icon, min [cols, rows], max [cols, rows], default [cols, rows]] */
     private const WIDGETS = [
-        'late' => ['clock', [3, 1], [12, 3], [12, 1], true],      // requests past their needed-by date
-        'decide' => ['alert', [3, 2], [12, 6], [4, 3], true],     // approvals, checks and answers waiting on you
-        'ask' => ['spark', [3, 1], [12, 3], [3, 1], true],
-        'flow' => ['layers', [4, 3], [12, 6], [8, 3], true],   // where every request is, stage by stage (3 rows: icons, counts and names)
-        'clock' => ['clock', [2, 1], [12, 6], [2, 2], true],
-        'waiting' => ['arrow', [2, 2], [12, 8], [4, 6], true],
-        'calendar' => ['cal', [3, 3], [12, 8], [4, 4], true],
-        'notes' => ['edit', [2, 1], [12, 8], [4, 2], true],
-        'team' => ['users', [2, 2], [12, 8], [4, 2], true],
-        'pack' => ['box', [2, 1], [12, 4], [2, 2], true],
-        'proof' => ['check', [3, 3], [12, 8], [4, 4], true],   // the proofreader, for everyone
-        'showcase' => ['image', [3, 2], [12, 8], [4, 3], true],   // a slideshow of the latest designs delivered
-        // Shown by default only to people who just ask for work (they have no other pages).
-        'mine' => ['inbox', [3, 2], [12, 8], [4, 4], false],
-        'bell' => ['bell', [3, 2], [12, 8], [4, 2], false],
+        'late' => ['clock', [3, 1], [12, 3], [12, 1]],      // requests past their needed-by date
+        'decide' => ['alert', [3, 2], [12, 6], [4, 3]],     // approvals, checks and answers waiting on you
+        'ask' => ['spark', [3, 1], [12, 3], [3, 1]],
+        'flow' => ['layers', [4, 3], [12, 6], [8, 3]],   // where every request is, stage by stage (3 rows: icons, counts and names)
+        'clock' => ['clock', [2, 1], [12, 6], [2, 2]],
+        'waiting' => ['arrow', [2, 2], [12, 8], [4, 6]],
+        'calendar' => ['cal', [3, 3], [12, 8], [4, 4]],
+        'notes' => ['edit', [2, 1], [12, 8], [4, 2]],
+        'team' => ['users', [2, 2], [12, 8], [4, 2]],
+        'pack' => ['box', [2, 1], [12, 4], [2, 2]],
+        'proof' => ['check', [3, 3], [12, 8], [4, 4]],   // the proofreader, for everyone
+        'showcase' => ['image', [3, 2], [12, 8], [4, 3]],   // a slideshow of the latest designs delivered
+        'mine' => ['inbox', [3, 2], [12, 8], [4, 4]],
+        'bell' => ['bell', [3, 2], [12, 8], [4, 2]],
     ];
 
-    /** App shortcuts: key => [icon, route name, shown by default] */
+    /** App shortcuts: key => [icon, route name] */
     private const APPS = [
-        'app.new' => ['plus', null, true],
-        'app.my' => ['inbox', 'media-requests.index', true],
-        'app.pack' => ['box', 'media-requests.pack', true],
-        'app.generator' => ['wand', null, true],
-        'app.board' => ['board', 'media-requests.board', true],
-        'app.approvals' => ['shield', 'media-requests.approvals', true],
-        'app.drive' => ['layers', 'media-requests.drive', true],
-        'app.stats' => ['chart', 'media-requests.stats', false],
-        'app.log' => ['list', 'media-requests.log', false],
-        'app.assistant' => ['spark', 'media-requests.assistant', false],
-        'app.bell' => ['bell', 'notifications.index', false],
-        'app.people' => ['users', 'people.index', false],
+        'app.new' => ['plus', null],
+        'app.my' => ['inbox', 'media-requests.index'],
+        'app.pack' => ['box', 'media-requests.pack'],
+        'app.generator' => ['wand', null],
+        'app.board' => ['board', 'media-requests.board'],
+        'app.approvals' => ['shield', 'media-requests.approvals'],
+        'app.drive' => ['layers', 'media-requests.drive'],
+        'app.stats' => ['chart', 'media-requests.stats'],
+        'app.log' => ['list', 'media-requests.log'],
+        'app.assistant' => ['spark', 'media-requests.assistant'],
+        'app.bell' => ['bell', 'notifications.index'],
+        'app.people' => ['users', 'people.index'],
+    ];
+
+    /**
+     * What a new screen shows, by what the person does; everything else they may use waits in
+     * "Add a card". Few cards each, and no shortcut to a page the top bar already links to
+     * (HC Generator is another site, so it stays).
+     */
+    private const SHOWN = [
+        // Asks for work only: their requests and what came back, ways to ask, ready files.
+        'requester' => ['decide', 'ask', 'app.new', 'app.generator', 'mine', 'bell', 'pack', 'showcase', 'proof'],
+        // Manages programs: what waits for their approval, and how their requests move.
+        'programs' => ['late', 'decide', 'ask', 'app.new', 'app.generator', 'flow', 'waiting', 'pack', 'showcase'],
+        // On the media team: their work, the team, the days ahead, the tools they use.
+        // (The ask bar too: the team files requests for people who phone or write.)
+        'team' => ['late', 'ask', 'decide', 'waiting', 'app.new', 'app.generator', 'team', 'clock', 'pack', 'calendar', 'proof'],
+        // Runs the team: the whole flow, who has what, what is late or waits on them.
+        'manager' => ['late', 'ask', 'decide', 'flow', 'app.new', 'app.generator', 'clock', 'team', 'waiting', 'calendar'],
     ];
 
     /** Earlier named sizes, read from layouts saved before free sizes. */
     private const LEGACY = ['1' => '1x1', 's' => '2x2', 'm' => '4x2', 'l' => '4x4', 'w' => '8x2', 'bar' => '8x1'];
 
     /**
-     * Default order, chosen to tile the grid: the ask bar with the shortcuts beside it
-     * (on screen the bar stretches over whatever the shortcuts leave); clock, HC_PACK and
-     * waiting; then calendar beside notes and team. Cards grow into any cells left empty.
+     * Default order, chosen to tile the grid: what is late on one line; the ask bar with the
+     * shortcuts beside it (on screen the bar stretches over whatever the shortcuts leave);
+     * then the cards, most needed first. Cards grow into any cells left empty.
      */
     private const ORDER = [
-        'late', 'decide', 'ask', 'app.new', 'app.my', 'app.pack', 'app.drive', 'app.generator', 'app.board', 'app.approvals', 'app.stats', 'app.log', 'app.assistant',
-        'app.bell', 'app.people', 'flow', 'clock', 'pack', 'showcase', 'proof', 'mine', 'bell', 'waiting', 'calendar', 'notes', 'team',
+        'late', 'ask', 'app.new', 'app.generator', 'app.my', 'app.pack', 'app.drive', 'app.board', 'app.approvals', 'app.stats', 'app.log', 'app.assistant',
+        'app.bell', 'app.people', 'decide', 'flow', 'waiting', 'team', 'mine', 'bell', 'clock', 'calendar', 'pack', 'proof', 'showcase', 'notes',
     ];
 
     /** Cards that were fixed bars over the grid until people asked to move and resize them. */
@@ -176,12 +192,25 @@ class DashboardLayout
     /** @return array<int, array{key: string, size: string, pinned: bool, hidden: bool}> */
     public function defaults(User $user): array
     {
+        $shown = self::SHOWN[$this->kind($user)];
+
         return array_map(fn (string $key): array => [
             'key' => $key,
             'size' => $this->defaultSize($key),
             'pinned' => false,
-            'hidden' => ($key === 'flow' && $this->team->isRequesterOnly($user)) || ! ($key === 'bell' || ($key === 'mine' && $this->team->isRequesterOnly($user))) && ! (self::WIDGETS[$key][4] ?? self::APPS[$key][2] ?? true),
+            'hidden' => ! in_array($key, $shown, true),
         ] + $this->look($key, null), $this->available($user));
+    }
+
+    /** Which default screen fits this person: requester, programs, team or manager. */
+    public function kind(User $user): string
+    {
+        return match (true) {
+            $this->team->canActAsMediaManager($user) => 'manager',
+            $this->team->isMember($user->profile) => 'team',
+            $this->team->managedProgramIds($user->profile) !== [] => 'programs',
+            default => 'requester',
+        };
     }
 
     /**
