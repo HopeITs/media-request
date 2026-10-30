@@ -73,6 +73,9 @@ class RequestWizard extends Component
 
     public string $prompt = '';
 
+    /** The brief as copied from the assistant box, to tell it apart from one the person wrote. */
+    public string $briefFromPrompt = '';
+
     /** @var array<int, array<string, mixed>> */
     public array $questions = [];
 
@@ -173,6 +176,12 @@ class RequestWizard extends Component
         }
 
         $result = $assistant->analyze(mb_substr($this->prompt, 0, 1000), $this->programs(), $this->cities());
+
+        // What they wrote goes to the team as the brief (it named the occasion, the people, the date…),
+        // unless they wrote a brief of their own; analysed again, the brief follows the new words.
+        if (trim($this->description) === '' || $this->description === $this->briefFromPrompt) {
+            $this->description = $this->briefFromPrompt = mb_substr(trim($this->prompt), 0, 1000);
+        }
 
         $this->assistantMissed = $result['service'] === null;
         $this->assistantUsed = ! $this->assistantMissed;
@@ -410,7 +419,7 @@ class RequestWizard extends Component
         $this->reset([
             'step', 'editingId', 'presetDate', 'changeEventDate', 'service', 'type', 'answers', 'program_id', 'city_id', 'title',
             'description', 'needed_by', 'rush_reason', 'delivery_channel', 'delivery_contact', 'forEmployeeId',
-            'uploads', 'prompt', 'questions', 'questionAnswers', 'assistantUsed', 'assistantMissed', 'assistantLogId',
+            'uploads', 'prompt', 'briefFromPrompt', 'questions', 'questionAnswers', 'assistantUsed', 'assistantMissed', 'assistantLogId',
         ]);
         $this->resetErrorBag();
     }

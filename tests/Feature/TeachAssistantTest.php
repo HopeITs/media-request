@@ -27,7 +27,7 @@ class TeachAssistantTest extends TestCase
 
     public function test_a_word_it_missed_is_taught_and_understood_from_then_on(): void
     {
-        $text = 'بدي كرت معايدة للعيد لفريق الوادي';
+        $text = 'بدي ستاند معدني للعيد لفريق الوادي';
         $read = fn () => app(MediaAssistant::class)->analyze($text, Program::all(), City::all());
         $this->assertNull($read()['service']);
 
@@ -35,10 +35,10 @@ class TeachAssistantTest extends TestCase
 
         Livewire::actingAs($this->user('maya'))->test(AssistantLog::class)
             ->call('teach', $log->id)->assertSet('phrase', $text)
-            ->set('phrase', 'كرت معايدة')->set('kind', '001.new')->set('format', 'invite')
+            ->set('phrase', 'ستاند معدني')->set('kind', '001.new')->set('format', 'invite')
             ->set('city_id', City::where('slug', 'HMS')->value('id'))
             ->call('saveLesson')->assertHasNoErrors()
-            ->call('setFilter', 'lessons')->assertSee('كرت معايدة');
+            ->call('setFilter', 'lessons')->assertSee('ستاند معدني');
 
         $r = $read();
         $this->assertSame(['001', 'new', 'invite'], [$r['service'], $r['type'], $r['answers']['format'] ?? null]);

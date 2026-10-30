@@ -23,6 +23,8 @@ class MediaAssistant
         ['شهاد|certificat', '001', 'new', ['format' => 'cert']],
         ['بطاق[ةه]?\s*(تعريف|هوي)|\bid\s*card|\bid\b|badge|بادج', '001', 'new', ['format' => 'id']],
         ['دعو[ةه]|دعوات|invitation|invite', '001', 'new', ['format' => 'invite']],
+        // Greeting and other cards ("كروت معايدة لطلاب المدارس"): a new design.
+        ['معايد|تهنئ|greeting|christmas\s*cards?|كروت|كرت\b|بطاقات', '001', 'new', ['format' => 'other']],
         ['رول\s*[أا]ب|roll-?up|بانر|banner', '001', 'new', ['format' => 'rollup']],
         ['بروشور|brochure|فلاير|flyer|كتي[ّ]?ب|booklet', '001', 'new', ['format' => 'brochure']],
         ['بوستر|poster|ملصق', '001', 'new', ['format' => 'poster']],
@@ -30,9 +32,26 @@ class MediaAssistant
         ['ستوري|story|بوست|\bpost\b|سوشال|social|منشور|كاروسيل|carousel', '001', 'new', ['format' => 'social']],
         ['استمار[ةه]|استبيان|form\b|questionnaire', '001', 'new', ['format' => 'form']],
         ['مونتاج|montage|edit\s+(the\s+)?(video|footage)', '003', 'export', []],
-        ['فيديو|video|ريل|reel', '003', 'shoot', []],
+        // Signs are made outside ("تصميم لافتة للمعرض").
+        ['لافت[ةه]|لافتات|يافط[ةه]|signage', '001', 'production', ['kind' => 'signage']],
+        // "ريل" as a word only: "ابريل" (April) is not a reel.
+        ['فيديو|video|(?<!\p{L})(ال)?ريل(?!\p{L})|reel', '003', 'shoot', []],
         ['تخريج|انتقاء|retouch|select\s+(the\s+)?photos', '002', 'export', []],
         ['تصوير|صور|photo', '002', 'shoot', []],
+    ];
+
+    /** Words that name the occasion or the event ("حفلة عيد الميلاد", "يوم المتطوعين", "graduation"). */
+    private const OCCASION = 'عيد|ميلاد|كريسماس|christmas|فصح|easter|رأس\s*السنة|حفل|تخرج|تخريج|افتتاح|مؤتمر|ورش[ةه]|ندو[ةه]|معرض|مخيم|مهرجان|أمسي[ةه]|امسي[ةه]|لقاء|زيار[ةه]|يوم\s+ال\S+|دور[ةه]\s+\S+|event|party|graduation|conference|workshop|camp|festival|exhibition|ceremony';
+
+    /** Month names people write, Levantine, Egyptian and English => month number. */
+    private const MONTHS = [
+        'كانون الثاني' => 1, 'شباط' => 2, 'آذار' => 3, 'اذار' => 3, 'نيسان' => 4, 'أيار' => 5, 'ايار' => 5, 'حزيران' => 6,
+        'تموز' => 7, 'آب' => 8, 'اب' => 8, 'أيلول' => 9, 'ايلول' => 9, 'تشرين الأول' => 10, 'تشرين الاول' => 10,
+        'تشرين الثاني' => 11, 'كانون الأول' => 12, 'كانون الاول' => 12,
+        'يناير' => 1, 'فبراير' => 2, 'مارس' => 3, 'أبريل' => 4, 'ابريل' => 4, 'مايو' => 5, 'يونيو' => 6, 'يوليو' => 7,
+        'أغسطس' => 8, 'اغسطس' => 8, 'سبتمبر' => 9, 'أكتوبر' => 10, 'اكتوبر' => 10, 'نوفمبر' => 11, 'ديسمبر' => 12,
+        'january' => 1, 'february' => 2, 'march' => 3, 'april' => 4, 'may' => 5, 'june' => 6, 'july' => 7, 'august' => 8,
+        'september' => 9, 'october' => 10, 'november' => 11, 'december' => 12,
     ];
 
     /**
@@ -43,7 +62,8 @@ class MediaAssistant
      */
     public function analyze(string $text, Collection $programs, Collection $cities): array
     {
-        $text = trim($text);
+        // Arabic-Indic digits read like Latin ones ("٢٠ كانون الأول" = "20 كانون الأول").
+        $text = strtr(trim($text), ['٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4', '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9']);
         $r = ['service' => null, 'type' => null, 'answers' => [], 'program_id' => null, 'city_id' => null, 'needed_by' => null];
 
         foreach (self::TYPES as [$pattern, $service, $type, $answers]) {
@@ -53,19 +73,30 @@ class MediaAssistant
             }
         }
 
+        // Nothing named, but they ask for a design: a new design of some other kind.
+        if ($r['service'] === null && $this->matches('تصميم|صمم|نصمم|design', $text)) {
+            [$r['service'], $r['type'], $r['answers']] = ['001', 'new', ['format' => 'other']];
+        }
+
+        $print = 'طباع|اطبع|مطبوع|نطبع|print';
+
         if ($r['service'] === '001') {
             $format = $r['answers']['format'] ?? null;
 
-            if ($this->matches('طباع|اطبع|print', $text) && $this->matches('تصميم|صمم|جديد|design|new', $text)) {
-                // Design and print in one request ("صمّم بروشور واطبع 300 نسخة").
+            // Design and print: they ask for a design, or add printing to the thing they ask for
+            // ("بوستر ومطبوع 50 نسخة", "كروت مع طباعة"). "اطبع الشهادات" alone is printing a ready file.
+            $addsPrint = $format !== null && $this->matches('مطبوع|(مع|و)\s*(ال)?طباع|و\s*(ا|ن|ت)طبع|and\s+print|with\s+print|printed', $text);
+            if ($this->matches($print, $text) && ($addsPrint || $this->matches('تصميم|صمم|جديد|design|new', $text))
+                && ! $this->matches('جاهز|عندي\s*(ال)?ملف|ready\s*file|already\s*designed', $text)) {
+                // Design and print in one request ("صمّم بروشور واطبع 300 نسخة", "بوستر ومطبوع 50 نسخة").
                 $r['answers']['alsoPrint'] = 'yes';
                 if ($format === 'poster') {
                     $r['answers']['versions'] = ['print'];   // printing is asked for the print version
                 }
-                if (preg_match('/(\d[\d,]*)\s*(نسخ|نسخة|copies|copy|pcs|قطع)/iu', $text, $m)) {
+                if (preg_match('/(\d[\d,]*)\s*(نسخ|نسخة|copies|copy|pcs|قطع|قطعة|كرت|كروت|بطاق)/iu', $text, $m)) {
                     $r['answers']['printQty'] = (int) str_replace(',', '', $m[1]);
                 }
-            } elseif ($this->matches('طباع|اطبع|print', $text)) {
+            } elseif ($this->matches($print, $text)) {
                 $r['type'] = 'print';
                 $r['answers'] = ['printItem' => [
                     'cert' => 'cert', 'poster' => 'poster', 'brochure' => 'brochure', 'rollup' => 'rollup', 'id' => 'card', 'invite' => 'card',
@@ -132,7 +163,17 @@ class MediaAssistant
         }
 
         $r['needed_by'] = $this->date($text);
+        // A shoot's date is the day of the event.
+        if ($r['needed_by'] && $r['type'] === 'shoot') {
+            $r['answers']['eventDate'] = $r['needed_by'];
+        }
         $r['questions'] = $r['service'] ? $this->questions($r) : [];
+
+        // Nothing is asked that the text already answered: the occasion (their words go to the team as
+        // the brief) or an answer read from it (the event's date).
+        $occasion = $this->matches(self::OCCASION, $text);
+        $r['questions'] = array_values(array_filter($r['questions'], fn (array $q): bool => ! ($occasion && in_array($q['id'], ['occasion', 'topic', 'event'], true))
+            && ! (is_string($q['target']) && str_starts_with($q['target'], 'answers.') && filled($r['answers'][substr($q['target'], 8)] ?? null))));
         $r['pack'] = collect();
 
         return $r;
@@ -202,8 +243,47 @@ class MediaAssistant
             $this->matches('بعد\s*بكر[اة]|day after tomorrow', $text) => today()->addDays(2)->toDateString(),
             $this->matches('بكر[اة]|tomorrow', $text) => today()->addDay()->toDateString(),
             $this->matches('الأسبوع الجاي|الاسبوع الجاي|الجمعة الجاية|next week', $text) => today()->addWeek()->toDateString(),
-            default => null,
+            default => $this->namedDate($text),
         };
+    }
+
+    /**
+     * A day written out: "20 كانون الأول", "20 ديسمبر", "December 20", "20/12" (day first).
+     * Without a year, the next such day from today.
+     */
+    private function namedDate(string $text): ?string
+    {
+        // Longest first, and a whole word, so "اب" (August) never takes "ابريل" (April).
+        $keys = array_keys(self::MONTHS);
+        usort($keys, fn ($a, $b) => mb_strlen($b) <=> mb_strlen($a));
+        $names = '(?:'.implode('|', array_map(fn ($m) => str_replace(' ', '\s+', preg_quote($m, '/')), $keys)).')(?!\p{L})';
+        $day = $month = $year = null;
+
+        if (preg_match('/(?<!\d)(\d{1,2})\s*(?:من\s*)?(?:شهر\s*)?('.$names.')(?:\s+(\d{4}))?/iu', $text, $m)) {
+            [$day, $month, $year] = [(int) $m[1], $this->month($m[2]), isset($m[3]) ? (int) $m[3] : null];
+        } elseif (preg_match('/('.$names.')\s+(\d{1,2})(?!\d)(?:,?\s+(\d{4}))?/iu', $text, $m)) {
+            [$day, $month, $year] = [(int) $m[2], $this->month($m[1]), isset($m[3]) ? (int) $m[3] : null];
+        } elseif (preg_match('/(?<![\d\/.-])(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2,4}))?(?![\d\/.-])/u', $text, $m)) {
+            [$day, $month, $year] = [(int) $m[1], (int) $m[2], isset($m[3]) ? (int) (strlen($m[3]) === 2 ? '20'.$m[3] : $m[3]) : null];
+        }
+
+        if (! $day || ! $month || ! checkdate($month, $day, $year ?? (int) today()->year)) {
+            return null;
+        }
+
+        $date = today()->setDate($year ?? (int) today()->year, $month, $day);
+        if ($year === null && $date->lt(today())) {
+            $date->addYear();
+        }
+
+        return $date->toDateString();
+    }
+
+    private function month(string $name): ?int
+    {
+        $name = mb_strtolower(preg_replace('/\s+/u', ' ', trim($name)));
+
+        return self::MONTHS[$name] ?? null;
     }
 
     private function productionKind(string $text): string
