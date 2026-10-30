@@ -25,8 +25,15 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'last_seen_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /** Used the app in the last few minutes. */
+    public function isOnline(): bool
+    {
+        return $this->last_seen_at !== null && $this->last_seen_at->gt(now()->subMinutes((int) config('media-requests.presence.online_minutes', 5)));
     }
 
     public function profile(): BelongsTo
@@ -47,6 +54,12 @@ class User extends Authenticatable
     public function hasActivePermission(string $permission): bool
     {
         if ($this->activeRoleIs(...config('access-control.administrator_roles', []))) {
+            return true;
+        }
+
+        // Standalone only: the media manager also looks after the accounts (People), within the limits
+        // People\Index sets: no administrator roles, no administrator accounts.
+        if ($permission === 'people.manage' && $this->profile?->is_active && $this->profile->media_role === 'manager') {
             return true;
         }
 

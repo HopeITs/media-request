@@ -83,7 +83,7 @@ img{max-width:100%}
 .top .in{display:flex;flex-wrap:wrap;align-items:center;gap:4px 20px;min-height:64px}
 .brand{display:flex;align-items:center;gap:12px;text-decoration:none;padding-block:8px}
 .brand img{height:34px;width:auto;display:block}
-.brand .app{font-weight:800;font-size:18px;padding-inline-start:12px;border-inline-start:1px solid var(--line)}
+.brand .app{font-weight:800;font-size:18px;padding-inline-start:12px;border-inline-start:1px solid var(--line);display:grid;line-height:1.1}
 .nav{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
 .nav::-webkit-scrollbar{display:none}
 .nav a{min-height:64px;padding:0 12px;border-bottom:3px solid transparent;font-weight:600;color:var(--text-2);text-decoration:none;display:flex;align-items:center;gap:8px;white-space:nowrap}
@@ -1311,3 +1311,14 @@ a.ach:hover .go{color:var(--text)}
 .pm-replace{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 12px;margin:0 0 6px;border-radius:var(--r);background:var(--soft)}
 .pm-replace label{font-size:13px;font-weight:600;color:var(--text-2)}
 .pm-replace .inp{flex:1;min-width:200px}
+/* People: who uses the app. */
+.presbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 12px}
+.pres{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2);white-space:nowrap}
+.pres .dot{width:8px;height:8px;border-radius:50%;background:var(--line);flex:none}
+.pres.on{color:var(--text);font-weight:600}
+.pres.on .dot{background:#2E9E5B;box-shadow:0 0 0 3px color-mix(in srgb,#2E9E5B 22%,transparent)}
+.pres.never{color:var(--text-3)}
+.pres.never .dot{background:none;border:1.5px dashed var(--line)}
+/* "Beta" under the app's name: in the top bar and on the sign-in page. */
+.beta{display:block;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--brand);line-height:1.2;margin-top:2px}
+h1 .beta{font-size:12px;margin-top:4px}

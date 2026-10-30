@@ -91,7 +91,7 @@
                 <div class="field">
                     <label for="p-role">{{ __('media.people.role') }}</label>
                     <select id="p-role" class="inp" wire:model="role">
-                        @foreach (['employee', 'manager', 'general-manager', 'super-admin'] as $r)<option value="{{ $r }}">{{ __('media.people.roles.'.$r) }}</option>@endforeach
+                        @foreach ($roles as $r)<option value="{{ $r }}">{{ __('media.people.roles.'.$r) }}</option>@endforeach
                     </select>
                 </div>
                 <div class="field">
@@ -142,6 +142,16 @@
         </form>
     @endif
 
+    {{-- Who uses the app: online now, used it this week, never signed in. --}}
+    <div class="presbar">
+        <p class="sub" style="margin:0">{{ __('media.people.usage', ['online' => $counts['online'], 'week' => $counts['week'], 'never' => $counts['never']]) }}</p>
+        <div class="seg" role="tablist" aria-label="{{ __('media.people.activity') }}">
+            @foreach (['all', 'online', 'never'] as $s)
+                <button type="button" role="tab" wire:click="$set('show', '{{ $s }}')" @class(['on' => $show === $s]) aria-selected="{{ $show === $s ? 'true' : 'false' }}">{{ __('media.people.show.'.$s) }}</button>
+            @endforeach
+        </div>
+    </div>
+
     <div class="tablewrap">
         <table class="tbl">
             <thead>
@@ -150,6 +160,7 @@
                     <th scope="col">{{ __('media.people.role') }}</th>
                     <th scope="col">{{ __('media.people.mediaRole') }}</th>
                     <th scope="col">{{ __('media.people.manages') }}</th>
+                    <th scope="col">{{ __('media.people.activity') }}</th>
                     <th scope="col"><span class="vh">{{ __('media.people.actions') }}</span></th>
                 </tr>
             </thead>
@@ -166,10 +177,25 @@
                             @else — @endif
                         </td>
                         <td data-l="{{ __('media.people.manages') }}" class="ltr" style="text-align:start">{{ $e->managedPrograms->map(fn ($p) => $p->code.' '.$p->slug)->implode(', ') ?: '—' }}</td>
+                        <td data-l="{{ __('media.people.activity') }}">
+                            @if (! $e->account)
+                                —
+                            @elseif ($e->account->isOnline())
+                                <span class="pres on"><i class="dot" aria-hidden="true"></i>{{ __('media.dash.pres.online') }}</span>
+                            @elseif ($e->account->last_seen_at)
+                                <span class="pres"><i class="dot" aria-hidden="true"></i>{{ __('media.dash.pres.seen', ['when' => $e->account->last_seen_at->diffForHumans()]) }}</span>
+                            @else
+                                <span class="pres never"><i class="dot" aria-hidden="true"></i>{{ __('media.people.never') }}</span>
+                            @endif
+                            @if ($asked[$e->id] ?? 0)<small class="sub" style="display:block">{{ trans_choice('media.people.asked', $asked[$e->id], ['n' => $asked[$e->id]]) }}</small>@endif
+                        </td>
                         <td style="white-space:nowrap;text-align:end">
-                            <button type="button" class="btn-q" wire:click="edit({{ $e->id }})"><x-ic n="edit" />{{ __('media.people.edit') }}</button>
-                            @if ($e->id !== auth()->user()->employee_id)
-                                <button type="button" class="btn-q" wire:click="toggleActive({{ $e->id }})">{{ $e->is_active ? __('media.people.disable') : __('media.people.enable') }}</button>
+                            {{-- An administrator's account is changed by an administrator only. --}}
+                            @if ($canChange($e))
+                                <button type="button" class="btn-q" wire:click="edit({{ $e->id }})"><x-ic n="edit" />{{ __('media.people.edit') }}</button>
+                                @if ($e->id !== auth()->user()->employee_id)
+                                    <button type="button" class="btn-q" wire:click="toggleActive({{ $e->id }})">{{ $e->is_active ? __('media.people.disable') : __('media.people.enable') }}</button>
+                                @endif
                             @endif
                         </td>
                     </tr>

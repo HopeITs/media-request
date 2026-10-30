@@ -85,11 +85,7 @@ class DashboardTest extends TestCase
         $maya->profile->update(['work_hours' => '10:00-14:30']);
         $this->assertSame([600, 870], $maya->fresh()->profile->workMinutes());     // a part-timer's own hours
 
-        config(['session.driver' => 'database']);
-        \Illuminate\Support\Facades\DB::table('sessions')->insert([
-            'id' => 'test-session', 'user_id' => $maya->id, 'ip_address' => '127.0.0.1', 'user_agent' => 'test',
-            'payload' => '', 'last_activity' => now()->getTimestamp(),
-        ]);
+        \Illuminate\Support\Facades\DB::table('users')->where('id', $maya->id)->update(['last_seen_at' => now()->subMinute()]);
 
         Livewire::actingAs($this->user('rami'))->test(\App\Livewire\MediaRequests\TeamPresence::class)
             ->assertSeeHtml('class="on"')

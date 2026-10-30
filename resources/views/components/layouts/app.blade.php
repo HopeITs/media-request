@@ -39,7 +39,7 @@
         <div @class(['in', 'wide' => $wide])>
             <a href="{{ route('media-requests.home') }}" class="brand" wire:navigate>
                 <img src="{{ asset('img/hope-center.svg') }}" alt="{{ $locale === 'ar' ? 'مركز الرجاء المسيحي' : 'Christian Hope Center' }}" width="100" height="34">
-                <span class="app">{{ __('media.app') }}</span>
+                <span class="app">{{ __('media.app') }}<small class="beta">Beta</small></span>
             </a>
 
             {{-- The everyday pages in the bar; the occasional ones (log, teaching, people) under "More". --}}

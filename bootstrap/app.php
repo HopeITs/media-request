@@ -13,7 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->web(append: [SetLocale::class]);
+        $middleware->web(append: [SetLocale::class, \App\Http\Middleware\TrackLastSeen::class]);
         $middleware->alias([
             'active_permission' => ActivePermissionMiddleware::class,
             'locale' => SetLocale::class,

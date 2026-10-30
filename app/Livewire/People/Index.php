@@ -15,12 +15,23 @@ use Livewire\Component;
  * Standalone only: who uses the app, their role, whether they are on the
  * Media team, and which programs they manage. Inside the HR app all of this
  * comes from the HR data instead, so this page is not carried over.
+ *
+ * The media manager looks after the accounts here too, short of the
+ * administrators': they give the employee and manager roles only, and never
+ * touch an administrator's account. It also shows who is online and who uses
+ * the app (users.last_seen_at).
  */
 class Index extends Component
 {
     use AuthorizesActivePermissions;
 
+    /** Roles only an administrator gives, on accounts only an administrator changes. */
+    private const ADMIN_ROLES = ['general-manager', 'super-admin'];
+
     public bool $editing = false;
+
+    /** all | online | never: the list, or who is online now, or who has never signed in. */
+    public string $show = 'all';
 
     public ?int $employeeId = null;
 
@@ -89,6 +100,7 @@ class Index extends Component
         $this->authorizeActivePermission('people.manage');
 
         $e = Employee::with(['account', 'managedPrograms'])->findOrFail($id);
+        $this->guard($e);
         $this->fill([
             'employeeId' => $e->id,
             'first_name_en' => (string) $e->first_name_en,
@@ -112,6 +124,9 @@ class Index extends Component
     {
         $this->authorizeActivePermission('people.manage');
 
+        if ($this->employeeId) {
+            $this->guard(Employee::findOrFail($this->employeeId));
+        }
         $userId = $this->employeeId ? Employee::find($this->employeeId)?->account?->id : null;
 
         $data = $this->validate([
@@ -121,7 +136,7 @@ class Index extends Component
             'last_name_ar' => ['nullable', 'string', 'max:60'],
             'email' => ['required', 'email', 'max:190', Rule::unique('users', 'email')->ignore($userId)],
             'password' => [$userId ? 'nullable' : 'required', 'string', 'min:8'],
-            'role' => ['required', Rule::in(['employee', 'manager', 'general-manager', 'super-admin'])],
+            'role' => ['required', Rule::in($this->roles())],
             'media_role' => ['nullable', Rule::in(['member', 'manager'])],
             'position_title' => ['nullable', 'string', 'max:255'],
             'work_hours' => ['nullable', 'regex:/^\d{1,2}(:\d{2})?-\d{1,2}(:\d{2})?$/'],
@@ -224,16 +239,52 @@ class Index extends Component
 
         $e = Employee::findOrFail($id);
         abort_if($e->id === auth()->user()->employee_id, 422);
+        $this->guard($e);
         $e->update(['is_active' => ! $e->is_active]);
     }
 
     public function render()
     {
+        $people = Employee::with(['account', 'managedPrograms', 'city'])->orderBy('first_name_en')->get();
+        // Requests each person asked for in the last 30 days: who uses the app, not only who signs in.
+        $asked = \App\Models\MediaRequest::query()->whereNull('imported_from')->where('created_at', '>=', now()->subDays(30))
+            ->groupBy('requester_id')->selectRaw('requester_id, count(*) as n')->pluck('n', 'requester_id');
+        $withAccount = $people->filter(fn ($e) => $e->account);
+
         return view('livewire.people.index', [
-            'people' => Employee::with(['account', 'managedPrograms', 'city'])->orderBy('first_name_en')->get(),
+            'people' => match ($this->show) {
+                'online' => $people->filter(fn ($e) => $e->account?->isOnline()),
+                'never' => $people->filter(fn ($e) => $e->account && $e->account->last_seen_at === null),
+                default => $people,
+            },
+            'counts' => [
+                'online' => $withAccount->filter(fn ($e) => $e->account->isOnline())->count(),
+                'week' => $withAccount->filter(fn ($e) => $e->account->last_seen_at?->gt(now()->subWeek()))->count(),
+                'never' => $withAccount->filter(fn ($e) => $e->account->last_seen_at === null)->count(),
+            ],
+            'asked' => $asked,
+            'roles' => $this->roles(),
+            'canChange' => fn (Employee $e): bool => ! $this->limited() || ! in_array($e->account?->role, self::ADMIN_ROLES, true),
             'allPrograms' => Program::orderBy('code')->get(),
             'cities' => City::orderBy('code')->get(),
         ]);
+    }
+
+    /** The roles this person may give. */
+    private function roles(): array
+    {
+        return $this->limited() ? ['employee', 'manager'] : ['employee', 'manager', 'general-manager', 'super-admin'];
+    }
+
+    /** Not an administrator: the media manager, who looks after the accounts short of the administrators'. */
+    private function limited(): bool
+    {
+        return ! auth()->user()->activeRoleIs(...config('access-control.administrator_roles', []));
+    }
+
+    private function guard(Employee $e): void
+    {
+        abort_if($this->limited() && in_array($e->account?->role, self::ADMIN_ROLES, true), 403);
     }
 
     private function resetForm(): void

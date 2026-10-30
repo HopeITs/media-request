@@ -9,7 +9,7 @@
     </div>
 
     <div>
-        <h1>{{ __('media.app') }}</h1>
+        <h1>{{ __('media.app') }}<small class="beta">Beta</small></h1>
         <p class="lead">{{ __('media.login.lead') }}</p>
     </div>
 
