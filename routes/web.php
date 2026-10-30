@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\MediaRequestFileController;
+use App\Livewire\Account\Security;
 use App\Livewire\Auth\Login;
 use App\Livewire\MediaRequests;
 use App\Livewire\Notifications\Index as Notifications;
@@ -29,6 +30,7 @@ Route::middleware('auth')->group(function () {
         return redirect('/login');
     })->name('logout');
 
+    Route::get('/account/security', Security::class)->name('account.security');
     Route::get('/notifications', Notifications::class)->name('notifications.index');
     Route::get('/people', People::class)->middleware('active_permission:people.manage')->name('people.index');
 

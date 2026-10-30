@@ -100,6 +100,7 @@
                     </button>
                     <div class="menu" x-show="open" x-cloak x-transition.opacity.duration.150ms>
                         <div class="who"><b>{{ $name }}</b><small class="ltr">{{ $user->email }}</small></div>
+                        <a href="{{ route('account.security') }}" wire:navigate><x-ic n="shield" />{{ __('media.passkey.title') }}</a>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button type="submit"><x-ic n="logout" class="flip" />{{ __('media.logout') }}</button>
@@ -173,6 +174,7 @@
                             <x-ic n="moon" x-show="! dark" /><x-ic n="sun" x-show="dark" x-cloak />{{ __('media.theme.dark') }}
                         </button>
                         <a href="{{ route('lang', $locale === 'ar' ? 'en' : 'ar') }}" lang="{{ $locale === 'ar' ? 'en' : 'ar' }}"><x-ic n="globe" />{{ $locale === 'ar' ? 'English' : 'العربية' }}</a>
+                        <a href="{{ route('account.security') }}" wire:navigate><x-ic n="shield" />{{ __('media.passkey.title') }}</a>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button type="submit"><x-ic n="logout" class="flip" />{{ __('media.logout') }}</button>

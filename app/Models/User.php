@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Passkeys\Contracts\PasskeyUser;
+use Laravel\Passkeys\PasskeyAuthenticatable;
 
 /**
  * Standalone account. It answers the same questions the HR app's User does
@@ -13,9 +15,9 @@ use Illuminate\Notifications\Notifiable;
  * Here a user has one role, stored on the row, and the permissions per role
  * come from config('access-control.role_baselines').
  */
-class User extends Authenticatable
+class User extends Authenticatable implements PasskeyUser
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, PasskeyAuthenticatable;
 
     protected $fillable = ['name', 'email', 'password', 'employee_id', 'role'];
 
@@ -34,6 +36,12 @@ class User extends Authenticatable
     public function isOnline(): bool
     {
         return $this->last_seen_at !== null && $this->last_seen_at->gt(now()->subMinutes((int) config('media-requests.presence.online_minutes', 5)));
+    }
+
+    /** A stopped account signs in no more, by password or by passkey. */
+    public function maySignIn(): bool
+    {
+        return $this->profile?->is_active !== false;
     }
 
     public function profile(): BelongsTo

@@ -30,6 +30,8 @@ class AppServiceProvider extends ServiceProvider
         \Illuminate\Support\Facades\Event::listen(\Illuminate\Auth\Events\Login::class,
             fn ($e) => $e->user instanceof \App\Models\User ? app(\App\Support\MediaRequests\TeamRoster::class)->welcome($e->user) : null);
 
+        \Laravel\Passkeys\Passkeys::authorizeLoginUsing(fn ($request, $user) => $user->maySignIn());
+
         Blade::if('activepermission', function (string $permission) {
             return auth()->user()?->hasActivePermission($permission) ?? false;
         });

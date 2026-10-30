@@ -39,7 +39,7 @@ class Login extends Component
             throw ValidationException::withMessages(['email' => __('auth.throttle', ['seconds' => RateLimiter::availableIn($key)])]);
         }
 
-        if (! Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
+        if (! Auth::attemptWhen(['email' => $this->email, 'password' => $this->password], fn (User $user) => $user->maySignIn(), $this->remember)) {
             RateLimiter::hit($key);
             $this->reset('password');   // never sent back to the page
 

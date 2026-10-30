@@ -10,6 +10,7 @@
         "bensampo/laravel-enum": "^6.12",
         "jantinnerezo/livewire-alert": "^4.0",
         "laravel/framework": "^12.0",
+        "laravel/passkeys": "^0.2.1",
         "laravel/tinker": "^2.10.1",
         "livewire/livewire": "^3.6",
         "spatie/laravel-activitylog": "^4.10",

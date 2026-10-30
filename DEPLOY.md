@@ -221,4 +221,8 @@ After changing a config file on the server, run `php artisan optimize` again.
 - `.tools/` (portable PHP for the Windows preview) and `.env` are not in the repository.
 - Sign-in: the address shown on the sign-in page and the HSTS header come from `APP_URL`, so it must be the real
   `https://` address. HSTS tells browsers to refuse plain http for a year.
+- Passkeys: people add theirs from the menu under their name, then sign in with the device's fingerprint, face or
+  PIN. They need https and work only on the exact host in `APP_URL`: moving to another address means everyone adds
+  them again. They are tied to `APP_KEY`, so keep it, or set `PASSKEYS_USER_HANDLE_SECRET` before rotating it.
+  Passwords keep working next to them.
 - Tests: `php artisan test` (needs the dev dependencies: `composer install` without `--no-dev`).

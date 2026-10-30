@@ -98,6 +98,8 @@ return [
         // The files page: moving between folders only; every request shown is checked with visibleTo.
         'media-requests.drive' => ['open', 'up'],
         'auth.login' => ['login'],
+        // Checks the caller's own password; the passkey routes do the rest, each for the caller only.
+        'account.security' => ['confirmPassword'],
         'notifications.index' => ['markAllRead'],
         'people.index' => ['create', 'cancel', 'forgetPassword'],
     ],

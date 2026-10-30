@@ -19,3 +19,4 @@
 {{-- Home screen: drag library (SortableJS 1.15.2, served locally) and the home-screen logic. Not deferred, so both exist before Alpine starts. --}}
 <script src="{{ asset('js/sortable.min.js') }}"></script>
 <script src="{{ asset('js/home-screen.js') }}?v={{ filemtime(public_path('js/home-screen.js')) }}"></script>
+<script src="{{ asset('js/passkeys.js') }}?v={{ filemtime(public_path('js/passkeys.js')) }}"></script>
