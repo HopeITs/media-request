@@ -114,6 +114,8 @@
         {{ $slot }}
     </main>
 
+    <footer class="sitefoot" dir="ltr">BY Communication Team | CHC 2026</footer>
+
     {{--
         On a phone the app looks like an app: a bar at the bottom with Home, the main page for the
         person, a raised + in the middle (new request, from any page), the notifications, and More
