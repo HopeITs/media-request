@@ -97,6 +97,23 @@ class DashboardTest extends TestCase
             ->assertSee(__('media.dash.pres.count', ['n' => 1, 'all' => app(\App\Support\MediaRequests\MediaTeam::class)->members()->count()]));
     }
 
+    public function test_what_waits_on_a_super_admin_is_counted_on_the_home_screen(): void
+    {
+        // Waiting for the program manager of DISC (Lina). The super-admin may decide it too.
+        app(\App\Services\MediaRequestWorkflow::class)->submit($this->user('rami'), [
+            'service' => '001', 'type' => 'new', 'title' => 'Volunteers',
+            'program_id' => \App\Models\Program::where('slug', 'DISC')->value('id'),
+            'city_id' => \App\Models\City::where('slug', 'ALP')->value('id'),
+            'needed_by' => today()->addWeekdays(8)->toDateString(),
+            'answers' => ['format' => 'cert', 'certNames' => 'blank', 'langs' => ['ar'], 'alsoPrint' => 'no'],
+            'description' => 'Certificates for the volunteer training.',
+        ]);
+
+        $waiting = \App\Models\MediaRequest::query()->open()->relevantTo($this->user('admin'))
+            ->get()->filter(fn ($r) => \Illuminate\Support\Facades\Gate::forUser($this->user('admin'))->allows('isOwner', $r));
+        $this->assertNotEmpty($waiting);   // the greeting no longer says "nothing waits for you" beside an approval
+    }
+
     public function test_a_size_set_by_hand_is_kept_as_set(): void
     {
         $rami = $this->user('rami');

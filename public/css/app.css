@@ -492,10 +492,12 @@ select.inp{cursor:pointer}
 .kfoot .ic{width:1em;height:1em}
 .kref{justify-content:space-between}
 .kref>span{display:inline-flex;align-items:center;gap:6px}
-/* archive-style names: wrap only after "_" (see components/media/name) */
-.mrname{overflow-wrap:break-word;word-break:normal;unicode-bidi:isolate}
-/* The name itself reads left to right, but on an Arabic page it lines up on the right like everything else. */
-[dir="rtl"] .mrname{text-align:right}
+/* A request's name: its title, and the archive code small under it (see components/media/name). */
+.mrname{display:inline-flex;flex-direction:column;gap:2px;overflow-wrap:break-word;word-break:normal;min-width:0;max-width:100%}
+.mrname .mrt{unicode-bidi:isolate}
+.mrname .mrc{font-size:max(11px,.55em);font-weight:500;color:var(--text-3);letter-spacing:.01em;unicode-bidi:isolate;line-height:1.3}
+/* The code reads left to right, but on an Arabic page it lines up on the right like everything else. */
+[dir="rtl"] .mrname,[dir="rtl"] .mrname .mrc{text-align:right}
 .colempty{color:var(--text-2);font-size:14px;padding:6px 4px}
 
 /* ---------- lists, tables ---------- */

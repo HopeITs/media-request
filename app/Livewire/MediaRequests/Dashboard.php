@@ -228,7 +228,7 @@ class Dashboard extends Component
                     'id' => $r->id,
                     'canOpen' => Gate::forUser($user)->allows('view', $r),
                     'src' => route('media-requests.showcase', $pic),
-                    'name' => $r->displayName(),
+                    'name' => $r->shortName(),
                     'program' => $r->program ? trim($r->program->code.' '.$r->program->slug) : '',
                     'by' => $r->assignee?->nameForLocale($locale),
                     'on' => $r->delivered_at?->format('d-m-Y'),
@@ -248,7 +248,7 @@ class Dashboard extends Component
     {
         $locale = app()->getLocale();
         $show = fn (MediaRequest $r) => route('media-requests.show', $r);
-        $req = fn (MediaRequest $r, ?string $sub = null) => ['t' => $r->displayName(), 's' => $sub ?? S::label($r->status, $r->type), 'href' => $show($r)];
+        $req = fn (MediaRequest $r, ?string $sub = null) => ['t' => $r->shortName(), 's' => $sub ?? S::label($r->status, $r->type), 'href' => $show($r)];
         $out = [];
 
         foreach ($keys as $key) {
@@ -289,7 +289,7 @@ class Dashboard extends Component
                 })(),
                 'app.log' => ['rows' => \Spatie\Activitylog\Models\Activity::query()->where('log_name', MediaRequest::LOG_NAME)
                     ->with(['causer.profile', 'subject'])->latest()->limit(4)->get()
-                    ->map(fn ($a) => ['t' => __('media.lg.'.$a->description).($a->subject instanceof MediaRequest ? ' · '.$a->subject->displayName() : ''),
+                    ->map(fn ($a) => ['t' => __('media.lg.'.$a->description).($a->subject instanceof MediaRequest ? ' · '.$a->subject->shortName() : ''),
                         's' => trim(($a->causer?->profile?->nameForLocale($locale) ?? '').' · '.$a->created_at->diffForHumans(), ' ·')])->all()],
                 'app.assistant' => (function () {
                     $missed = \App\Models\MediaAssistantLog::query()->where('understood', false)->whereNull('lesson_id');

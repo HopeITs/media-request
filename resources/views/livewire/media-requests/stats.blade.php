@@ -6,6 +6,8 @@
     $delivered = $s['requests']['delivered'];
     // Requests from the old sheet have no delivery date: shares are of the ones whose timing is known.
     $timed = $delivered - ($s['timing']['unknown'] ?? 0);
+    // A share of one or two requests is not a rate: "100% on time" from a single request misled.
+    $enough = $timed >= 5;
     $timingRows = [
         ['early', 'arrow', $s['timing']['early']],
         ['onTime', 'check', $s['timing']['onTime']],
@@ -53,8 +55,10 @@
     <div class="tiles">
         <div class="tile-n"><span class="v num">{{ $s['requests']['created'] }}</span><span class="l">{{ __('media.stats.created') }}</span></div>
         <div class="tile-n"><span class="v num">{{ $delivered }}</span><span class="l">{{ __('media.stats.delivered') }}</span></div>
-        <div class="tile-n"><span class="v num">{{ $timed ? $pct($s['timing']['early'] + $s['timing']['onTime'], $timed).'%' : '—' }}</span><span class="l">{{ __('media.stats.onTimeRate') }}</span></div>
-        <div class="tile-n"><span class="v num">{{ $s['avgDays'] ?? '—' }}</span><span class="l">{{ __('media.stats.avgDays') }}</span></div>
+        <div class="tile-n"><span class="v num">{{ $enough ? $pct($s['timing']['early'] + $s['timing']['onTime'], $timed).'%' : '—' }}</span><span class="l">{{ __('media.stats.onTimeRate') }}</span>
+            <small class="sub">{{ $enough ? trans_choice('media.stats.ofTimed', $timed, ['n' => $timed]) : trans_choice('media.stats.tooFew', $timed, ['n' => $timed]) }}</small></div>
+        <div class="tile-n"><span class="v num">{{ $enough ? ($s['avgDays'] ?? '—') : '—' }}</span><span class="l">{{ __('media.stats.avgDays') }}</span>
+            @unless ($enough)<small class="sub">{{ trans_choice('media.stats.tooFew', $timed, ['n' => $timed]) }}</small>@endunless</div>
         <div class="tile-n"><span class="v num">{{ $s['returned'] }}</span><span class="l">{{ __('media.stats.returned') }}</span></div>
     </div>
 

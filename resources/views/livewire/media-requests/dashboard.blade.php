@@ -328,7 +328,7 @@
                                                          x-on:dblclick="if (! editing) $wire.pickDay('{{ $day['date']->toDateString() }}')" title="{{ __('media.cal.dblclick') }}">
                                                         <span class="cn num">{{ $day['date']->day }}</span>
                                                         @foreach ($day['items']->take(2) as $r)
-                                                            <a {{ $go($r) }} @class(['cc', 'mine' => Gate::allows('isOwner', $r), 'done' => ! $r->isOpen()]) title="{{ $r->displayName() }}"><span class="ltr">{{ $r->title ?: $r->item_code }}</span></a>
+                                                            <a {{ $go($r) }} @class(['cc', 'mine' => Gate::allows('isOwner', $r), 'done' => ! $r->isOpen()]) title="{{ $r->displayName() }}"><span dir="auto">{{ $r->title ?: $r->item_code }}</span></a>
                                                         @endforeach
                                                         @if ($day['items']->count() > 2)<span class="more-n">+{{ $day['items']->count() - 2 }}</span>@endif
                                                     </div>
@@ -355,7 +355,7 @@
                                             @if ($row['employee'] === null)
                                                 <li class="crew-claim">
                                                     <span class="who"><x-ic n="inbox" />{{ __('media.dash.toClaim') }} <b class="num">{{ $row['n'] }}</b></span>
-                                                    @foreach ($row['taken']->take(2) as $r)<a {{ $go($r) }} class="job"><span class="ltr">{{ $r->title ?: $r->item_code }}</span></a>@endforeach
+                                                    @foreach ($row['taken']->take(2) as $r)<a {{ $go($r) }} class="job"><span dir="auto">{{ $r->title ?: $r->item_code }}</span></a>@endforeach
                                                 </li>
                                                 @continue
                                             @endif
@@ -486,7 +486,7 @@
                                                         <img src="{{ $s['src'] }}" alt="{{ $s['name'] }}" loading="{{ $k === 0 ? 'eager' : 'lazy' }}">
                                                     </button>
                                                     <figcaption>
-                                                        <b class="ltr">{{ $s['name'] }}</b>
+                                                        <b dir="auto">{{ $s['name'] }}</b>
                                                         <span class="sub">@if ($s['by']){{ $s['by'] }} · @endif<span class="num">{{ $s['on'] }}</span></span>
                                                     </figcaption>
                                                 </figure>

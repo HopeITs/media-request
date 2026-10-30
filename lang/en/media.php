@@ -1186,6 +1186,8 @@ return [
     'stats.openParts' => ':claim waiting to be taken · :approval waiting for approval',
     'stats.created' => 'requests received',
     'stats.delivered' => 'requests delivered',
+    'stats.ofTimed' => 'of :n request with a known time|of :n requests with a known time',
+    'stats.tooFew' => '{0} No request with a known time yet|{1} Too few to tell: 1 request with a known time|[2,*] Too few to tell: :n requests with a known time',
     'stats.onTimeRate' => 'delivered on time or early',
     'stats.avgDays' => 'average working days to delivery',
     'stats.returned' => 'sent back for changes',

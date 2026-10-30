@@ -317,6 +317,14 @@ class MediaRequest extends Model implements HasMedia
         return app(\App\Support\MediaRequests\MediaNaming::class)->displayName($this);
     }
 
+    /** What people read: the title in their words; the archive name only when there is no title. */
+    public function shortName(): string
+    {
+        $title = trim((string) $this->title);
+
+        return $title === '' ? $this->displayName() : ($this->isPack() ? 'HC_PACK · '.$title : $title);
+    }
+
     // ------------------------------------------------------------------
     // Scopes
     // ------------------------------------------------------------------
@@ -340,6 +348,12 @@ class MediaRequest extends Model implements HasMedia
 
             if ($programIds !== []) {
                 $q->orWhereIn('program_id', $programIds);
+            }
+
+            // A super-admin may decide for every program (MediaRequestPolicy::pm), so what waits on a
+            // program manager is theirs too: otherwise "nothing waits for you" sat beside two approvals.
+            if ($user->myRole() === 'super-admin') {
+                $q->orWhereIn('status', [MediaRequestStatus::ProgramApproval, MediaRequestStatus::RequesterReview]);
             }
 
             if ($team->isMember($user->profile)) {
