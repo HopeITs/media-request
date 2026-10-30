@@ -45,6 +45,10 @@ Route::middleware('auth')->group(function () {
             Route::get('/hc-pack', MediaRequests\Pack::class)->middleware('active_permission:media-requests.create')->name('pack');
             Route::get('/log', MediaRequests\Log::class)->middleware('active_permission:media-requests.view-log')->name('log');
             Route::get('/assistant', MediaRequests\AssistantLog::class)->middleware('active_permission:media-requests.view-log')->name('assistant');
+            // A HC_PACK file kept in the app (added or replaced by the media manager).
+            Route::get('/hc-pack/files/{file}', [MediaRequestFileController::class, 'pack'])
+                ->middleware(['active_permission:media-requests.view-own', 'throttle:60,1'])
+                ->name('pack.file');
             Route::get('/files/{media}', [MediaRequestFileController::class, 'download'])
                 ->middleware(['active_permission:media-requests.view-own', 'throttle:60,1'])
                 ->name('files');

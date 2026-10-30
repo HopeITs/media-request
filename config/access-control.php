@@ -61,7 +61,8 @@ return [
             'comment' => 'media-requests.view-own',
             'attachFiles' => 'media-requests.view-own',
         ],
-        'media-requests.pack' => ['requestFiles' => 'media-requests.create'],
+        // Keeping the pack is the media manager's (HcPackManager checks it too).
+        'media-requests.pack' => ['requestFiles' => 'media-requests.create', 'addFile' => 'media-requests.manage', 'replaceFile' => 'media-requests.manage', 'removeFile' => 'media-requests.manage', 'startReplace' => 'media-requests.manage'],
         'media-requests.pack-quick' => ['requestFiles' => 'media-requests.create'],   // HC_PACK on the home screen
         // team-presence (who is online, on the big clock) has no actions: it only re-renders on its poll.
         'media-requests.log' => ['exportCsv' => 'media-requests.export'],
@@ -80,6 +81,7 @@ return [
         'media-requests.index' => ['setActiveTab', 'refreshList'],
         'media-requests.show' => ['refreshRequest', 'applyProof', 'dropResultUpload'],
         'media-requests.log' => ['resetFilters'],
+        'media-requests.pack' => ['cancelReplace'],   // closes the replace form only
         // A filter on a read-only list; the route needs media-requests.view-log.
         'media-requests.assistant-log' => ['setFilter', 'cancelTeach'],   // closing the lesson form only clears it
         // The home page: every action reads and writes only the signed-in

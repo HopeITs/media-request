@@ -13,6 +13,12 @@ use Illuminate\Support\Collection;
  * The index is a plain list of [relative path, bytes] built from the folder
  * (php artisan media:pack-index). The files themselves stay on the shared
  * drive; the team sends them, and the request records who asked and when.
+ * The media manager can also add, replace and take out files in the app
+ * (media_pack_files); those changes sit over the index, and an added or
+ * replaced file is kept in the app, so the team downloads it from there.
+ *
+ * Where a file is there in more than one version ("logo.svg" and "logo (2).svg",
+ * "… v2", "… new", "… 2024"), only the newest is offered.
  */
 class HcPack
 {
@@ -75,28 +81,135 @@ class HcPack
             return $this->files;
         }
 
+        return $this->files = $this->newestOnly($this->everything()->reject(fn (array $f) => $f['removed']));
+    }
+
+    /**
+     * Every file the pack has had: the drive's index with the app's changes over it (a removed
+     * one marked so; requests made earlier still name it).
+     *
+     * @return Collection<int, array>
+     */
+    public function everything(): Collection
+    {
+        if (isset($this->memo)) {
+            return $this->memo;
+        }
+
         $path = config('media-requests.pack_index');
         $rows = is_string($path) && is_file($path) ? json_decode((string) file_get_contents($path), true) : [];
+        $files = [];
 
-        return $this->files = collect(is_array($rows) ? $rows : [])
-            ->filter(fn ($row) => is_array($row) && is_string($row[0] ?? null))
-            ->map(function (array $row): array {
-                $path = str_replace('\\', '/', $row[0]);
-                $parts = explode('/', $path);
-                $name = (string) array_pop($parts);
-                $group = collect(self::GROUPS)->first(fn (array $g): bool => str_starts_with($path, $g[1].'/'))[0] ?? 'other';
+        foreach (is_array($rows) ? $rows : [] as $row) {
+            if (is_array($row) && is_string($row[0] ?? null)) {
+                $files[str_replace('\\', '/', $row[0])] = $this->entry(str_replace('\\', '/', $row[0]), (int) ($row[1] ?? 0));
+            }
+        }
 
-                return [
-                    'path' => $path,
-                    'size' => (int) ($row[1] ?? 0),
-                    'name' => $name,
-                    'dir' => implode(' / ', $parts),
-                    'group' => $group,
-                    'ext' => strtolower(pathinfo($name, PATHINFO_EXTENSION)),
-                    'low' => mb_strtolower($path),
-                ];
-            })
-            ->values();
+        if (\Illuminate\Support\Facades\Schema::hasTable('media_pack_files')) {
+            foreach (\App\Models\MediaPackFile::query()->get() as $change) {
+                $files[$change->path] = $this->entry($change->path, $change->size, $change);
+            }
+        }
+
+        return $this->memo = collect(array_values($files));
+    }
+
+    private ?Collection $memo = null;
+
+    private function entry(string $path, int $size, ?\App\Models\MediaPackFile $change = null): array
+    {
+        $parts = explode('/', $path);
+        $name = (string) array_pop($parts);
+
+        return [
+            'path' => $path,
+            'size' => $size,
+            'name' => $name,
+            'dir' => implode(' / ', $parts),
+            'group' => collect(self::GROUPS)->first(fn (array $g): bool => str_starts_with($path, $g[1].'/'))[0] ?? 'other',
+            'ext' => strtolower(pathinfo($name, PATHINFO_EXTENSION)),
+            'low' => mb_strtolower($path),
+            'id' => $change?->stored ? $change->id : null,   // kept in the app: downloaded from there
+            'changed' => $change?->updated_at,
+            'removed' => (bool) $change?->removed,
+            'older' => 0,
+        ];
+    }
+
+    /**
+     * One file per set of versions: the newest. A set is the same folder, kind and name once its
+     * last version mark is taken off ("(2)", "v2", "copy", "new", "final", a year, a date).
+     * Only a real set: the plain name beside a marked one, or names with marks other than "(n)";
+     * a numbered series with no plain name ("Xmas (1)" … "Xmas (12)") is twelve different files.
+     * Newest: changed in the app most recently, else the highest mark.
+     */
+    private function newestOnly(Collection $files): Collection
+    {
+        $sets = $files->groupBy(fn (array $f) => $f['dir'].'|'.$f['ext'].'|'.$this->unversioned(pathinfo($f['name'], PATHINFO_FILENAME)));
+
+        return $sets->flatMap(function (Collection $set): Collection {
+            if ($set->count() === 1) {
+                return $set;
+            }
+            $marks = $set->map(fn (array $f) => $this->versionMark(pathinfo($f['name'], PATHINFO_FILENAME)));
+            $plain = $marks->contains(fn ($m) => $m['kind'] === 'none');
+            $onlyNumbered = $marks->every(fn ($m) => $m['kind'] === 'copy-number');
+            if ($onlyNumbered && ! $plain) {
+                return $set;   // a series, not versions
+            }
+
+            $newest = $set->sortByDesc(fn (array $f) => [
+                $f['changed']?->getTimestamp() ?? 0,
+                $this->versionMark(pathinfo($f['name'], PATHINFO_FILENAME))['rank'],
+            ])->first();
+
+            return collect([['older' => $set->count() - 1] + $newest]);
+        })->values();
+    }
+
+    private const VERSION_MARKS = [
+        'copy-number' => '/[ _-]*\((\d+)\)$/u',                                     // "logo (2)"
+        'v' => '/[ _-]*v(?:er)?\.?\s*(\d+)(?:\.\d+)*$/iu',                          // "logo v2"
+        'word' => '/[ _-]*(?:copy|نسخة|final|new|جديد|نهائي|updated|edited)(?:\s*(\d+))?$/iu',
+        'year' => '/[ _-]*((?:19|20)\d{2})$/u',                                     // "logo 2024"
+        'date' => '/[ _-]*(\d{6}|\d{8})$/u',                                        // "logo_042024"
+    ];
+
+    /**
+     * The name with its last version mark taken off its end: one mark only, so names that differ
+     * before it stay apart ("XmasBCK202301 copy" and "XmasBCK202302 copy" are two backgrounds).
+     */
+    private function unversioned(string $stem): string
+    {
+        $s = mb_strtolower(trim($stem));
+        foreach (self::VERSION_MARKS as $re) {
+            if (preg_match($re, $s)) {
+                $base = rtrim((string) preg_replace($re, '', $s), ' _-');
+
+                return $base !== '' ? $base : $s;   // "New" alone is a name, not a mark
+            }
+        }
+
+        return $s;
+    }
+
+    /** @return array{kind: string, rank: int} how new the name says it is (higher is newer) */
+    private function versionMark(string $stem): array
+    {
+        foreach (self::VERSION_MARKS as $kind => $re) {
+            if (preg_match($re, $stem, $m)) {
+                $n = (int) ($m[1] ?? 1);
+                // A date written month-year (042024) compares by year, then month.
+                if ($kind === 'date' && strlen($m[1]) === 6) {
+                    $n = (int) (substr($m[1], 2).substr($m[1], 0, 2));
+                }
+
+                return ['kind' => $kind, 'rank' => $n + 1];
+            }
+        }
+
+        return ['kind' => 'none', 'rank' => 0];
     }
 
     /** @return array<string, int> group => file count */
@@ -110,7 +223,8 @@ class HcPack
     {
         $wanted = array_flip($paths);
 
-        return $this->all()->filter(fn (array $f): bool => isset($wanted[$f['path']]))->values();
+        // From everything, so a request still names a file that was replaced by a newer one or taken out.
+        return $this->everything()->filter(fn (array $f): bool => isset($wanted[$f['path']]))->values();
     }
 
     /**

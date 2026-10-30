@@ -123,7 +123,7 @@ class MediaRequestWorkflow
     {
         Gate::forUser($actor)->authorize('create', MediaRequest::class);
 
-        $files = $this->pack->find(array_values(array_filter($paths, 'is_string')));
+        $files = $this->pack->find(array_values(array_filter($paths, 'is_string')))->reject(fn (array $f) => $f['removed']);
 
         if ($files->isEmpty()) {
             throw ValidationException::withMessages(['paths' => __('media.err.pick')]);

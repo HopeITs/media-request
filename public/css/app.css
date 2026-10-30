@@ -1297,3 +1297,17 @@ a.ach:hover .go{color:var(--text)}
 .pre-t{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .pre-t b{font-size:15px}
 .preset small{color:var(--text-2);font-size:13px;line-height:1.45}
+/* HC_PACK kept by the media manager: the add form, and the tools on each file. */
+.okline{display:flex;align-items:center;gap:8px;margin:0 0 12px;padding:10px 14px;border-radius:var(--r);background:var(--soft);color:var(--text);font-weight:600}
+.okline .ic{color:#2E9E5B}
+.pm-add{padding:16px 18px;margin-bottom:16px;display:grid;gap:12px}
+.pm-add h2{margin:0;font-size:16px}
+.pm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.pm-grid .field{margin:0}
+.pm-add .btnline{justify-content:flex-end}
+.pm-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.pm-row > .fr{flex:1;min-width:0}
+.pm-tools{display:flex;gap:2px;flex:none}
+.pm-replace{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 12px;margin:0 0 6px;border-radius:var(--r);background:var(--soft)}
+.pm-replace label{font-size:13px;font-weight:600;color:var(--text-2)}
+.pm-replace .inp{flex:1;min-width:200px}

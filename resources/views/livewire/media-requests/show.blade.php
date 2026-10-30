@@ -176,7 +176,12 @@
                             <li><a href="{{ $href }}" target="_blank" rel="noopener noreferrer"><x-ic n="link" />{{ __('media.link.'.$kind) }}</a></li>
                         @endforeach
                         @foreach ($packFiles as $file)
-                            <li><span><x-ic n="box" /><span class="ltr">{{ $file['path'] }}</span></span></li>
+                            {{-- Kept in the app (added or replaced by the media manager): the team downloads it, the requester once delivered. --}}
+                            @if ($file['id'] && ($team->isMember(auth()->user()->profile) || $team->canActAsMediaManager(auth()->user()) || $r->status === \App\Enums\MediaRequestStatus::Delivered))
+                                <li><a href="{{ route('media-requests.pack.file', ['file' => $file['id'], 'r' => $r->id]) }}"><x-ic n="download" /><span class="ltr">{{ $file['path'] }}</span></a></li>
+                            @else
+                                <li><span><x-ic n="box" /><span class="ltr">{{ $file['path'] }}</span></span></li>
+                            @endif
                         @endforeach
                         @foreach ($r->getMedia('attachments') as $media)
                             <li><a href="{{ route('media-requests.files', $media) }}"><x-ic n="download" /><span class="ltr">{{ $media->file_name }}</span></a></li>

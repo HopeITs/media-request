@@ -40,6 +40,33 @@ class MediaRequestFileController extends Controller
         return $response;
     }
 
+    /**
+     * A HC_PACK file kept in the app (added or replaced by the media manager). The media team
+     * downloads it to send; the person who asked for it, once their HC_PACK request is delivered
+     * (?r= that request, which must name this file and be theirs to see).
+     */
+    public function pack(\Illuminate\Http\Request $http, \App\Models\MediaPackFile $file): BinaryFileResponse
+    {
+        abort_if($file->removed || ! $file->stored || ! \Illuminate\Support\Facades\Storage::disk('local')->exists($file->stored), Response::HTTP_NOT_FOUND);
+
+        $team = app(\App\Support\MediaRequests\MediaTeam::class);
+        $user = $http->user();
+        if (! $team->isMember($user->profile) && ! $team->canActAsMediaManager($user)) {
+            $request = MediaRequest::find($http->integer('r'));
+            abort_unless($request && $request->isPack() && $request->status === \App\Enums\MediaRequestStatus::Delivered
+                && in_array($file->path, $request->pack_files ?? [], true), Response::HTTP_FORBIDDEN);
+            Gate::authorize('view', $request);
+        }
+
+        $response = response()->download(\Illuminate\Support\Facades\Storage::disk('local')->path($file->stored), basename($file->path), [
+            'Pragma' => 'no-cache',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+        $response->headers->set('Cache-Control', 'private, no-store, max-age=0');
+
+        return $response;
+    }
+
     public function download(\Illuminate\Http\Request $http, Media $media): BinaryFileResponse
     {
         $request = $media->model;
