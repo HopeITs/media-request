@@ -29,7 +29,7 @@ class Login extends Component
         app()->setLocale('en');
     }
 
-    public function login()
+    public function login(): void
     {
         $this->validate(['email' => ['required', 'email'], 'password' => ['required', 'string']]);
 
@@ -41,6 +41,7 @@ class Login extends Component
 
         if (! Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
             RateLimiter::hit($key);
+            $this->reset('password');   // never sent back to the page
 
             throw ValidationException::withMessages(['email' => __('auth.failed')]);
         }
@@ -48,7 +49,8 @@ class Login extends Component
         RateLimiter::clear($key);
         session()->regenerate();
 
-        return $this->redirectIntended(route('media-requests.home'), navigate: false);
+        // The page goes on by itself, after offering to save the password in the browser.
+        $this->dispatch('mr-signed-in', to: session()->pull('url.intended', route('media-requests.home')));
     }
 
     public function render()

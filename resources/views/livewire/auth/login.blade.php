@@ -13,17 +13,29 @@
         <p class="lead">{{ __('media.login.lead') }}</p>
     </div>
 
-    <form wire:submit="login" class="card stack" style="gap:4px">
+    {{-- Saved in the browser, the password is only ever offered on this address, never on a look-alike. --}}
+    <form wire:submit="login" method="post" class="card stack" style="gap:4px"
+          x-data="{ async go(to) {
+              const id = $refs.em.value, password = $refs.pw.value;
+              try {
+                  if (window.PasswordCredential && password) {
+                      await Promise.race([navigator.credentials.store(new PasswordCredential({ id, password })), new Promise(r => setTimeout(r, 800))]);
+                  }
+              } catch (e) {}
+              location.href = to;
+          } }"
+          x-on:mr-signed-in.window="go($event.detail.to)">
         <div class="field">
             <label for="email">{{ __('media.login.email') }}</label>
-            <input id="email" class="inp ltr" type="email" wire:model="email" autocomplete="username" required @error('email') aria-invalid="true" @enderror>
+            <input id="email" name="email" x-ref="em" class="inp ltr" type="email" wire:model="email" autocomplete="username" required @error('email') aria-invalid="true" @enderror>
             @error('email')<p class="err" role="alert"><x-ic n="alert" />{{ $message }}</p>@enderror
         </div>
         <div class="field">
             <label for="password">{{ __('media.login.password') }}</label>
-            <input id="password" class="inp ltr" type="password" wire:model="password" autocomplete="current-password" required>
+            <input id="password" name="password" x-ref="pw" class="inp ltr" type="password" wire:model="password" autocomplete="current-password" required>
         </div>
         <button type="submit" class="btn btn-p btn-lg btn-w" wire:loading.attr="data-loading"><span class="spin"></span>{{ __('media.login.btn') }}</button>
+        <p class="sub" style="margin-top:10px">{{ __('media.login.address') }} <b class="ltr" dir="ltr">{{ parse_url(config('app.url'), PHP_URL_HOST) }}</b></p>
     </form>
 
     @if ($demo->isNotEmpty())

@@ -219,4 +219,6 @@ After changing a config file on the server, run `php artisan optimize` again.
 - The sample accounts and the "sample accounts" list on the sign-in page exist only on a local copy
   (`APP_ENV=local`), never on a server.
 - `.tools/` (portable PHP for the Windows preview) and `.env` are not in the repository.
+- Sign-in: the address shown on the sign-in page and the HSTS header come from `APP_URL`, so it must be the real
+  `https://` address. HSTS tells browsers to refuse plain http for a year.
 - Tests: `php artisan test` (needs the dev dependencies: `composer install` without `--no-dev`).

@@ -811,6 +811,7 @@ return [
     'login.password' => 'Password',
     'login.btn' => 'Sign in',
     'login.demo' => 'Sample accounts',
+    'login.address' => 'Enter your password only on this address:',
     'login.demoHint' => 'Local preview only. Choose a person to sign in as them.',
     'people.lead' => 'Who uses the app, who is on the Media team, and who manages which program.',
     'people.add' => 'Add person',

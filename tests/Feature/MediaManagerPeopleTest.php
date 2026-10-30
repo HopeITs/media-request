@@ -49,6 +49,28 @@ class MediaManagerPeopleTest extends TestCase
         $this->assertFalse($fadi->fresh()->hasActivePermission('media-requests.manage'));
     }
 
+    public function test_signing_in_remembers_the_person_and_no_other_site_can_frame_the_page(): void
+    {
+        config(['app.url' => 'https://media.example.test']);
+
+        $this->get('/login')->assertOk()
+            ->assertHeader('X-Frame-Options', 'SAMEORIGIN')
+            ->assertHeader('Content-Security-Policy', "frame-ancestors 'self'")
+            ->assertHeader('Strict-Transport-Security')
+            ->assertSee('media.example.test')
+            ->assertSee('autocomplete="current-password"', false);
+
+        $maya = $this->user('maya');
+        Livewire::test(\App\Livewire\Auth\Login::class)->set('email', $maya->email)->set('password', 'wrong')
+            ->call('login')->assertHasErrors('email')->assertSet('password', '');
+        $this->assertGuest();
+
+        Livewire::test(\App\Livewire\Auth\Login::class)->set('email', $maya->email)->set('password', 'password')
+            ->call('login')->assertDispatched('mr-signed-in', to: route('media-requests.home'));
+        $this->assertAuthenticatedAs($maya);
+        $this->assertNotNull($maya->fresh()->remember_token);
+    }
+
     public function test_the_media_manager_adds_people_and_gives_roles_but_not_an_administrators(): void
     {
         $maya = $this->user('maya');
