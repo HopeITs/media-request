@@ -21,7 +21,7 @@ class HcPackManager
     /** Kinds of files the pack holds: logos, templates, documents, print files. */
     public const EXTENSIONS = ['svg', 'png', 'jpg', 'jpeg', 'webp', 'pdf', 'ai', 'eps', 'cdr', 'psd', 'idml', 'indd', 'docx', 'doc', 'xlsx', 'pptx', 'zip', 'ttf', 'otf', 'mp4'];
 
-    public const MAX_KB = 102400;   // 100 MB
+    public const MAX_KB = 51200;    // 50 MB, as the server allows (DEPLOY.md: upload_max_filesize)
 
     public function __construct(private HcPack $pack, private MediaTeam $team) {}
 

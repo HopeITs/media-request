@@ -162,17 +162,23 @@ cd /var/www/media-requests
 php artisan down
 git pull
 composer install --no-dev --optimize-autoloader
-php artisan migrate --force
-php artisan optimize
+php artisan migrate --force              # never skip it: new versions often add a table or a column
+php artisan optimize                     # always after a pull: config, routes and views are cached
 php artisan up
 ```
+
+Nothing else is needed for an update: no `npm`, no build, and the browser picks up the new styles and
+scripts by itself (their addresses change with each version). The private seeders are run once, at the first
+install; again only if Fares hands over a new team list.
 
 ## 6. Backups
 
 Two things hold all the data:
 
-- **the database** (requests, history, comments, notifications, people, home screens, proofreading history);
-- **`storage/app/private/`**: the files people attach to requests.
+- **the database** (requests, history, comments, notifications, people, home screens, proofreading history,
+  what the assistant was taught, HC_PACK changes);
+- **`storage/app/private/`**: the files people attach to requests, and the HC_PACK files the media manager
+  adds or replaces (`storage/app/private/hc-pack/`).
 
 Back up both, every day. `.env` holds the app key: keep a copy somewhere safe, because without it
 sessions and anything encrypted cannot be read.
@@ -186,7 +192,12 @@ repository). When the pack changes, rebuild the list on a machine that has the p
 php artisan media:pack-index "D:\000_HC_PACK_012025"
 ```
 
-The files themselves are not on the server: the team sends them, the app records who asked and when.
+The drive's files themselves are not on the server: the team sends them, the app records who asked and when.
+
+The media manager can also keep the pack from the HC_PACK page: add a file, replace one with a newer version,
+or take one out. Those changes are stored in the database over the list, and an added or replaced file is kept
+on the server (`storage/app/private/hc-pack/`, in the backups); the team and, once delivered, the requester
+download it from the request. Where a file is there in more than one version, only the newest is offered.
 
 ## 8. Settings people usually change (`config/media-requests.php`)
 
@@ -200,7 +211,11 @@ After changing a config file on the server, run `php artisan optimize` again.
 
 ## 9. Good to know
 
-- Notifications are inside the app (the bell); no email is sent, so no mail server is needed.
+- Notifications are inside the app (the bell). The only email is the one sent when a request is delivered
+  (section 3); without a mail server it goes to the log and the app works the same.
+- The media manager (media role "manager" on the People page) also looks after the accounts there: adds
+  people, gives the employee and manager roles, and sees who is online and who uses the app. Administrator
+  roles and administrators' accounts stay with administrators.
 - The sample accounts and the "sample accounts" list on the sign-in page exist only on a local copy
   (`APP_ENV=local`), never on a server.
 - `.tools/` (portable PHP for the Windows preview) and `.env` are not in the repository.
