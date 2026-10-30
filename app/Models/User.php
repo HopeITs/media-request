@@ -57,9 +57,21 @@ class User extends Authenticatable
             return true;
         }
 
+        $mediaManager = $this->profile?->is_active && $this->profile->media_role === 'manager';
+
         // Standalone only: the media manager also looks after the accounts (People), within the limits
         // People\Index sets: no administrator roles, no administrator accounts.
-        if ($permission === 'people.manage' && $this->profile?->is_active && $this->profile->media_role === 'manager') {
+        if ($permission === 'people.manage' && $mediaManager) {
+            return true;
+        }
+
+        // Being the media manager or a program's manager is set on the person, whatever their account role:
+        // the same people the policy lets act must get through this coarse gate (the team list makes everyone 'employee').
+        if ($mediaManager && in_array($permission, config('access-control.role_baselines.manager', []), true)) {
+            return true;
+        }
+
+        if ($permission === 'media-requests.approve' && $this->profile?->managedPrograms()->exists()) {
             return true;
         }
 

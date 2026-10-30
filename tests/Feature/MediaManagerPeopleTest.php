@@ -21,6 +21,34 @@ class MediaManagerPeopleTest extends TestCase
         $this->seed(DatabaseSeeder::class);
     }
 
+    /** The team list makes every account 'employee': the screen offered Approve, then the gate answered 403. */
+    public function test_the_media_manager_on_an_employee_account_can_approve(): void
+    {
+        $maya = $this->user('maya');
+        $maya->update(['role' => 'employee']);
+        foreach (['media-requests.approve', 'media-requests.manage', 'media-requests.view-log', 'media-requests.export'] as $permission) {
+            $this->assertTrue($maya->fresh()->hasActivePermission($permission), $permission);
+        }
+
+        // A plain team member stays as they were, and so does a manager who has left.
+        $fadi = $this->user('fadi');
+        $this->assertSame('employee', $fadi->role);
+        $this->assertFalse($fadi->hasActivePermission('media-requests.approve'));
+        $this->assertFalse($fadi->hasActivePermission('media-requests.manage'));
+
+        $maya->profile->update(['is_active' => false]);
+        $this->assertFalse($maya->fresh()->hasActivePermission('media-requests.approve'));
+    }
+
+    public function test_the_manager_of_a_program_on_an_employee_account_can_approve(): void
+    {
+        $fadi = $this->user('fadi');
+        $fadi->profile->managedPrograms()->sync([\App\Models\Program::query()->value('id')]);
+
+        $this->assertTrue($fadi->fresh()->hasActivePermission('media-requests.approve'));
+        $this->assertFalse($fadi->fresh()->hasActivePermission('media-requests.manage'));
+    }
+
     public function test_the_media_manager_adds_people_and_gives_roles_but_not_an_administrators(): void
     {
         $maya = $this->user('maya');
