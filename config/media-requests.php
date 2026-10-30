@@ -200,6 +200,7 @@ return [
     | required:  must be answered when visible
     | extra:     optional, shown on the last step ("files and extras")
     | full:      takes the full row
+    | half:      chips that sit beside the next question instead of on their own row
     | pics:      draw a small picture for each option. true = picture named
     |            like the option; an array maps option => picture name.
     |            'sizes' draws paper outlines to scale, 'invite' draws how many
@@ -211,24 +212,27 @@ return [
     'fields' => (function (): array {
         $yn = ['yes', 'no'];
         $usage = fn (bool $extra) => [
-            ['key' => 'usage', 'type' => 'checks', 'options' => ['social', 'linkedin', 'report', 'website', 'print'], 'full' => true, 'extra' => $extra],
+            ['key' => 'usage', 'type' => 'checks', 'options' => ['social', 'report', 'website', 'print'], 'full' => true, 'extra' => $extra],
             ['key' => 'reportFor', 'type' => 'text', 'required' => true, 'full' => true, 'extra' => $extra, 'show_if' => [['usage', 'has', 'report']]],
         ];
         $consent = [
             ['key' => 'children', 'type' => 'yesno', 'required' => true, 'options' => $yn, 'full' => true],
             ['key' => 'consent', 'type' => 'check', 'required' => true, 'full' => true, 'show_if' => [['children', 'in', ['yes']]]],
         ];
+        // Beside the date and place they belong with.
         $times = [
-            ['key' => 'start', 'type' => 'time', 'extra' => true],
-            ['key' => 'end', 'type' => 'time', 'extra' => true],
+            ['key' => 'start', 'type' => 'time'],
+            ['key' => 'end', 'type' => 'time'],
         ];
         $videoOut = [
             ['key' => 'duration', 'type' => 'chips', 'required' => true, 'options' => ['15s', '30s', '60s', '3m', 'long']],
             ['key' => 'orientation', 'type' => 'chips', 'required' => true, 'pics' => ['both' => 'bothOr'], 'options' => ['vertical', 'horizontal', 'both']],
-            ['key' => 'platforms', 'type' => 'checks', 'options' => ['facebook', 'instagram', 'linkedin', 'whatsapp'], 'full' => true],
-            ['key' => 'voiceover', 'type' => 'chips', 'options' => ['none', 'ar', 'en', 'both']],
-            ['key' => 'subtitles', 'type' => 'chips', 'options' => ['none', 'ar', 'en', 'both'], 'extra' => true],
-            ['key' => 'lightCopy', 'type' => 'check', 'full' => true, 'extra' => true],
+            // One question for where it goes: a video is not printed, and social media is already the named platforms.
+            ['key' => 'platforms', 'type' => 'checks', 'options' => ['facebook', 'instagram', 'linkedin', 'whatsapp', 'website', 'report'], 'full' => true],
+            ['key' => 'reportFor', 'type' => 'text', 'required' => true, 'full' => true, 'show_if' => [['platforms', 'has', 'report']]],
+            ['key' => 'lightCopy', 'type' => 'check', 'full' => true, 'show_if' => [['platforms', 'has', 'whatsapp']]],
+            ['key' => 'voiceover', 'type' => 'chips', 'half' => true, 'options' => ['none', 'ar', 'en', 'both']],
+            ['key' => 'subtitles', 'type' => 'chips', 'half' => true, 'options' => ['none', 'ar', 'en', 'both']],
         ];
         $invitePrint = [['inviteMedium', 'in', ['print', 'both']], ['format', 'in', ['invite']]];
         // Designs that end up on paper (or plastic), so printing can be asked for with them.
@@ -332,8 +336,8 @@ return [
                 ['key' => 'kind', 'type' => 'chips', 'required' => true, 'options' => ['plexi', 'laser', 'banner', 'signage', 'fabric', 'stickers', 'merch', 'other']],
                 ['key' => 'qty', 'type' => 'number', 'required' => true],
                 ['key' => 'size', 'type' => 'text'],
+                ['key' => 'material', 'type' => 'text'],
                 ['key' => 'install', 'type' => 'yesno', 'options' => $yn, 'show_if' => [['kind', 'in', ['plexi', 'banner', 'signage']]]],
-                ['key' => 'material', 'type' => 'text', 'extra' => true],
                 ['key' => 'quote', 'type' => 'check', 'full' => true, 'extra' => true],
             ],
             '002.shoot' => [
@@ -341,7 +345,7 @@ return [
                 ['key' => 'eventDate', 'type' => 'date', 'required' => true],
                 ['key' => 'place', 'type' => 'text', 'required' => true],
                 ['key' => 'people', 'type' => 'number', 'required' => true, 'show_if' => [['coverage', 'in', ['portraits']]]],
-                ...$consent, ...$times, ...$usage(true),
+                ...$times, ...$consent, ...$usage(true),
             ],
             '002.export' => [
                 ['key' => 'deliverWhat', 'type' => 'chips', 'required' => true, 'options' => ['select', 'retouch', 'all']],
@@ -352,12 +356,12 @@ return [
                 ['key' => 'videoKind', 'type' => 'chips', 'required' => true, 'options' => ['event', 'interview', 'promo', 'story', 'other']],
                 ['key' => 'eventDate', 'type' => 'date', 'required' => true],
                 ['key' => 'place', 'type' => 'text', 'required' => true],
-                ...$consent, ...$videoOut, ...$times,
+                ...$times, ...$consent, ...$videoOut,
             ],
             '003.export' => [
                 ['key' => 'editKind', 'type' => 'checks', 'required' => true, 'full' => true, 'options' => ['highlights', 'full', 'clips', 'subtitles']],
                 ['key' => 'clipCount', 'type' => 'number', 'required' => true, 'show_if' => [['editKind', 'has', 'clips']]],
-                ...$usage(false), ...$videoOut,
+                ...$videoOut,
             ],
         ];
     })(),

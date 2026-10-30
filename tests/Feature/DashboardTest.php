@@ -182,6 +182,25 @@ class DashboardTest extends TestCase
         $this->assertFalse(collect($this->layoutOf($maya))->firstWhere('key', 'notes')['hidden']);   // an unknown name changes nothing
     }
 
+    public function test_a_card_and_its_old_shortcut_are_one_on_the_screen(): void
+    {
+        $rami = $this->user('rami');
+        $cards = app(DashboardLayout::class);
+        $this->assertEmpty(array_intersect($cards->available($rami), ['app.pack', 'app.bell', 'app.my']));
+
+        // The shortcut was on the screen and the card was not: the card takes its place and size.
+        $saved = collect($cards->clean($rami, [
+            ['key' => 'app.pack', 'size' => '1x1', 'hidden' => false],
+            ['key' => 'pack', 'size' => '4x2', 'hidden' => true],
+            ['key' => 'bell', 'size' => '4x2', 'hidden' => false],
+            ['key' => 'app.bell', 'size' => '1x1', 'hidden' => false],
+        ]));
+        $this->assertSame(1, $saved->where('key', 'pack')->count());
+        $this->assertSame('1x1', $saved->firstWhere('key', 'pack')['size']);
+        $this->assertFalse($saved->firstWhere('key', 'pack')['hidden']);
+        $this->assertSame('4x2', $saved->firstWhere('key', 'bell')['size']);
+    }
+
     public function test_the_browser_layout_is_saved_and_cleaned(): void
     {
         $rami = $this->user('rami');
@@ -194,9 +213,9 @@ class DashboardTest extends TestCase
             ['key' => 'notes', 'size' => '0x1', 'pinned' => false, 'hidden' => false],    // too small: raised to the minimum (1×1, an icon)
             ['key' => 'waiting', 'size' => 'nonsense', 'pinned' => false, 'hidden' => false], // unreadable: the default (4×6)
             ['key' => 'team', 'size' => '4x2', 'pinned' => false, 'hidden' => false],     // not Rami's: dropped
-            ['key' => 'app.pack', 'size' => '5x5', 'pinned' => false, 'hidden' => true],  // shortcuts go up to 4×4 (a card)
+            ['key' => 'app.drive', 'size' => '5x5', 'pinned' => false, 'hidden' => true],  // shortcuts go up to 4×4 (a card)
             ['key' => 'made-up', 'size' => '4x4'],
-            ...$byKey->except(['clock', 'calendar', 'notes', 'waiting', 'app.pack'])->values()->all(),
+            ...$byKey->except(['clock', 'calendar', 'notes', 'waiting', 'app.drive'])->values()->all(),
         ];
 
         Livewire::actingAs($rami)->test(Dashboard::class)->call('saveLayout', $sent);
@@ -207,8 +226,8 @@ class DashboardTest extends TestCase
         $this->assertSame('12x6', $saved['clock']['size']);
         $this->assertSame('1x1', $saved['notes']['size']);
         $this->assertSame('4x6', $saved['waiting']['size']);
-        $this->assertSame('4x4', $saved['app.pack']['size']);
-        $this->assertTrue($saved['app.pack']['hidden']);
+        $this->assertSame('4x4', $saved['app.drive']['size']);
+        $this->assertTrue($saved['app.drive']['hidden']);
         $this->assertFalse($saved->has('team'));
         $this->assertFalse($saved->has('made-up'));
     }

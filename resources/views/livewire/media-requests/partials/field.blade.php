@@ -30,7 +30,7 @@
     $hint = $catalog->hint($key);
     $placeholder = $catalog->placeholder($key);
     $error = $errors->first($model);
-    $full = ! empty($field['full']) || in_array($type, ['chips', 'checks', 'textarea', 'yesno'], true);
+    $full = ! empty($field['full']) || (empty($field['half']) && in_array($type, ['chips', 'checks', 'textarea', 'yesno'], true));
     $required = ! empty($field['required']);
 @endphp
 

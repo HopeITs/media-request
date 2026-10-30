@@ -104,10 +104,7 @@
                         </a>
                     @else
                         <a class="app" href="{{ route($cards->route($key)) }}" x-on:dblclick="miniPage('{{ $key }}')" data-hint="dblclick" data-hint-text="{{ __('media.dash.pageOpen') }}">
-                            <span class="appicon"><x-ic :n="$cards->icon($key)" />
-                                @if ($key === 'app.my' && $waiting->count())<span class="cnt num">{{ $waiting->count() }}</span>@endif
-                                @if ($key === 'app.bell' && $user->unreadNotifications()->count())<span class="cnt num">{{ $user->unreadNotifications()->count() }}</span>@endif
-                            </span>
+                            <span class="appicon"><x-ic :n="$cards->icon($key)" /></span>
                             <span class="appname">{{ $label($key) }}</span>
                         </a>
                     @endif

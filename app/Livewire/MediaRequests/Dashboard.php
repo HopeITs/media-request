@@ -263,12 +263,6 @@ class Dashboard extends Component
 
         foreach ($keys as $key) {
             $out[$key] = match ($key) {
-                'app.my' => (function () use ($user, $req) {
-                    $mine = $this->mine($user);
-
-                    return ['num' => $mine->filter->isOpen()->count(), 'unit' => __('media.dash.ac.open'),
-                        'rows' => $mine->take(4)->map(fn ($r) => $req($r))->all(), 'empty' => __('media.dash.ac.noMine')];
-                })(),
                 'app.approvals' => (function () use ($view, $req, $locale) {
                     $mine = $view['decisions']->whereIn('status', [S::ProgramApproval, S::MediaApproval]);
 
@@ -307,15 +301,11 @@ class Dashboard extends Component
                     return ['num' => (clone $missed)->count(), 'unit' => __('media.dash.ac.toTeach'),
                         'rows' => $missed->latest()->limit(3)->pluck('text')->map(fn ($t) => ['t' => \Illuminate\Support\Str::limit($t, 70)])->all(), 'empty' => __('media.dash.ac.noTeach')];
                 })(),
-                'app.bell' => ['num' => $user->unreadNotifications()->count(), 'unit' => __('media.dash.ac.unread'),
-                    'rows' => $user->notifications()->latest()->limit(4)->get()
-                        ->map(fn ($n) => ['t' => $n->data['body'][$locale] ?? '', 's' => $n->created_at->diffForHumans()])->all(),
-                    'empty' => __('media.bell.none')],
                 'app.people' => ['num' => \App\Models\Employee::query()->count(), 'unit' => __('media.dash.ac.people'),
                     'rows' => [['t' => __('media.dash.ac.team'), 's' => (string) app(MediaTeam::class)->members()->count()]]],
                 'app.generator' => ['rows' => collect(config('media-requests.generator.tools', []))
                     ->map(fn ($tool, $k) => ['t' => __('media.gen.tool.'.$k), 'href' => app(\App\Support\MediaRequests\HcGenerator::class)->url($tool['path'])])->values()->all()],
-                default => ['rows' => []],   // app.new and app.pack draw their own card
+                default => ['rows' => []],   // app.new draws its own card
             };
         }
 

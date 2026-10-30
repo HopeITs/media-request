@@ -18,8 +18,6 @@
                       x-on:keydown.enter.prevent="$el.form.requestSubmit()"></textarea>
             <button type="submit" class="btn btn-p btn-sm"><x-ic n="plus" />{{ __('media.dash.card.app.new') }}</button>
         </form>
-    @elseif ($key === 'app.pack')
-        <livewire:media-requests.pack-quick place="app" wire:key="pq-app" />
     @else
         @isset($d['num'])
             <p class="acnum"><b class="num">{{ $d['num'] }}</b><span>{{ $d['unit'] ?? '' }}</span></p>

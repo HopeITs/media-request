@@ -44,8 +44,6 @@ class DashboardLayout
     /** App shortcuts: key => [icon, route name] */
     private const APPS = [
         'app.new' => ['plus', null],
-        'app.my' => ['inbox', 'media-requests.index'],
-        'app.pack' => ['box', 'media-requests.pack'],
         'app.generator' => ['wand', null],
         'app.board' => ['board', 'media-requests.board'],
         'app.approvals' => ['shield', 'media-requests.approvals'],
@@ -53,7 +51,6 @@ class DashboardLayout
         'app.stats' => ['chart', 'media-requests.stats'],
         'app.log' => ['list', 'media-requests.log'],
         'app.assistant' => ['spark', 'media-requests.assistant'],
-        'app.bell' => ['bell', 'notifications.index'],
         'app.people' => ['users', 'people.index'],
     ];
 
@@ -93,12 +90,15 @@ class DashboardLayout
      * then the cards, most needed first. Cards grow into any cells left empty.
      */
     private const ORDER = [
-        'late', 'ask', 'app.new', 'app.generator', 'app.my', 'app.pack', 'app.drive', 'app.board', 'app.approvals', 'app.stats', 'app.log', 'app.assistant',
-        'app.bell', 'app.people', 'decide', 'flow', 'waiting', 'team', 'mine', 'bell', 'clock', 'calendar', 'pack', 'proof', 'showcase', 'notes',
+        'late', 'ask', 'app.new', 'app.generator', 'app.drive', 'app.board', 'app.approvals', 'app.stats', 'app.log', 'app.assistant',
+        'app.people', 'decide', 'flow', 'waiting', 'team', 'mine', 'bell', 'clock', 'calendar', 'pack', 'proof', 'showcase', 'notes',
     ];
 
     /** Cards that were fixed bars over the grid until people asked to move and resize them. */
     private const ALERTS = ['decide', 'late'];
+
+    /** Shortcuts dropped because a card does the same (a card shrinks to an icon too): shortcut => card. */
+    private const TWINS = ['app.pack' => 'pack', 'app.bell' => 'bell', 'app.my' => 'mine'];
 
     public function __construct(private MediaTeam $team) {}
 
@@ -111,7 +111,6 @@ class DashboardLayout
     public function allowed(User $user, string $key): bool
     {
         $isTeam = $this->team->isMember($user->profile) || $this->team->canActAsMediaManager($user);
-        $requesterOnly = $this->team->isRequesterOnly($user);
         $managesPrograms = $this->team->managedProgramIds($user->profile) !== [] || $user->myRole() === 'super-admin';
 
         if (isset(self::APPS[$key]) && self::APPS[$key][1] !== null && ! Route::has(self::APPS[$key][1])) {
@@ -119,14 +118,12 @@ class DashboardLayout
         }
 
         return match ($key) {
-            'ask', 'pack', 'app.new', 'app.pack', 'app.generator' => $user->hasActivePermission('media-requests.create'),
+            'ask', 'pack', 'app.new', 'app.generator' => $user->hasActivePermission('media-requests.create'),
             'team' => $isTeam,   // the media manager and the team see who is working on what
             'app.board', 'app.stats' => $isTeam && $user->hasActivePermission('media-requests.work'),
             'app.approvals' => $managesPrograms && $user->hasActivePermission('media-requests.approve'),
             'app.log', 'app.assistant' => $isTeam && $user->hasActivePermission('media-requests.view-log'),
             'app.people' => $user->hasActivePermission('people.manage'),
-            // Their requests and notifications live in cards, not on other pages.
-            'app.my', 'app.bell' => ! $requesterOnly,
             default => isset(self::WIDGETS[$key]) || isset(self::APPS[$key]),
         };
     }
@@ -261,7 +258,7 @@ class DashboardLayout
         $available = $this->available($user);
         $out = [];
 
-        foreach ($stored as $item) {
+        foreach ($this->withoutTwins($stored) as $item) {
             $key = is_array($item) ? ($item['key'] ?? null) : null;
 
             if (! is_string($key) || ! in_array($key, $available, true) || isset($out[$key])) {
@@ -291,6 +288,26 @@ class DashboardLayout
 
         $out = array_values($out);
         usort($out, fn (array $a, array $b): int => (int) $b['pinned'] <=> (int) $a['pinned']);
+
+        return $out;
+    }
+
+    /** A dropped shortcut someone had on their screen becomes its card, in the same place and size. */
+    private function withoutTwins(array $stored): array
+    {
+        $shown = collect($stored)->filter(fn ($i) => is_array($i) && empty($i['hidden']))->pluck('key')->all();
+        $becoming = array_filter(self::TWINS, fn ($card, $app) => in_array($app, $shown, true) && ! in_array($card, $shown, true), ARRAY_FILTER_USE_BOTH);
+        $out = [];
+
+        foreach ($stored as $item) {
+            $key = is_array($item) ? ($item['key'] ?? null) : null;
+
+            if (isset($becoming[$key])) {
+                $out[] = ['key' => $becoming[$key]] + $item;
+            } elseif (! is_string($key) || (! isset(self::TWINS[$key]) && ! in_array($key, $becoming, true))) {
+                $out[] = $item;
+            }
+        }
 
         return $out;
     }
