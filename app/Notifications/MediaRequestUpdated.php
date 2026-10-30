@@ -33,7 +33,7 @@ class MediaRequestUpdated extends Notification
     public function toArray(object $notifiable): array
     {
         $r = $this->mediaRequest;
-        $name = $r->displayName();
+        $name = $r->shortName();   // the archive code is the team's, and they see it on the request
 
         $body = fn (string $locale): string => trim(
             ($this->actor ? $this->actor->nameForLocale($locale).' ' : '')

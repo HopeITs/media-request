@@ -344,7 +344,7 @@ return [
     'h.log.l' => 'Everything everyone did, newest first: who asked, who approved, who edited, who delivered.',
     'h.my' => 'My requests',
     'h.my.l' => 'Everything you have requested, and what needs you next.',
-    'h.name' => 'The first part fills in from your answers, the same way files are named in the archive. Add a short name in English after it.',
+    'h.name' => 'A short name in English.',
     'h.program' => 'Program requests',
     'h.program.l' => 'Every request for your programs, and who has it now.',
     'h.quote' => 'The team asks the vendor for a price before any work starts.',

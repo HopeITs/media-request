@@ -205,7 +205,7 @@
                             <label for="mr-title"><x-media.bi k="media.f.name" /><span class="req" aria-hidden="true">*</span></label>
                             <p class="hint" id="mr-title-h">{{ __('media.h.name') }}</p>
                             <div class="namebox">
-                                <span class="pre">{{ $prefix }}_</span>
+                                @if ($prefix)<span class="pre">{{ $prefix }}_</span>@endif
                                 <input id="mr-title" class="inp" type="text" maxlength="80" wire:model.blur="title" placeholder="{{ __('media.ph.name') }}" {{ $err('title') }}
                                        lang="en" dir="ltr" autocomplete="off" spellcheck="false" aria-describedby="mr-title-h"
                                        x-on:input="$refs.titleWarn.hidden = ! /[^A-Za-z0-9 _-]/.test($el.value)">

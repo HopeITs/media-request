@@ -100,7 +100,7 @@ class Drive extends Component
         }
 
         return $rows->sortByDesc('created_at')->values()->map(fn (MediaRequest $r) => ['level' => 'request', 'id' => $r->id,
-            'name' => $r->reference, 'sub' => $r->displayName(), 'files' => $r->media_count
+            'name' => $r->reference, 'sub' => app(\App\Support\MediaRequests\MediaTeam::class)->seesArchive(auth()->user()) ? $r->displayName() : $r->shortName(), 'files' => $r->media_count
                 + count(array_filter([$r->draft_link, $r->result_link, $r->archive_link]))]);
     }
 }

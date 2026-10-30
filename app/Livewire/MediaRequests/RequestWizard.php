@@ -309,7 +309,8 @@ class RequestWizard extends Component
             'cities' => $cities,
             'details' => $this->service ? $catalog->visibleFields($this->service, $this->type, $this->answers, 'details') : [],
             'extras' => $this->service ? $catalog->visibleFields($this->service, $this->type, $this->answers, 'extra') : [],
-            'prefix' => $naming->prefix($program, $city, $itemCode),
+            // The archive code is the team's: the person asking only types a name.
+            'prefix' => app(MediaTeam::class)->seesArchive(auth()->user()) ? $naming->prefix($program, $city, $itemCode) : null,
             // A ready file the media manager pointed to for these words is searched with their words.
             'suggestions' => $this->step === 1 && trim($this->prompt) !== ''
                 ? $pack->suggest(\App\Models\MediaAssistantLesson::matching($this->prompt, 'pack')->first()?->pack_query ?: $this->prompt, $programs, 4) : collect(),

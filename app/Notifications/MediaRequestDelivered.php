@@ -30,7 +30,7 @@ class MediaRequestDelivered extends Notification
         $r = $this->mediaRequest->loadMissing(['requester', 'assignee', 'program', 'city', 'mediaApprover']);
 
         return (new MailMessage)
-            ->subject(__('media.mail.subject', ['ref' => $r->reference, 'name' => $r->displayName()], 'ar').' | '.__('media.mail.subject', ['ref' => $r->reference, 'name' => $r->displayName()], 'en'))
+            ->subject(__('media.mail.subject', ['ref' => $r->reference, 'name' => $r->shortName()], 'ar').' | '.__('media.mail.subject', ['ref' => $r->reference, 'name' => $r->shortName()], 'en'))
             ->view('mail.media-delivered', ['r' => $r, 'to' => $notifiable, 'url' => route('media-requests.show', $r)]);
     }
 }

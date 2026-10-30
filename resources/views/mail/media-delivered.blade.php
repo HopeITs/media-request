@@ -5,7 +5,7 @@
 @php
 $rows = fn (string $l) => array_filter([
     __('media.mail.ref', [], $l) => $r->reference,
-    __('media.mail.name', [], $l) => $r->displayName(),
+    __('media.mail.name', [], $l) => $r->shortName(),
     __('media.mail.what', [], $l) => __('media.svc.'.app(\App\Support\MediaRequests\MediaCatalog::class)->serviceKey($r->service), [], $l).($r->isPack() ? '' : ' · '.__('media.type.'.$r->type, [], $l)),
     __('media.mail.program', [], $l) => $r->program ? trim($r->program->code.' '.$r->program->slug) : null,
     __('media.mail.city', [], $l) => $r->city ? ($l === 'ar' ? $r->city->name_ar : $r->city->name_en) : null,

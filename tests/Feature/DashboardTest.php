@@ -182,6 +182,20 @@ class DashboardTest extends TestCase
         $this->assertFalse(collect($this->layoutOf($maya))->firstWhere('key', 'notes')['hidden']);   // an unknown name changes nothing
     }
 
+    public function test_the_archive_code_shows_to_the_team_only(): void
+    {
+        $r = (new \App\Models\MediaRequest)->forceFill(['title' => 'Spring poster', 'service' => '001', 'type' => 'new', 'item_code' => 'Poster', 'reference' => 'MR-1']);
+        $name = fn (User $u) => $this->actingAs($u) ? \Illuminate\Support\Facades\Blade::render('<x-media.name :r="$r" />', ['r' => $r]) : '';
+
+        $this->assertStringContainsString('Spring poster', $name($this->user('rami')));
+        $this->assertStringNotContainsString('mrc', $name($this->user('rami')));
+        $this->assertStringContainsString('mrc', $name($this->user('fadi')));
+
+        // The form: the person asking only types a name.
+        Livewire::actingAs($this->user('rami'))->test(\App\Livewire\MediaRequests\RequestWizard::class)->assertViewHas('prefix', null);
+        Livewire::actingAs($this->user('fadi'))->test(\App\Livewire\MediaRequests\RequestWizard::class)->assertViewHas('prefix', fn ($p) => is_string($p));
+    }
+
     public function test_a_card_and_its_old_shortcut_are_one_on_the_screen(): void
     {
         $rami = $this->user('rami');
