@@ -104,6 +104,8 @@ class Dashboard extends Component
         $this->open = $request && Gate::allows('view', $request) ? $id : null;
     }
 
+    /** Also when a decision was taken in the card (Show dispatches it). */
+    #[\Livewire\Attributes\On('media-request-decided')]
     public function closeRequest(): void
     {
         $this->open = null;

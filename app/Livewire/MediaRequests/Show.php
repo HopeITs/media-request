@@ -158,7 +158,7 @@ class Show extends Component
 
     public function shareDraft(MediaRequestWorkflow $w): void
     {
-        $this->run(fn () => $w->shareDraft(auth()->user(), $this->mediaRequest, $this->link, $this->note, $this->resultUploads));
+        $this->run(fn () => $w->shareDraft(auth()->user(), $this->mediaRequest, $this->link, $this->note, $this->resultUploads), decision: false);
     }
 
     public function sendResult(MediaRequestWorkflow $w): void
@@ -236,14 +236,14 @@ class Show extends Component
 
     public function nudge(MediaRequestWorkflow $w): void
     {
-        $this->run(fn () => $w->nudge(auth()->user(), $this->mediaRequest), __('media.toast.nudge', ['who' => $this->mediaRequest->ownerName()]));
+        $this->run(fn () => $w->nudge(auth()->user(), $this->mediaRequest), __('media.toast.nudge', ['who' => $this->mediaRequest->ownerName()]), decision: false);
     }
 
     // --- Conversation and files ------------------------------------------
 
     public function comment(MediaRequestWorkflow $w): void
     {
-        $this->run(fn () => $w->comment(auth()->user(), $this->mediaRequest, $this->body), __('media.toast.sent'));
+        $this->run(fn () => $w->comment(auth()->user(), $this->mediaRequest, $this->body), __('media.toast.sent'), decision: false);
     }
 
     /** Take one chosen file back out before sending. */
@@ -260,7 +260,7 @@ class Show extends Component
             'uploads.*' => ['file', 'max:51200', 'mimes:jpg,jpeg,png,gif,webp,svg,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,zip,ai,psd,mp4,mov'],
         ]);
 
-        $this->run(fn () => $w->attach(auth()->user(), $this->mediaRequest, $this->uploads), __('media.toast.asset'));
+        $this->run(fn () => $w->attach(auth()->user(), $this->mediaRequest, $this->uploads), __('media.toast.asset'), decision: false);
     }
 
     public function render()
@@ -300,8 +300,8 @@ class Show extends Component
         ]);
     }
 
-    /** Run one step, clear the form, and say where the request went. */
-    private function run(callable $action, ?string $message = null): void
+    /** Run one step, clear the form, and say where the request went. A message, a file or a reminder is not a decision. */
+    private function run(callable $action, ?string $message = null, bool $decision = true): void
     {
         // A message from an earlier try (a wrong link) goes once the next try works.
         $this->resetErrorBag();
@@ -322,6 +322,11 @@ class Show extends Component
         if ($this->mediaRequest->status === \App\Enums\MediaRequestStatus::Delivered) {
             $r = $this->mediaRequest;
             $this->dispatch('media-celebrate', label: __($r->sameDay() ? 'media.cel.boost' : ($r->deliveryTiming() === 'early' ? 'media.cel.early' : 'media.cel.delivered')), boost: $r->sameDay());
+        }
+
+        // A decision taken in the card on the home screen: the card closes, and the home screen shows what is left.
+        if ($decision && $this->embedded) {
+            $this->dispatch('media-request-decided');
         }
     }
 }

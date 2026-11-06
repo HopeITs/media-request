@@ -94,6 +94,11 @@ class LinkedInPostTest extends TestCase
             ->assertDontSee(__('media.act.startBtn'))
             ->assertSee(__('media.act.reassign'));
         Livewire::actingAs($fadi)->test(Show::class, ['mediaRequest' => $r])->assertSee(__('media.act.startBtn'));
+
+        // In the card on the home screen: a message keeps it open, a decision closes it.
+        Livewire::actingAs($fadi)->test(Show::class, ['mediaRequest' => $r, 'embedded' => true])
+            ->set('body', 'Starting today.')->call('comment')->assertNotDispatched('media-request-decided')
+            ->call('start')->assertDispatched('media-request-decided');
     }
 
     public function test_photos_ready_first_wait_for_the_text(): void
