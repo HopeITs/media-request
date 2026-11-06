@@ -68,7 +68,9 @@
         </form>
     @endunless
     @if ($editing)
-        <form wire:submit="save" class="card" style="margin-bottom:20px">
+        {{-- The form sits above a long list: "Edit" further down brings it into view (a new one for each person). --}}
+        <form wire:submit="save" class="card" style="margin-bottom:20px;scroll-margin-top:90px" wire:key="pform-{{ $employeeId ?? 'new' }}"
+              x-data x-init="$nextTick(() => { $el.scrollIntoView({ behavior: 'smooth', block: 'start' }); $el.querySelector('input')?.focus({ preventScroll: true }) })">
             <h2>{{ $employeeId ? __('media.people.edit') : __('media.people.add') }}</h2>
             <div class="fgrid">
                 @foreach ([['first_name_ar', 'people.firstAr', 'rtl'], ['last_name_ar', 'people.lastAr', 'rtl'], ['first_name_en', 'people.firstEn', 'ltr'], ['last_name_en', 'people.lastEn', 'ltr']] as [$f, $label, $dir])
