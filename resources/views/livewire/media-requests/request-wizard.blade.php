@@ -145,12 +145,14 @@
 
                     <div class="ai-or">{{ __('media.ai.orPick') }}</div>
 
-                    {{-- Pick the service first; only its types appear below. Switching tiles is instant (no server round trip). --}}
+                    {{-- Pick the service first; only its types appear below. Switching tiles is instant (no server round trip).
+                         Clicking a type goes straight on to its questions; a service with one type (LinkedIn) goes on from its tile. --}}
                     <div x-data="{ svc: @js($service) }" wire:key="svc-pick-{{ $service ?? 'none' }}">
                         <div class="svcs" role="radiogroup" aria-label="{{ __('media.wz.q1') }}">
                             @foreach ($catalog->requestServices() as $svc)
                                 @php($svcKey = $catalog->serviceKey($svc))
-                                <button type="button" class="svc" role="radio" x-on:click="svc = '{{ $svc }}'" :aria-checked="svc === '{{ $svc }}'">
+                                @php($only = count($catalog->types($svc)) === 1 ? $catalog->types($svc)[0] : null)
+                                <button type="button" class="svc" role="radio" x-on:click="svc = '{{ $svc }}'@if ($only); $wire.pick('{{ $svc }}', '{{ $only }}')@endif" :aria-checked="svc === '{{ $svc }}'">
                                     <span class="oi"><x-ic :n="$svcIcon[$svc] ?? 'file'" /></span>
                                     <x-media.bi :k="'media.svc.'.$svcKey" col />
                                 </button>
@@ -163,7 +165,7 @@
                                 <p class="sub">{{ __('media.sd.'.$svcKey) }}</p>
                                 <div class="typegrid">
                                     @foreach ($catalog->types($svc) as $t)
-                                        <button type="button" class="typebtn" wire:click="chooseType('{{ $svc }}', '{{ $t }}')"
+                                        <button type="button" class="typebtn" wire:click="pick('{{ $svc }}', '{{ $t }}')"
                                                 aria-pressed="{{ $service === $svc && $type === $t ? 'true' : 'false' }}">
                                             <span class="oi"><x-ic :n="$typeIcon[$t] ?? 'file'" /></span>
                                             <span><b>{{ __('media.type.'.$t) }}</b><small>{{ __('media.td.'.$svcKey.'.'.$t) }}</small></span>

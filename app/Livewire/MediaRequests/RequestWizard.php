@@ -177,6 +177,16 @@ class RequestWizard extends Component
         $this->applyPresetDate();
     }
 
+    /** A type tile was clicked: that is the choice made, so go on to its questions. */
+    public function pick(string $service, string $type): void
+    {
+        $this->chooseType($service, $type);
+
+        if ($this->service === $service && $this->type === $type && $this->step === 1) {
+            $this->next();
+        }
+    }
+
     /** Read the description, pick the type, pre-fill, and ask only what is still missing. */
     public function analyze(MediaAssistant $assistant): void
     {

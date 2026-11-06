@@ -47,6 +47,18 @@ class AssistantLogTest extends TestCase
         $this->assertFalse(MediaAssistantLog::sole()->understood);
     }
 
+    public function test_picking_a_type_goes_on_to_its_questions(): void
+    {
+        Livewire::actingAs($this->user('rami'))->test(RequestWizard::class)
+            ->call('open')
+            ->call('pick', '001', 'new')
+            ->assertSet('step', 2)
+            ->call('back')
+            ->call('pick', '004', 'post')
+            ->assertSet('step', 2)
+            ->assertSet('type', 'post');
+    }
+
     public function test_the_final_request_is_linked_and_a_changed_guess_is_flagged(): void
     {
         Livewire::actingAs($this->user('rami'))

@@ -78,7 +78,7 @@ return [
     'livewire_exempt' => [
         // Wizard steps and tile choices only change form state; submit()
         // validates every step again and the workflow re-checks the policy.
-        'media-requests.request-wizard' => ['close', 'another', 'chooseType', 'next', 'back', 'goTo', 'applyProof'],
+        'media-requests.request-wizard' => ['close', 'another', 'chooseType', 'pick', 'next', 'back', 'goTo', 'applyProof'],
         // Filters and re-renders; the lists are scoped to the caller's own
         // requests and programs in render(), and the routes are gated.
         'media-requests.index' => ['setActiveTab', 'refreshList'],
