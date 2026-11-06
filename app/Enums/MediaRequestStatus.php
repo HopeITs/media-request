@@ -28,6 +28,12 @@ final class MediaRequestStatus extends Enum
 
     const Delivery = 'delivery';
 
+    /** LinkedIn posts: the photos are ready and wait for the text to be checked or translated. */
+    const TextReview = 'text_review';
+
+    /** LinkedIn posts: photos and text are ready; the LinkedIn officer posts it. */
+    const Publishing = 'publishing';
+
     const NeedsInfo = 'needs_info';
 
     const OnHold = 'on_hold';
@@ -48,6 +54,8 @@ final class MediaRequestStatus extends Enum
         self::InProgress => 'assignee',
         self::Production => 'assignee',
         self::Delivery => 'assignee',
+        self::TextReview => 'pr',
+        self::Publishing => 'publisher',
         self::NeedsInfo => 'requester',
         self::RequesterReview => 'requester',
     ];
@@ -59,6 +67,7 @@ final class MediaRequestStatus extends Enum
             self::ProgramApproval, self::MediaApproval, self::ToClaim, self::Assigned,
             self::InProgress, self::InternalReview, self::RequesterReview,
             self::Production, self::Delivery, self::NeedsInfo, self::OnHold,
+            self::TextReview, self::Publishing,
         ];
     }
 
@@ -84,7 +93,7 @@ final class MediaRequestStatus extends Enum
     public static function tone(string $status): string
     {
         return match ($status) {
-            self::InProgress, self::Production, self::Delivery => 'work',
+            self::InProgress, self::Production, self::Delivery, self::Publishing => 'work',
             self::RequesterReview, self::NeedsInfo, self::OnHold => 'attn',
             self::Delivered => 'done',
             self::Rejected, self::Cancelled => 'stop',

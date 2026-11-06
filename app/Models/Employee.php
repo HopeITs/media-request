@@ -12,6 +12,7 @@ class Employee extends Model
     protected $fillable = [
         'city_id', 'first_name_en', 'first_name_ar', 'last_name_en', 'last_name_ar',
         'username', 'media_role', 'position_title', 'work_hours', 'is_active',
+        'linkedin_publisher', 'pr_reviewer',
     ];
 
     /**
@@ -62,7 +63,7 @@ class Employee extends Model
         return [9 * 60, 17 * 60];
     }
 
-    protected $casts = ['is_active' => 'boolean'];
+    protected $casts = ['is_active' => 'boolean', 'linkedin_publisher' => 'boolean', 'pr_reviewer' => 'boolean'];
 
     /** Same as the HR app: the name in the asked language, falling back to the other. */
     public function nameForLocale(string $locale): string

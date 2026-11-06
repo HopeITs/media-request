@@ -2,8 +2,8 @@
     $steps = [1 => ['wz.st1', 'layers'], 2 => ['wz.st2', 'list'], 3 => ['wz.st3', 'user'], 4 => ['wz.st4', 'clip']];
     $locale = app()->getLocale();
     $other = $locale === 'ar' ? 'en' : 'ar';
-    $svcIcon = ['001' => 'pen', '002' => 'camera', '003' => 'video'];
-    $typeIcon = ['new' => 'pen', 'edit' => 'edit', 'print' => 'printer', 'production' => 'box', 'shoot' => 'camera', 'export' => 'download'];
+    $svcIcon = ['001' => 'pen', '002' => 'camera', '003' => 'video', '004' => 'send'];
+    $typeIcon = ['new' => 'pen', 'edit' => 'edit', 'print' => 'printer', 'production' => 'box', 'shoot' => 'camera', 'export' => 'download', 'post' => 'send'];
     $err = fn (string $k) => $errors->has($k) ? 'aria-invalid=true' : '';
 @endphp
 

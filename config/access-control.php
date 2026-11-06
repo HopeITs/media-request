@@ -60,6 +60,9 @@ return [
             'nudge' => 'media-requests.view-own',
             'comment' => 'media-requests.view-own',
             'attachFiles' => 'media-requests.view-own',
+            // LinkedIn: PR and the LinkedIn officer are ticked on their account; the policy checks them.
+            'approveText' => 'media-requests.view-own',
+            'publish' => 'media-requests.view-own',
         ],
         // Keeping the pack is the media manager's (HcPackManager checks it too).
         'media-requests.pack' => ['requestFiles' => 'media-requests.create', 'addFile' => 'media-requests.manage', 'replaceFile' => 'media-requests.manage', 'removeFile' => 'media-requests.manage', 'startReplace' => 'media-requests.manage'],

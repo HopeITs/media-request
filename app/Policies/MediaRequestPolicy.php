@@ -31,7 +31,8 @@ class MediaRequestPolicy
         return $this->isRequester($user, $r)
             || $this->team->isAdministrator($user)
             || $this->team->isMember($user->profile)
-            || $this->team->managesProgram($user->profile, $r->program_id);
+            || $this->team->managesProgram($user->profile, $r->program_id)
+            || ($r->isLinkedIn() && ($this->team->isPublisher($user->profile) || $this->team->isPrReviewer($user->profile)));
     }
 
     /** Direct edits until the media manager accepts it, or while it waits for missing information. */
@@ -111,6 +112,20 @@ class MediaRequestPolicy
         return $this->doer($user, $r) || ($r->isPack() && $this->team->isMember($user->profile));
     }
 
+    /** PR checks the text of a LinkedIn post once it is approved, while the photos are prepared. */
+    public function reviewText(User $user, MediaRequest $r): bool
+    {
+        return $r->isLinkedIn() && $r->text_ok_at === null && $r->media_approved_at !== null
+            && in_array($r->status, [S::ToClaim, S::Assigned, S::InProgress, S::TextReview], true)
+            && ($this->team->isPrReviewer($user->profile) || $this->mm($user));
+    }
+
+    /** The LinkedIn officer posts it (the media manager may stand in). */
+    public function publish(User $user, MediaRequest $r): bool
+    {
+        return $r->status === S::Publishing && ($this->team->isPublisher($user->profile) || $this->mm($user));
+    }
+
     public function askInfo(User $user, MediaRequest $r): bool
     {
         return match ($r->status) {
@@ -180,7 +195,14 @@ class MediaRequestPolicy
             return true;
         }
 
+        // A LinkedIn text waits for PR beside the photo work, not only after it.
+        if ($r->isLinkedIn() && $this->team->isPrReviewer($user->profile) && $this->reviewText($user, $r)) {
+            return true;
+        }
+
         return match ($r->owner()) {
+            'pr' => $this->team->isPrReviewer($user->profile),
+            'publisher' => $this->team->isPublisher($user->profile),
             'requester' => $this->isRequester($user, $r),
             'program_manager' => $this->pm($user, $r),
             'media_manager' => $this->mm($user),

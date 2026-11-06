@@ -395,7 +395,8 @@ select.inp{cursor:pointer}
 .opt h3{font-size:18px;font-weight:800}
 .opt p{color:var(--text-2);font-size:14px}
 /* step 1: three service tiles, then the chosen service's types */
-.svcs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.svcs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:640px){.svcs{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .svc{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:104px;padding:14px 8px;border:1.5px solid var(--line);border-radius:var(--r-lg);background:var(--card);cursor:pointer;text-align:center;font-weight:800;font-size:16px;transition:border-color .15s,background-color .15s}
 .svc:hover{border-color:var(--text-2)}
 .svc[aria-checked="true"]{border-color:var(--text);background:var(--surface);box-shadow:inset 0 0 0 1px var(--text)}
@@ -821,6 +822,8 @@ img[src*="hope-center.svg"]{filter:var(--logo)}
 .crew-claim .job{font-size:14px;padding-inline-start:21px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .crew .ic.skill{width:13px;height:13px}
 /* One-sentence progress for the requester */
+/* LinkedIn: the text the officer copies into the post. */
+.posttext{white-space:pre-wrap;margin:4px 0 8px;padding:10px 12px;border:1px solid var(--line-soft);border-radius:var(--r);background:var(--field);font-size:14px;max-height:260px;overflow-y:auto}
 /* The request wizard's "sent" screen. */
 .sentbox{display:grid;gap:12px;justify-items:center;text-align:center;padding-block:28px}
 .sentbox h3{margin:0;font-size:22px}

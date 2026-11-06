@@ -28,7 +28,12 @@ class MediaRequestNotifier
         $recipients = match ($event) {
             'submitted', 'replied', 'resumed', 'nudged', 'edited' => $this->owners($r),
             'packAsked' => $this->team->accounts($this->team->members()),
-            'pmApproved', 'mmApproved' => $this->owners($r)->merge($this->requester($r)),
+            'pmApproved' => $this->owners($r)->merge($this->requester($r)),
+            // A LinkedIn post: PR can check the text from now on, beside the photo work.
+            'mmApproved' => $this->owners($r)->merge($this->requester($r))
+                ->merge($r->isLinkedIn() ? $this->team->accounts($this->team->prReviewers()) : collect()),
+            'photosReady', 'textOk' => $this->owners($r)->merge($this->requester($r)),
+            'published' => $this->requester($r)->merge($this->team->accounts($this->team->programManagers($r->program))),
             'assigned' => $this->owners($r)->merge($this->requester($r)),
             // A result to review goes to the requester and the program manager: either may approve it.
             'intOk', 'sentReq' => $this->requester($r)->merge($this->team->accounts($this->team->programManagers($r->program))),
@@ -76,6 +81,8 @@ class MediaRequestNotifier
             'media_manager' => $this->team->accounts($this->team->managers()),
             'team' => $this->team->accounts($this->team->members()),
             'assignee' => $this->assignee($r),
+            'pr' => $this->team->accounts($this->team->prReviewers()),
+            'publisher' => $this->team->accounts($this->team->publishers()),
             default => collect(),
         };
     }

@@ -161,6 +161,22 @@ class Show extends Component
         $this->run(fn () => $w->resume(auth()->user(), $this->mediaRequest));
     }
 
+    // --- LinkedIn posts ---------------------------------------------------
+
+    /** PR's checked or translated text; empty keeps the person's own. */
+    public string $postText = '';
+
+    public function approveText(MediaRequestWorkflow $w): void
+    {
+        $this->run(fn () => $w->approveText(auth()->user(), $this->mediaRequest, $this->postText));
+        $this->postText = '';
+    }
+
+    public function publish(MediaRequestWorkflow $w): void
+    {
+        $this->run(fn () => $w->publish(auth()->user(), $this->mediaRequest, $this->link));
+    }
+
     // --- Requester --------------------------------------------------------
 
     public function reply(MediaRequestWorkflow $w): void
@@ -240,6 +256,8 @@ class Show extends Component
     /** Run one step, clear the form, and say where the request went. */
     private function run(callable $action, ?string $message = null): void
     {
+        // A message from an earlier try (a wrong link) goes once the next try works.
+        $this->resetErrorBag();
         $action();
 
         $this->mediaRequest->refresh();

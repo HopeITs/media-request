@@ -6,8 +6,8 @@
     $current = $r->currentStep();
     $name = fn ($employee) => $employee?->nameForLocale($locale) ?? '—';
     $initials = fn ($employee) => $employee ? mb_strtoupper(mb_substr($employee->first_name_en, 0, 1).mb_substr((string) $employee->last_name_en, 0, 1)) : '?';
-    $svcIcon = ['001' => 'pen', '002' => 'camera', '003' => 'video', '000' => 'box'][$r->service] ?? 'file';
-    $stepIcon = ['submitted' => 'send', 'pm' => 'shield', 'mm' => 'shield', 'claim' => 'user', 'progress' => 'pen', 'int' => 'eye', 'req' => 'eye', 'production' => 'printer', 'delivery' => 'box'];
+    $svcIcon = ['001' => 'pen', '002' => 'camera', '003' => 'video', '004' => 'send', '000' => 'box'][$r->service] ?? 'file';
+    $stepIcon = ['submitted' => 'send', 'pm' => 'shield', 'mm' => 'shield', 'claim' => 'user', 'progress' => 'pen', 'int' => 'eye', 'req' => 'eye', 'production' => 'printer', 'delivery' => 'box', 'text' => 'edit', 'publish' => 'send'];
     $evIcon = ['submitted' => 'send', 'edited' => 'edit', 'pmApproved' => 'shield', 'mmApproved' => 'shield', 'assigned' => 'user', 'claimed' => 'user',
         'started' => 'play', 'draft' => 'eye', 'sentInt' => 'send', 'sentReq' => 'send', 'intOk' => 'check', 'intBack' => 'back', 'reqOk' => 'check',
         'changes' => 'edit', 'ready' => 'box', 'delivered' => 'check', 'packAsked' => 'box', 'packDone' => 'check', 'info' => 'alert', 'replied' => 'msg',
@@ -339,7 +339,7 @@
 
                     @can('work', $r)
                         <form wire:submit="sendResult" class="stack" style="gap:10px">
-                            <p class="act-p" style="margin:0">{{ __($r->internal_ok ? 'media.act.progress2' : 'media.act.progress') }}</p>
+                            <p class="act-p" style="margin:0">{{ __($r->isLinkedIn() ? 'media.act.photos' : ($r->internal_ok ? 'media.act.progress2' : 'media.act.progress')) }}</p>
                             {{-- A link, files, or both: at least one. Images and PDFs show as previews before sending. --}}
                             <div class="field" style="margin:0">
                                 <label for="mr-link">{{ __('media.fm.link') }} <span class="sub">({{ __('media.fm.optional') }})</span></label>
@@ -376,8 +376,10 @@
                                 <label for="mr-work-note">{{ __('media.fm.note') }}</label>
                                 <textarea id="mr-work-note" class="inp" rows="2" wire:model="note"></textarea>
                             </div>
-                            <button type="submit" class="btn btn-p btn-w" wire:loading.attr="data-loading"><span class="spin"></span><x-ic n="send" class="flip" />{{ __($r->internal_ok ? 'media.act.sendReq' : 'media.act.sendInt') }}</button>
-                            <button type="button" class="btn btn-o btn-w" wire:click="shareDraft"><x-ic n="eye" />{{ __('media.act.draft') }}</button>
+                            <button type="submit" class="btn btn-p btn-w" wire:loading.attr="data-loading"><span class="spin"></span><x-ic n="send" class="flip" />{{ __($r->isLinkedIn() ? 'media.act.sendPhotos' : ($r->internal_ok ? 'media.act.sendReq' : 'media.act.sendInt')) }}</button>
+                            @unless ($r->isLinkedIn())
+                                <button type="button" class="btn btn-o btn-w" wire:click="shareDraft"><x-ic n="eye" />{{ __('media.act.draft') }}</button>
+                            @endunless
                         </form>
                     @endcan
 
@@ -407,6 +409,41 @@
                             @error('note')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
                         </div>
                         <button type="button" class="btn btn-o btn-w" wire:click="requestChanges"><x-ic n="edit" />{{ __('media.act.changes') }}</button>
+                    @endcan
+
+                    {{-- LinkedIn: PR checks or translates the text, beside the photo work. --}}
+                    @can('reviewText', $r)
+                        <form wire:submit="approveText" class="stack" style="gap:10px" x-data x-init="$wire.postText = @js($r->answer('postText', ''))">
+                            <p class="act-p" style="margin:0">{{ __('media.act.text') }}</p>
+                            <div class="field" style="margin:0">
+                                <label for="mr-post-text">{{ __('media.fm.postText') }}</label>
+                                <textarea id="mr-post-text" class="inp" rows="8" wire:model="postText" dir="auto"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-p btn-w" wire:loading.attr="data-loading"><span class="spin"></span><x-ic n="check" />{{ __('media.act.textOk') }}</button>
+                        </form>
+                    @endcan
+
+                    {{-- LinkedIn: everything the officer needs to post it, then the link to the post. --}}
+                    @can('publish', $r)
+                        @php($finalText = $r->answer('finalText') ?: $r->answer('postText'))
+                        <p class="act-p" style="margin:0">{{ __('media.act.publish') }}</p>
+                        <div class="field" style="margin:0" x-data="{ copied: false }">
+                            <span class="lbl">{{ __('media.fm.postText') }}</span>
+                            <p class="posttext" dir="auto">{{ $finalText }}</p>
+                            <button type="button" class="btn btn-o btn-sm" x-on:click="navigator.clipboard.writeText(@js((string) $finalText)); copied = true; setTimeout(() => copied = false, 1500)">
+                                <x-ic n="file" /><span x-text="copied ? @js(__('media.proof.copied')) : @js(__('media.proof.copy'))"></span></button>
+                        </div>
+                        @if ($r->answer('tags'))<p class="sub" style="margin:0"><b>{{ __('media.f.tags') }}:</b> <span dir="auto">{{ $r->answer('tags') }}</span></p>@endif
+                        @if ($r->result_link)<a class="btn btn-g btn-w" href="{{ $r->result_link }}" target="_blank" rel="noopener noreferrer"><x-ic n="eye" />{{ __('media.link.result') }}</a>@endif
+                        <x-media.results :r="$r" latest class="compact" />
+                        <form wire:submit="publish" class="stack" style="gap:10px">
+                            <div class="field" style="margin:0">
+                                <label for="mr-post-link">{{ __('media.fm.postLink') }}</label>
+                                <input id="mr-post-link" class="inp ltr" type="url" wire:model="link" placeholder="https://www.linkedin.com/feed/update/…" required>
+                                @error('link')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
+                            </div>
+                            <button type="submit" class="btn btn-p btn-w" wire:loading.attr="data-loading"><span class="spin"></span><x-ic n="send" class="flip" />{{ __('media.act.published') }}</button>
+                        </form>
                     @endcan
 
                     @can('markReady', $r)

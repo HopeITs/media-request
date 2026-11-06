@@ -134,6 +134,16 @@
                         @endforeach
                     </div>
                 </fieldset>
+                @unless ($limited)
+                    {{-- LinkedIn posts: who checks the text and who posts it. Only an administrator gives these. --}}
+                    <fieldset class="field full">
+                        <legend>{{ __('media.people.linkedin') }}</legend>
+                        <div class="choices">
+                            <label class="choice"><input type="checkbox" wire:model="linkedin_publisher"><span><x-ic n="check" class="ck" />{{ __('media.people.publisher') }}</span></label>
+                            <label class="choice"><input type="checkbox" wire:model="pr_reviewer"><span><x-ic n="check" class="ck" />{{ __('media.people.prReviewer') }}</span></label>
+                        </div>
+                    </fieldset>
+                @endunless
             </div>
             <div class="btnline">
                 <button type="submit" class="btn btn-p" wire:loading.attr="data-loading"><span class="spin"></span>{{ __('media.wz.save') }}</button>
@@ -174,7 +184,9 @@
                                 <span class="chip {{ $e->media_role === 'manager' ? 'work' : '' }}">{{ $e->media_role === 'manager' ? __('media.owner.media_manager') : __('media.people.member') }}</span>
                                 <x-media.skills :e="$e" />
                                 <small class="sub" style="display:block;margin-top:4px">{{ $e->city ? ($locale === 'ar' ? $e->city->name_ar : $e->city->name_en) : '' }}@if ($e->work_hours) · {{ __('media.people.partTime') }} <span class="num ltr">{{ $e->work_hours }}</span>@endif</small>
-                            @else — @endif
+                            @elseif (! $e->linkedin_publisher && ! $e->pr_reviewer) — @endif
+                            @if ($e->linkedin_publisher)<span class="chip">{{ __('media.people.publisher') }}</span>@endif
+                            @if ($e->pr_reviewer)<span class="chip">{{ __('media.people.prReviewer') }}</span>@endif
                         </td>
                         <td data-l="{{ __('media.people.manages') }}" class="ltr" style="text-align:start">{{ $e->managedPrograms->map(fn ($p) => $p->code.' '.$p->slug)->implode(', ') ?: '—' }}</td>
                         <td data-l="{{ __('media.people.activity') }}">

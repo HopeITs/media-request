@@ -295,7 +295,7 @@
                                         @php($latest = $mine->sortByDesc('created_at')->first())
                                         <a {{ $go($latest) }} class="minelead">
                                             <x-media.name :r="$latest" class="nm" />
-                                            <x-media.journey :r="$latest" />
+                                            <x-media.journey :r="$latest" :links="false" />
                                         </a>
                                         @php($mine = $mine->reject(fn ($r) => $r->is($latest)))
                                         @if ($mine->isNotEmpty())<p class="minemore">{{ __('media.dash.mineOlder') }}</p>@endif

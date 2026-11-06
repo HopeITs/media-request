@@ -17,10 +17,12 @@
         S::Delivery => 'delivery',
         S::NeedsInfo => $forRequester ? 'infoYou' : 'info',
         S::OnHold => 'hold',
+        S::TextReview => 'text',
+        S::Publishing => 'publishing',
         default => null,
     };
     $icon = ['working' => 'pen', 'taken' => 'user', 'infoYou' => 'alert', 'info' => 'alert', 'reviewYou' => 'eye', 'review' => 'eye',
-        'production' => 'printer', 'delivery' => 'box', 'claim' => 'inbox', 'hold' => 'pause', 'pm' => 'shield', 'mm' => 'shield', 'check' => 'eye'][$key] ?? 'clock';
+        'production' => 'printer', 'delivery' => 'box', 'claim' => 'inbox', 'hold' => 'pause', 'pm' => 'shield', 'mm' => 'shield', 'check' => 'eye', 'text' => 'edit', 'publishing' => 'send'][$key] ?? 'clock';
 @endphp
 @if ($key)
     <p {{ $attributes->class(['progress', 'act' => in_array($key, ['infoYou', 'reviewYou'], true), 'live' => $key === 'working']) }}>

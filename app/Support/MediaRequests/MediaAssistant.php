@@ -20,6 +20,8 @@ class MediaAssistant
 {
     /** [pattern, service, type, answers] — first match wins, most specific first. */
     private const TYPES = [
+        // Before "post"/"منشور" below: a post on the LinkedIn page is its own request.
+        ['لينكد\s*[اإ]?ن|لينكدان|linked\s*-?in|(ننزل|نشر|تنزيل|ينزل)\s*(ال)?خبر', '004', 'post', []],
         ['شهاد|certificat', '001', 'new', ['format' => 'cert']],
         ['بطاق[ةه]?\s*(تعريف|هوي)|\bid\s*card|\bid\b|badge|بادج', '001', 'new', ['format' => 'id']],
         ['دعو[ةه]|دعوات|invitation|invite', '001', 'new', ['format' => 'invite']],
@@ -167,6 +169,11 @@ class MediaAssistant
         if ($r['needed_by'] && $r['type'] === 'shoot') {
             $r['answers']['eventDate'] = $r['needed_by'];
         }
+        // A LinkedIn post tells of something that happened: the day named is the event, not a deadline.
+        if ($r['type'] === 'post') {
+            $r['answers']['eventDate'] = $this->date($text, past: true);
+            $r['needed_by'] = null;
+        }
         $r['questions'] = $r['service'] ? $this->questions($r) : [];
 
         // Nothing is asked that the text already answered: the occasion (their words go to the team as
@@ -216,6 +223,10 @@ class MediaAssistant
                 $q('event', 'من أي فعالية؟', 'From which event?', 'title'),
                 $q('purpose', 'لأي غرض تحتاجها؟', 'What are they for?'),
             ],
+            'post' => [
+                $q('postText', 'اكتب الخبر: ماذا حدث، وأين، ومن شارك، وما أثره؟', 'Write the news: what happened, where, who took part, and what it changed?', 'answers.postText', 'textarea'),
+                $q('eventDate', 'متى حدث؟', 'When did it happen?', 'answers.eventDate', 'date'),
+            ],
         ];
 
         $key = $r['type'] === 'new'
@@ -237,8 +248,17 @@ class MediaAssistant
         return $questions;
     }
 
-    private function date(string $text): ?string
+    /** With $past, the day of something that happened: yesterday, today, or the last such date. */
+    private function date(string $text, bool $past = false): ?string
     {
+        if ($past) {
+            return match (true) {
+                $this->matches('[اإ]?مبارح|البارحة|yesterday', $text) => today()->subDay()->toDateString(),
+                $this->matches('اليوم|today', $text) => today()->toDateString(),
+                default => $this->namedDate($text, past: true),
+            };
+        }
+
         return match (true) {
             $this->matches('بعد\s*بكر[اة]|day after tomorrow', $text) => today()->addDays(2)->toDateString(),
             $this->matches('بكر[اة]|tomorrow', $text) => today()->addDay()->toDateString(),
@@ -251,7 +271,7 @@ class MediaAssistant
      * A day written out: "20 كانون الأول", "20 ديسمبر", "December 20", "20/12" (day first).
      * Without a year, the next such day from today.
      */
-    private function namedDate(string $text): ?string
+    private function namedDate(string $text, bool $past = false): ?string
     {
         // Longest first, and a whole word, so "اب" (August) never takes "ابريل" (April).
         $keys = array_keys(self::MONTHS);
@@ -272,8 +292,11 @@ class MediaAssistant
         }
 
         $date = today()->setDate($year ?? (int) today()->year, $month, $day);
-        if ($year === null && $date->lt(today())) {
+        if ($year === null && ! $past && $date->lt(today())) {
             $date->addYear();
+        }
+        if ($year === null && $past && $date->gt(today())) {
+            $date->subYear();
         }
 
         return $date->toDateString();

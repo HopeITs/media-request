@@ -33,6 +33,7 @@ class MediaRequest extends Model implements HasMedia
         'media_approver_id', 'media_approved_at', 'assignee_id', 'priority', 'planned_for',
         'internal_ok', 'revisions', 'draft_link', 'result_link', 'archive_link', 'archive_name',
         'last_nudged_at', 'last_reminded_on', 'delivered_at', 'imported_from',
+        'text_ok_at', 'text_ok_by',
     ];
 
     protected $casts = [
@@ -44,6 +45,7 @@ class MediaRequest extends Model implements HasMedia
         'program_approved_at' => 'datetime',
         'media_approved_at' => 'datetime',
         'last_nudged_at' => 'datetime',
+        'text_ok_at' => 'datetime',
         'delivered_at' => 'datetime',
         'needs_program_approval' => 'boolean',
         'internal_ok' => 'boolean',
@@ -165,6 +167,12 @@ class MediaRequest extends Model implements HasMedia
         return $this->service === '000';
     }
 
+    /** A news post on the LinkedIn page. */
+    public function isLinkedIn(): bool
+    {
+        return $this->service === '004';
+    }
+
     public function needsProduction(): bool
     {
         return ($this->service === '001' && in_array($this->type, ['print', 'production'], true)) || $this->wantsPrint();
@@ -216,6 +224,9 @@ class MediaRequest extends Model implements HasMedia
             'program_manager' => app(MediaTeam::class)->programManagers($this->program)
                 ->map(fn (Employee $e): string => $e->nameForLocale($locale))
                 ->implode('، ') ?: __('media.owner.program_manager', [], $locale),
+            'publisher' => app(MediaTeam::class)->publishers()
+                ->map(fn (Employee $e): string => $e->nameForLocale($locale))
+                ->implode('، ') ?: __('media.owner.publisher', [], $locale),
             null => '',
             default => __('media.owner.'.$owner, [], $locale),
         };
@@ -234,6 +245,11 @@ class MediaRequest extends Model implements HasMedia
     {
         if ($this->isPack()) {
             return ['submitted', 'delivery'];
+        }
+
+        // LinkedIn: the media team prepares the photos while PR checks the text, then it is posted.
+        if ($this->isLinkedIn()) {
+            return array_values(array_filter(['submitted', $this->needs_program_approval ? 'pm' : null, 'mm', 'claim', 'progress', 'text', 'publish']));
         }
 
         return array_values(array_filter([
@@ -263,6 +279,8 @@ class MediaRequest extends Model implements HasMedia
             MediaRequestStatus::RequesterReview => 'req',
             MediaRequestStatus::Production => 'production',
             MediaRequestStatus::Delivery => 'delivery',
+            MediaRequestStatus::TextReview => 'text',
+            MediaRequestStatus::Publishing => 'publish',
         ][$this->effectiveStatus()] ?? null;
 
         $index = $step === null ? false : array_search($step, $this->steps(), true);
@@ -277,9 +295,9 @@ class MediaRequest extends Model implements HasMedia
             MediaRequestStatus::ProgramApproval, MediaRequestStatus::MediaApproval => 'approval',
             MediaRequestStatus::ToClaim => 'claim',
             MediaRequestStatus::Assigned, MediaRequestStatus::InProgress => 'work',
-            MediaRequestStatus::InternalReview => 'int',
+            MediaRequestStatus::InternalReview, MediaRequestStatus::TextReview => 'int',
             MediaRequestStatus::RequesterReview => 'req',
-            MediaRequestStatus::Production, MediaRequestStatus::Delivery => 'finish',
+            MediaRequestStatus::Production, MediaRequestStatus::Delivery, MediaRequestStatus::Publishing => 'finish',
             MediaRequestStatus::Delivered => 'done',
             default => null,
         };
@@ -309,9 +327,9 @@ class MediaRequest extends Model implements HasMedia
     {
         return match (true) {
             $this->status === MediaRequestStatus::Delivered => 4,
-            in_array($this->status, [MediaRequestStatus::Production, MediaRequestStatus::Delivery], true) => 3,
+            in_array($this->status, [MediaRequestStatus::Production, MediaRequestStatus::Delivery, MediaRequestStatus::Publishing], true) => 3,
             $this->media_approved_at !== null || in_array($this->status, [MediaRequestStatus::ToClaim, MediaRequestStatus::Assigned,
-                MediaRequestStatus::InProgress, MediaRequestStatus::InternalReview, MediaRequestStatus::RequesterReview], true) => 2,
+                MediaRequestStatus::InProgress, MediaRequestStatus::InternalReview, MediaRequestStatus::RequesterReview, MediaRequestStatus::TextReview], true) => 2,
             default => 1,
         };
     }
@@ -385,6 +403,15 @@ class MediaRequest extends Model implements HasMedia
             if ($team->canActAsMediaManager($user)) {
                 $q->orWhereIn('status', [MediaRequestStatus::MediaApproval, MediaRequestStatus::InternalReview, MediaRequestStatus::OnHold]);
             }
+
+            // LinkedIn: the officer posts what is ready; PR checks any text not checked yet, beside the photo work.
+            if ($team->isPublisher($user->profile)) {
+                $q->orWhere('status', MediaRequestStatus::Publishing);
+            }
+            if ($team->isPrReviewer($user->profile)) {
+                $q->orWhere(fn (Builder $w) => $w->where('service', '004')->whereNull('text_ok_at')->whereNotNull('media_approved_at')
+                    ->whereIn('status', MediaRequestStatus::open()));
+            }
         });
     }
 
@@ -402,12 +429,17 @@ class MediaRequest extends Model implements HasMedia
 
         $employeeId = $user->employee_id;
         $programIds = $team->managedProgramIds($user->profile);
+        $linkedIn = $team->isPublisher($user->profile) || $team->isPrReviewer($user->profile);
 
-        return $query->where(function (Builder $q) use ($employeeId, $programIds): void {
+        return $query->where(function (Builder $q) use ($employeeId, $programIds, $linkedIn): void {
             $q->where('requester_id', $employeeId);
 
             if ($programIds !== []) {
                 $q->orWhereIn('program_id', $programIds);
+            }
+
+            if ($linkedIn) {
+                $q->orWhere('service', '004');   // the LinkedIn officer and PR see every LinkedIn post
             }
         });
     }

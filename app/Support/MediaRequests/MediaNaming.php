@@ -33,6 +33,10 @@ class MediaNaming
             return 'Video';
         }
 
+        if ($service === '004') {
+            return 'LNKDN';   // as the team already names the photos it sends for LinkedIn
+        }
+
         return match ($type) {
             'new' => match ($a('format')) {
                 'social' => 'SocialMedia',

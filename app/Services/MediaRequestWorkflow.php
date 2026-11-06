@@ -83,6 +83,12 @@ class MediaRequestWorkflow
 
         $data = $this->validated($data);
         $program = Program::find($data['program_id']);
+
+        // A LinkedIn post with the person's own photos: the photos come with it.
+        if ($data['service'] === '004' && ($data['answers']['photoSource'] ?? null) === 'mine'
+            && array_filter($files, fn ($f) => $f instanceof UploadedFile) === []) {
+            throw ValidationException::withMessages(['uploads' => __('media.err.photosNeeded')]);
+        }
         $needsProgram = $this->needsProgramApproval($requester, $program);
 
         $request = $this->createWithReference($data['service'], fn (string $reference) => MediaRequest::create([
@@ -292,6 +298,14 @@ class MediaRequestWorkflow
         $from = $r->status;
         [$link, $names] = $this->linkOrFiles($r, $link, $files, 'result');
         $r->result_link = $link ?? ($names !== [] ? null : $r->result_link);
+
+        // LinkedIn: the photos go to the LinkedIn officer once the text is checked (or to PR first).
+        if ($r->isLinkedIn()) {
+            $this->move($r, $this->textReady($r) ? S::Publishing : S::TextReview);
+
+            return $this->commit($r, $actor, 'photosReady', $from, ['link' => $link, 'files' => implode(', ', $names) ?: null, 'note' => $this->cleanNote($note)]);
+        }
+
         $this->move($r, $r->internal_ok ? S::RequesterReview : S::InternalReview);
 
         return $this->commit($r, $actor, $r->internal_ok ? 'sentReq' : 'sentInt', $from, ['link' => $link, 'files' => implode(', ', $names) ?: null, 'note' => $this->cleanNote($note)]);
@@ -393,6 +407,53 @@ class MediaRequestWorkflow
         $this->move($r, S::Delivered);
 
         return $this->commit($r, $actor, 'delivered', $from, ['link' => $r->archive_link, 'archive_name' => $r->archive_name]);
+    }
+
+    // ------------------------------------------------------------------
+    // LinkedIn posts
+    // ------------------------------------------------------------------
+
+    /**
+     * PR checked (or translated) the text, beside the media team's work on the photos. The text
+     * the LinkedIn officer posts is this one; when the photos are already waiting, it goes on to them.
+     */
+    public function approveText(User $actor, MediaRequest $r, ?string $text = null): MediaRequest
+    {
+        Gate::forUser($actor)->authorize('reviewText', $r);
+
+        $text = trim((string) $text);
+        $from = $r->status;
+        $r->fill(['text_ok_at' => now(), 'text_ok_by' => $actor->employee_id]);
+
+        if ($text !== '' && $text !== trim((string) $r->answer('postText'))) {
+            $r->answers = ['finalText' => mb_substr($text, 0, 5000)] + ($r->answers ?? []);
+        }
+
+        if ($r->status === S::TextReview) {
+            $this->move($r, S::Publishing);
+        }
+
+        return $this->commit($r, $actor, 'textOk', $from, ['edited' => isset($r->answers['finalText']) ? true : null]);
+    }
+
+    /** Posted on LinkedIn: the link to the post closes the request. */
+    public function publish(User $actor, MediaRequest $r, string $link): MediaRequest
+    {
+        Gate::forUser($actor)->authorize('publish', $r);
+
+        $from = $r->status;
+        $r->archive_link = $this->validLink($link, 'link');
+        $r->archive_name = $this->naming->archiveName($r);
+        $r->delivered_at = now();
+        $this->move($r, S::Delivered);
+
+        return $this->commit($r, $actor, 'published', $from, ['link' => $r->archive_link]);
+    }
+
+    /** The text needs no more work: checked, or nobody is set up to check it. */
+    private function textReady(MediaRequest $r): bool
+    {
+        return $r->text_ok_at !== null || $this->team->prReviewers()->isEmpty();
     }
 
     // ------------------------------------------------------------------

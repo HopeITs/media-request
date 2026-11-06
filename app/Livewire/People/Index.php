@@ -61,6 +61,11 @@ class Index extends Component
 
     public array $programs = [];
 
+    /** LinkedIn: publishes the posts, or checks their text (public relations). Administrators tick them. */
+    public bool $linkedin_publisher = false;
+
+    public bool $pr_reviewer = false;
+
     // Quick add, for trying the app: email, name, one of three roles; a password is made and shown once.
     public string $quickEmail = '';
 
@@ -115,6 +120,8 @@ class Index extends Component
             'work_hours' => (string) $e->work_hours,
             'city_id' => $e->city_id,
             'programs' => $e->managedPrograms->pluck('id')->map(fn ($id) => (string) $id)->all(),
+            'linkedin_publisher' => (bool) $e->linkedin_publisher,
+            'pr_reviewer' => (bool) $e->pr_reviewer,
             'editing' => true,
         ]);
         $this->resetErrorBag();
@@ -155,7 +162,11 @@ class Index extends Component
                 'position_title' => $data['position_title'] ?: null,
                 'work_hours' => $data['work_hours'] ?: null,
                 'city_id' => $data['city_id'],
-            ]);
+            ] + ($this->limited() ? [] : [
+                // Only an administrator gives the LinkedIn jobs.
+                'linkedin_publisher' => $this->linkedin_publisher,
+                'pr_reviewer' => $this->pr_reviewer,
+            ]));
             $employee->managedPrograms()->sync($data['programs']);
 
             $account = ['email' => $data['email'], 'role' => $data['role'], 'name' => $data['first_name_en'], 'employee_id' => $employee->id];
@@ -264,6 +275,7 @@ class Index extends Component
             ],
             'asked' => $asked,
             'roles' => $this->roles(),
+            'limited' => $this->limited(),
             'canChange' => fn (Employee $e): bool => ! $this->limited() || ! in_array($e->account?->role, self::ADMIN_ROLES, true),
             'allPrograms' => Program::orderBy('code')->get(),
             'cities' => City::orderBy('code')->get(),
@@ -289,7 +301,7 @@ class Index extends Component
 
     private function resetForm(): void
     {
-        $this->reset(['editing', 'employeeId', 'first_name_en', 'first_name_ar', 'last_name_en', 'last_name_ar', 'email', 'password', 'role', 'media_role', 'position_title', 'work_hours', 'city_id', 'programs']);
+        $this->reset(['editing', 'employeeId', 'first_name_en', 'first_name_ar', 'last_name_en', 'last_name_ar', 'email', 'password', 'role', 'media_role', 'position_title', 'work_hours', 'city_id', 'programs', 'linkedin_publisher', 'pr_reviewer']);
         $this->resetErrorBag();
     }
 }

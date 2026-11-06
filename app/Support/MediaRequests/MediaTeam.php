@@ -224,6 +224,30 @@ class MediaTeam
         return $employee !== null && $employee->is_active && $employee->media_role === 'manager';
     }
 
+    /** Publishes LinkedIn posts (an administrator ticks it on the person's account). */
+    public function isPublisher(?Employee $employee): bool
+    {
+        return $employee !== null && $employee->is_active && (bool) $employee->linkedin_publisher;
+    }
+
+    /** Checks or translates the text of LinkedIn posts (public relations). */
+    public function isPrReviewer(?Employee $employee): bool
+    {
+        return $employee !== null && $employee->is_active && (bool) $employee->pr_reviewer;
+    }
+
+    /** @return Collection<int, Employee> */
+    public function publishers(): Collection
+    {
+        return $this->memo['publishers'] ??= Employee::query()->where('is_active', true)->where('linkedin_publisher', true)->with('account')->get();
+    }
+
+    /** @return Collection<int, Employee> */
+    public function prReviewers(): Collection
+    {
+        return $this->memo['pr'] ??= Employee::query()->where('is_active', true)->where('pr_reviewer', true)->with('account')->get();
+    }
+
     /** @return array<int, int> */
     public function managedProgramIds(?Employee $employee): array
     {

@@ -61,6 +61,7 @@ return [
             '003.shoot' => [3, 0],          // filming, first cut
             '003.export' => [5, 0],         // video editing
             '000.pack' => [1, 0],           // a ready file from HC_PACK
+            '004.post' => [2, 0],           // LinkedIn: photos ready and the text checked
         ],
         'print_with_design' => 2,           // outside days added when a new design is also printed
         /*
@@ -109,6 +110,8 @@ return [
         '001' => ['key' => 'design', 'types' => ['new', 'edit', 'print', 'production']],
         '002' => ['key' => 'photo', 'types' => ['shoot', 'export']],
         '003' => ['key' => 'video', 'types' => ['shoot', 'export']],
+        // A news post on the LinkedIn page: the media team prepares the photos, PR checks the text, the LinkedIn officer posts it.
+        '004' => ['key' => 'linkedin', 'types' => ['post']],
         '000' => ['key' => 'pack', 'types' => ['pack']],
     ],
 
@@ -125,7 +128,7 @@ return [
     | apart: a videographer edits only when the title says Editor.
     */
     'specialties' => [
-        'design' => ['icon' => 'pen', 'for' => ['001' => '*', '000' => '*'],      // design and print
+        'design' => ['icon' => 'pen', 'for' => ['001' => '*', '000' => '*', '004' => '*'],      // design and print; the photos of a LinkedIn post
             'title' => 'designer|(?<!animation\s)design|مصمم|تصميم(?!\s*(متحرك|موشن))'],
         'photo' => ['icon' => 'camera', 'for' => ['002' => '*'],                  // photography
             'title' => 'photographer|photography|مصور(?!\s*فيديو)'],
@@ -363,6 +366,16 @@ return [
                 ['key' => 'editKind', 'type' => 'checks', 'required' => true, 'full' => true, 'options' => ['highlights', 'full', 'clips', 'subtitles']],
                 ['key' => 'clipCount', 'type' => 'number', 'required' => true, 'show_if' => [['editKind', 'has', 'clips']]],
                 ...$videoOut,
+            ],
+            // A news post on LinkedIn. Where the photos come from decides the media team's work:
+            // the team of a city took them, the person uploads their own, or it needs a design.
+            '004.post' => [
+                ['key' => 'eventDate', 'type' => 'date', 'required' => true],
+                ['key' => 'postText', 'type' => 'textarea', 'required' => true, 'full' => true],
+                ['key' => 'photoSource', 'type' => 'chips', 'required' => true, 'options' => ['team', 'mine', 'design']],
+                ['key' => 'photoTeam', 'type' => 'chips', 'required' => true, 'options' => ['ALP', 'HMS', 'DMS', 'LAT'],
+                    'show_if' => [['photoSource', 'in', ['team']]]],
+                ['key' => 'tags', 'type' => 'text', 'full' => true, 'extra' => true],
             ],
         ];
     })(),
