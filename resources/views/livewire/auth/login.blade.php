@@ -35,13 +35,15 @@
             <input id="password" name="password" x-ref="pw" class="inp ltr" type="password" wire:model="password" autocomplete="current-password" required>
         </div>
         <button type="submit" class="btn btn-p btn-lg btn-w" wire:loading.attr="data-loading"><span class="spin"></span>{{ __('media.login.btn') }}</button>
-        <div x-data="{ show: window.mrPasskeys.supported(), failed: false, busy: false,
+        {{-- A full button on a device that has used a passkey here; elsewhere a quiet link, so nobody takes it for a second way they must use. --}}
+        <div x-data="{ show: window.mrPasskeys.supported(), known: window.mrPasskeys.known(), failed: false, busy: false,
                 async passkey() {
                     this.busy = true; this.failed = false;
                     try { location.href = await window.mrPasskeys.signIn(); }
                     catch (e) { this.busy = false; if (! window.mrPasskeys.cancelled(e)) { this.failed = true; } }
                 } }" x-show="show" x-cloak class="stack" style="gap:6px;margin-top:8px">
-            <button type="button" class="btn btn-lg btn-w" :disabled="busy" x-on:click="passkey()"><x-ic n="shield" />{{ __('media.login.passkey') }}</button>
+            <button type="button" class="btn btn-o btn-lg btn-w" x-show="known" :disabled="busy" x-on:click="passkey()"><x-ic n="shield" />{{ __('media.login.passkey') }}</button>
+            <button type="button" class="btn-q" x-show="! known" :disabled="busy" x-on:click="passkey()" style="align-self:center"><x-ic n="shield" />{{ __('media.login.passkeyHave') }}</button>
             <p class="err" role="alert" x-show="failed" x-cloak><x-ic n="alert" />{{ __('media.login.passkeyFailed') }}</p>
         </div>
         <p class="sub" style="margin-top:10px">{{ __('media.login.address') }} <b class="ltr" dir="ltr">{{ parse_url(config('app.url'), PHP_URL_HOST) }}</b></p>

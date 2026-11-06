@@ -160,7 +160,10 @@ class MediaRequestPolicy
     /** Remind whoever holds it now — once a day, and never yourself. */
     public function nudge(User $user, MediaRequest $r): bool
     {
-        if (! $r->isOpen() || $r->nudgedRecently() || $this->isOwner($user, $r)) {
+        // Not just after it reached them: a reminder makes sense once it has waited as long as "late" means.
+        $justArrived = $r->status_changed_at?->gt(now()->subHours((int) config('media-requests.late_after_hours', 24)));
+
+        if (! $r->isOpen() || $justArrived || $r->nudgedRecently() || $this->isOwner($user, $r)) {
             return false;
         }
 

@@ -37,7 +37,8 @@
     <section class="hello">
         <div>
             <h1><small>{{ __('media.home.hi', ['name' => $first]) }}</small>{{ $waiting->count() ? trans_choice('media.home.waiting', $waiting->count(), ['n' => $waiting->count()]) : ($onTeam ? __('media.home.clear') : __('media.home.help')) }}</h1>
-            <p class="lead" :class="{ quiet: ! editing }" x-text="editing ? @js(__('media.dash.editLead')) : @js(__('media.dash.lead'))">{{ __('media.dash.lead') }}</p>
+            {{-- How to arrange the screen: for someone who only asks for work, only while arranging it. --}}
+            <p class="lead" :class="{ quiet: ! editing }" @if ($here) x-show="editing" x-cloak @endif x-text="editing ? @js(__('media.dash.editLead')) : @js(__('media.dash.lead'))">{{ __('media.dash.lead') }}</p>
         </div>
         <div class="btnline">
             <template x-if="! editing">

@@ -35,6 +35,7 @@ window.mrPasskeys = (function () {
                     },
                 },
             });
+            this.remember();
             return done.redirect;
         },
 
@@ -56,7 +57,12 @@ window.mrPasskeys = (function () {
                     },
                 },
             });
+            this.remember();
         },
+
+        /** This device has been used with a passkey: the sign-in page offers it first. */
+        remember: function () { try { localStorage.setItem('mr-passkey', '1'); } catch (e) {} },
+        known: function () { try { return localStorage.getItem('mr-passkey') === '1'; } catch (e) { return false; } },
 
         remove: function (id) { return call('DELETE', '/user/passkeys/' + id); },
 

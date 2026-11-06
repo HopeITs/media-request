@@ -310,7 +310,8 @@ return [
                 ['key' => 'budgetAmount', 'type' => 'text', 'required' => true,
                     'show_if' => [['alsoPrint', 'in', ['yes']], ['budget', 'in', ['known']]]],
                 ['key' => 'logos', 'type' => 'text', 'extra' => true],
-                ['key' => 'contentChecked', 'type' => 'yesno', 'options' => $yn, 'full' => true, 'extra' => true, 'default' => 'yes'],
+                // Never assumed: a "yes" nobody chose sent requests with no text in them as final.
+                ['key' => 'contentChecked', 'type' => 'yesno', 'options' => $yn, 'full' => true, 'extra' => true],
                 ['key' => 'contentNote', 'type' => 'textarea', 'required' => true, 'full' => true, 'extra' => true,
                     'show_if' => [['contentChecked', 'in', ['no']]]],
             ],

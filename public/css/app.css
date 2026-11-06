@@ -1248,7 +1248,10 @@ a.ach:hover .go{color:var(--text)}
 /* HC_PACK on the home screen (pack-quick): search, groups or results, and the request button. */
 .pq{display:flex;flex-direction:column;gap:10px;min-height:0;height:100%;width:100%}
 .pq > .search{flex:none}
-.pq-groups{display:flex;flex-wrap:wrap;gap:6px;overflow:hidden;align-content:flex-start;min-height:0}
+/* One row that scrolls sideways: a short card never cuts the chips in half. */
+.pq-groups{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;overflow-y:hidden;flex:none;scrollbar-width:none;padding-bottom:2px}
+.pq-groups::-webkit-scrollbar{display:none}
+.pq-groups .chip{flex:none}
 .pq-groups .chip .num{color:var(--text-3);font-size:12px}
 .pq-in{align-self:flex-start}
 .pq-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:2px;overflow-y:auto;overflow-x:hidden;min-height:0;flex:1}

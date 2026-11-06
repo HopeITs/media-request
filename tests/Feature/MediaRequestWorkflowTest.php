@@ -254,7 +254,10 @@ class MediaRequestWorkflowTest extends TestCase
         $r = $w->submit($this->requester, $this->certificateRequest());
 
         $this->assertFalse($this->programManager->can('nudge', $r));
+        $this->assertFalse($this->requester->can('nudge', $r));   // it only just reached them
 
+        $this->travel(25)->hours();
+        $this->assertTrue($this->requester->can('nudge', $r->fresh()));
         $w->nudge($this->requester, $r);
         $this->assertNotNull($r->last_nudged_at);
         $this->assertFalse($this->requester->can('nudge', $r->fresh()));

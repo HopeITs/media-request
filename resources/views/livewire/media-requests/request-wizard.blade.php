@@ -30,7 +30,8 @@
                 @endforeach
             </ol>
 
-            <div class="mb">
+            {{-- Each step opens at its first question, not where the last one was scrolled to. --}}
+            <div class="mb" x-init="$wire.$watch('step', () => $nextTick(() => $el.scrollTop = 0))">
                 {{-- 1. What do you need? --}}
                 @if ($step === 1)
                     <div class="aibox">
