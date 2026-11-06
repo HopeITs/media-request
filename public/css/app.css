@@ -822,6 +822,9 @@ img[src*="hope-center.svg"]{filter:var(--logo)}
 .crew-claim .job{font-size:14px;padding-inline-start:21px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .crew .ic.skill{width:13px;height:13px}
 /* One-sentence progress for the requester */
+/* The kind of request, beside its name: design, photos, video, LinkedIn. */
+.mrk{display:inline-flex;align-items:center;gap:4px;margin-inline-end:8px;padding:1px 7px;border:1px solid var(--line-soft);border-radius:999px;font-size:11px;font-weight:700;color:var(--text-2);vertical-align:2px;white-space:nowrap}
+.mrk .ic{width:12px;height:12px}
 /* LinkedIn: the text the officer copies into the post. */
 .posttext{white-space:pre-wrap;margin:4px 0 8px;padding:10px 12px;border:1px solid var(--line-soft);border-radius:var(--r);background:var(--field);font-size:14px;max-height:260px;overflow-y:auto}
 /* The request wizard's "sent" screen. */

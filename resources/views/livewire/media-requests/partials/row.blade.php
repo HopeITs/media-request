@@ -19,7 +19,7 @@
             <span class="rc-type"><x-ic :n="$svcIcon" />{{ __('media.svc.'.$catalog->serviceKey($r->service)) }}@unless ($r->isPack()) · {{ __('media.type.'.$r->type) }}@endunless</span>
         </div>
 
-        <x-media.name :r="$r" class="rc-title" />
+        <x-media.name :r="$r" class="rc-title" :kind="false" />{{-- the kind is in the row's own corner --}}
 
         <div class="rc-bot">
             <div class="meta">

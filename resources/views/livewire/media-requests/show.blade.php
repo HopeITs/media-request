@@ -32,7 +32,7 @@
             @if ($r->priority)<span class="tag soft">{{ __('media.prio') }}: {{ __('media.prio.'.$r->priority) }}</span>@endif
             @if ($r->rush_reason && $r->isOpen())<span class="tag rush"><x-ic n="flame" />{{ __('media.tag.rush') }}</span>@endif
         </div>
-        <h1 style="text-align:start"><x-media.name :r="$r" /></h1>
+        <h1 style="text-align:start"><x-media.name :r="$r" :kind="false" /></h1>
         <div class="meta">
             <span><x-ic :n="$svcIcon" />{{ __('media.svc.'.$catalog->serviceKey($r->service)) }}@unless ($r->isPack()) · {{ __('media.type.'.$r->type) }}@endunless</span>
             <span><x-ic n="user" />{{ $name($r->requester) }}</span>

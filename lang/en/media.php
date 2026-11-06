@@ -1225,6 +1225,12 @@ return [
     'sent.view' => 'View request',
     'sent.done' => 'Done',
     'dash.mineOlder' => 'Earlier requests',
+    // The kind beside a request's name
+    'kind.design' => 'Design',
+    'kind.photo' => 'Photos',
+    'kind.video' => 'Video',
+    'kind.linkedin' => 'LinkedIn',
+    'kind.pack' => 'HC_PACK',
     // LinkedIn posts (service 004)
     'svc.linkedin' => 'LinkedIn post',
     'sd.linkedin' => 'A news post on the Hope Center LinkedIn page.',

@@ -1225,6 +1225,12 @@ return [
     'sent.view' => 'عرض الطلب',
     'sent.done' => 'تم',
     'dash.mineOlder' => 'طلبات سابقة',
+    // نوع الطلب بجانب اسمه
+    'kind.design' => 'تصميم',
+    'kind.photo' => 'تصوير',
+    'kind.video' => 'فيديو',
+    'kind.linkedin' => 'LinkedIn',
+    'kind.pack' => 'HC_PACK',
     // منشورات LinkedIn (الخدمة 004)
     'svc.linkedin' => 'منشور LinkedIn',
     'sd.linkedin' => 'خبر يُنشر على صفحة مركز الرجاء على LinkedIn.',
