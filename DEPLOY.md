@@ -53,6 +53,13 @@ team's emails and the staff names of the old requests) into `database/seeders/Pr
 ```
 database/seeders/Private/MediaTeamSeeder.php      the Media team: role, specialties, city, hours
 database/seeders/Private/SheetHistorySeeder.php   the old Google sheet of requests, as history
+database/seeders/Private/LinkedInHistorySeeder.php   the old LinkedIn request form, as LinkedIn posts
+```
+
+On a server already set up, a new private seeder is run on its own (safe to run again):
+
+```bash
+php artisan db:seed --class="Database\Seeders\Private\LinkedInHistorySeeder" --force
 ```
 
 Then:

@@ -23,10 +23,10 @@ class DatabaseSeeder extends Seeder
     {
         $this->places();
 
-        // The real Media team and the old sheet's history, from the private seeders IT is given
-        // (database/seeders/Private, not in git). Never in tests, which use the sample people below.
+        // The real Media team, the old sheet's history and the old LinkedIn form, from the private seeders
+        // IT is given (database/seeders/Private, not in git). Never in tests, which use the sample people below.
         if (! app()->runningUnitTests() && ! defined('PHPUNIT_COMPOSER_INSTALL')) {   // tests may pretend to be production
-            foreach (['MediaTeamSeeder', 'SheetHistorySeeder'] as $private) {
+            foreach (['MediaTeamSeeder', 'SheetHistorySeeder', 'LinkedInHistorySeeder'] as $private) {
                 if (class_exists($class = 'Database\\Seeders\\Private\\'.$private)) {
                     $this->call($class);
                 }
