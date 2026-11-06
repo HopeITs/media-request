@@ -39,7 +39,7 @@
                 <li><a href="{{ route('media-requests.drive', ['p' => $r->program_id, 'c' => $r->city_id, 'r' => $r->id]) }}" wire:navigate class="dfolder">
                     <span class="dico"><x-ic n="inbox" /></span>
                     <span class="dname ltr">{{ $r->reference }}</span>
-                    <span class="dsub ltr">{{ $r->displayName() }}</span>
+                    <span class="dsub ltr">{{ $r->nameFor(auth()->user()) }}</span>
                     <span class="dsub ltr">{{ trim($r->program?->code.' '.$r->program?->slug) }} / {{ trim($r->city?->code.' '.$r->city?->slug) }}</span>
                 </a></li>
             @empty
@@ -51,7 +51,7 @@
         @php($r = $requestObj)
         <div class="dreq">
             <div class="dreq-h">
-                <h2 class="ltr">{{ $r->displayName() }}</h2>
+                <h2 class="ltr">{{ $r->nameFor(auth()->user()) }}</h2>
                 <x-media.status :r="$r" />
                 <a href="{{ route('media-requests.show', $r) }}" wire:navigate class="btn btn-o btn-sm"><x-ic n="eye" />{{ __('media.drive.openRequest') }}</a>
             </div>

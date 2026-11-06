@@ -182,6 +182,16 @@ class DashboardTest extends TestCase
         $this->assertFalse(collect($this->layoutOf($maya))->firstWhere('key', 'notes')['hidden']);   // an unknown name changes nothing
     }
 
+    public function test_the_person_who_asked_follows_four_stages(): void
+    {
+        $r = (new \App\Models\MediaRequest)->forceFill(['status' => \App\Enums\MediaRequestStatus::MediaApproval]);
+        $this->assertSame(1, $r->simpleStage());
+        $this->assertSame(2, $r->forceFill(['status' => \App\Enums\MediaRequestStatus::InternalReview])->simpleStage());
+        $this->assertSame(2, $r->forceFill(['status' => \App\Enums\MediaRequestStatus::NeedsInfo, 'media_approved_at' => now()])->simpleStage());
+        $this->assertSame(3, $r->forceFill(['status' => \App\Enums\MediaRequestStatus::Production])->simpleStage());
+        $this->assertSame(4, $r->forceFill(['status' => \App\Enums\MediaRequestStatus::Delivered])->simpleStage());
+    }
+
     public function test_the_archive_code_shows_to_the_team_only(): void
     {
         $r = (new \App\Models\MediaRequest)->forceFill(['title' => 'Spring poster', 'service' => '001', 'type' => 'new', 'item_code' => 'Poster', 'reference' => 'MR-1']);

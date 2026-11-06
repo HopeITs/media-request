@@ -301,6 +301,21 @@ class MediaRequest extends Model implements HasMedia
             && $this->status_changed_at->lt(now()->subHours((int) config('media-requests.late_after_hours', 24)));
     }
 
+    /**
+     * The four stages the person asking sees (sent, approval, work, ready): how many are behind it.
+     * The team's own steps (taking it, the media manager's check, the requester's review) are all "work".
+     */
+    public function simpleStage(): int
+    {
+        return match (true) {
+            $this->status === MediaRequestStatus::Delivered => 4,
+            in_array($this->status, [MediaRequestStatus::Production, MediaRequestStatus::Delivery], true) => 3,
+            $this->media_approved_at !== null || in_array($this->status, [MediaRequestStatus::ToClaim, MediaRequestStatus::Assigned,
+                MediaRequestStatus::InProgress, MediaRequestStatus::InternalReview, MediaRequestStatus::RequesterReview], true) => 2,
+            default => 1,
+        };
+    }
+
     public function nudgedRecently(): bool
     {
         return $this->last_nudged_at !== null
@@ -315,6 +330,12 @@ class MediaRequest extends Model implements HasMedia
     public function displayName(): string
     {
         return app(\App\Support\MediaRequests\MediaNaming::class)->displayName($this);
+    }
+
+    /** The archive name for the media team, the short name for everyone else. */
+    public function nameFor(?\App\Models\User $user): string
+    {
+        return app(\App\Support\MediaRequests\MediaTeam::class)->seesArchive($user) ? $this->displayName() : $this->shortName();
     }
 
     /** What people read: the title in their words; the archive name only when there is no title. */

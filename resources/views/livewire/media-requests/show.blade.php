@@ -48,8 +48,8 @@
         <div hidden x-data x-init="try { if (! localStorage.getItem('mr-cel-{{ $r->id }}')) { localStorage.setItem('mr-cel-{{ $r->id }}', '1'); setTimeout(() => mrCelebrate(@js(__('media.cel.yours'))), 300) } } catch (e) {}"></div>
     @endif
 
-    {{-- For the requester and their program manager: who has it and what they are doing, in one sentence. --}}
-    @if ($isRequester || app(\App\Support\MediaRequests\MediaTeam::class)->managesProgram(auth()->user()->profile, $r->program_id))
+    {{-- For their program manager: who has it and what they are doing, in one sentence (the requester has it in their own card below). --}}
+    @if (! $simple && ($isRequester || app(\App\Support\MediaRequests\MediaTeam::class)->managesProgram(auth()->user()->profile, $r->program_id)))
         <x-media.progress :r="$r" :for-requester="$isRequester" class="progress lg" />
     @endif
 
@@ -77,6 +77,16 @@
             @php($why = $history->first(fn ($a) => in_array($a->description, ['rejected', 'cancelled'], true))?->properties->get('note'))
             @if ($why)<p class="sub">{{ $why }}</p>@endif
         </div></div>
+    @elseif ($simple)
+        {{-- The person who asked: one card that says where it is, what comes next, and when. --}}
+        <section class="card" style="margin-bottom:20px" aria-labelledby="trk">
+            <h2 id="trk" class="vh">{{ __('media.lc.title') }}</h2>
+            <x-media.journey :r="$r">
+                @can('nudge', $r)
+                    <button type="button" class="btn btn-o btn-sm" style="justify-self:start" wire:click="nudge"><x-ic n="bell" />{{ __('media.nudge', ['who' => $r->ownerName()]) }}</button>
+                @endcan
+            </x-media.journey>
+        </section>
     @else
         <section class="card" style="margin-bottom:20px" aria-labelledby="trk">
             <h2 id="trk" class="vh">{{ __('media.lc.title') }}</h2>
@@ -259,12 +269,13 @@
         {{-- What this person can do now --}}
         <aside>
             <section @class(['card act', 'mine' => $isOwner]) aria-labelledby="mr-act">
-                <div class="act-h">
+                {{-- The person who asked already reads where it is above; here only what they can do. --}}
+                <div class="act-h" @if ($simple && ! $isOwner) hidden @endif>
                     <x-ic :n="$isOwner ? 'arrow' : ($r->isOpen() ? 'clock' : 'check')" @class(['flip' => $isOwner]) />
                     <h2 id="mr-act">{{ $isOwner ? __('media.act.title') : ($r->isOpen() ? __('media.act.status') : __('media.act.closedTitle')) }}</h2>
                 </div>
 
-                @if (! $isOwner && $r->isOpen())
+                @if (! $isOwner && $r->isOpen() && ! $simple)
                     <p class="act-p">{{ __('media.act.wait', ['who' => $r->ownerName()]) }}</p>
                 @endif
 

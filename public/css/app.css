@@ -821,6 +821,30 @@ img[src*="hope-center.svg"]{filter:var(--logo)}
 .crew-claim .job{font-size:14px;padding-inline-start:21px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .crew .ic.skill{width:13px;height:13px}
 /* One-sentence progress for the requester */
+/* The request wizard's "sent" screen. */
+.sentbox{display:grid;gap:12px;justify-items:center;text-align:center;padding-block:28px}
+.sentbox h3{margin:0;font-size:22px}
+.sent-ok{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:var(--ink);color:var(--card)}
+.sent-ok .ic{width:26px;height:26px}
+.sent-name{margin:0;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;font-weight:700}
+.sent-next{width:100%;max-width:460px;text-align:start;display:grid;gap:10px}
+.sent-next .lab{font-size:12px;font-weight:700;color:var(--text-3)}
+/* The person who asked: four stages, one sentence, the date (components/media/journey). */
+.jr{display:grid;gap:10px}
+.jr-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.jr-steps li{display:grid;gap:6px;font-size:12px;color:var(--text-3);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jr-steps li::before{content:"";height:6px;border-radius:3px;background:var(--line-soft)}
+.jr-steps li[data-s="done"]{color:var(--text-2)}
+.jr-steps li[data-s="done"]::before{background:var(--ink)}
+.jr-steps li[data-s="cur"]{color:var(--text);font-weight:700}
+.jr-steps li[data-s="cur"]::before{background:var(--brand)}
+.jr .progress{margin:0;font-size:14px;color:var(--text)}
+.jr-due{display:flex;gap:6px;align-items:center;margin:0;font-size:13px;color:var(--text-2)}
+.jr-due .ic{width:15px;height:15px}
+.minelead{display:grid;gap:10px;padding:10px;border:1px solid var(--line-soft);border-radius:var(--r-lg);text-decoration:none;color:inherit;margin-bottom:8px}
+.minelead:hover{background:var(--hover)}
+.minelead .nm{font-weight:700;font-size:16px}
+.minemore{margin:4px 2px;font-size:12px;color:var(--text-3);font-weight:700}
 .progress{display:flex;gap:6px;align-items:flex-start;margin:4px 0 0;font-size:13px;color:var(--text-2)}
 .progress .ic{flex:none;width:15px;height:15px;margin-top:2px}
 .progress.live .ic{color:var(--brand)}

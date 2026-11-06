@@ -12,12 +12,32 @@
          x-on:keydown.escape.window="if (show) $wire.close()"
          x-transition:enter="transition-opacity" x-transition.opacity.duration.150ms
          role="dialog" aria-modal="true" aria-labelledby="wz-title">
-        <form class="modal" wire:submit="{{ $step === 4 ? 'submit' : 'next' }}" x-on:click.outside="$wire.close()">
+        <form class="modal" wire:submit="{{ $sent ? 'another' : ($step === 4 ? 'submit' : 'next') }}" x-on:click.outside="{{ $sent ? 'location.reload()' : '$wire.close()' }}">
             <div class="mh">
                 <h2 id="wz-title"><x-media.bi :k="$editingId ? 'media.wz.edit' : 'media.wz.title'" /></h2>
                 <button type="button" class="iconbtn" wire:click="close" aria-label="{{ __('media.close') }}"><x-ic n="x" /></button>
             </div>
 
+            @if ($sent)
+                {{-- Sent: it arrived, what happens next and when, then where to go. --}}
+                <div class="mb sentbox">
+                    <span class="sent-ok"><x-ic n="check" /></span>
+                    <h3>{{ __('media.sent.title') }}</h3>
+                    <p class="sent-name"><x-media.name :r="$sent" /> <span class="tag soft num ltr">{{ $sent->reference }}</span></p>
+                    <div class="card sent-next">
+                        <span class="lab">{{ __('media.sent.next') }}</span>
+                        <x-media.journey :r="$sent" />
+                    </div>
+                    <p class="sub">{{ __('media.sent.notify') }}</p>
+                </div>
+                <div class="mf">
+                    <button type="button" class="btn btn-o" wire:click="another"><x-ic n="plus" />{{ __('media.sent.another') }}</button>
+                    <span style="display:flex;gap:8px">
+                        <a href="{{ $sentUrl }}" class="btn btn-o">{{ __('media.sent.view') }}</a>
+                        <button type="button" class="btn btn-p" x-on:click="location.reload()"><x-ic n="check" />{{ __('media.sent.done') }}</button>
+                    </span>
+                </div>
+            @else
             <ol class="msteps">
                 @foreach ($steps as $n => [$label, $icon])
                     @continue($editingId && $n === 1)
@@ -300,6 +320,7 @@
                     @if ($step < 4)<x-ic n="arrow" class="flip" />@else<x-ic n="send" class="flip" />@endif
                 </button>
             </div>
+            @endif
         </form>
     </div>
 </div>

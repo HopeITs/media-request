@@ -44,6 +44,9 @@ class RequestWizard extends Component
 
     public ?int $editingId = null;
 
+    /** Just sent: the window says it arrived and what comes next, instead of jumping to the request. */
+    public ?int $sentId = null;
+
     public ?string $service = null;
 
     public ?string $type = null;
@@ -144,6 +147,12 @@ class RequestWizard extends Component
         if ($target === 'description' && $this->show) {
             $this->description = mb_substr($text, 0, 5000);
         }
+    }
+
+    /** From the "sent" screen: a fresh form for the next thing. */
+    public function another(): void
+    {
+        $this->resetForm();
     }
 
     public function close(): void
@@ -276,9 +285,17 @@ class RequestWizard extends Component
             $this->linkAssistant($request);
         }
 
-        $this->show = false;
+        $editing = (bool) $this->editingId;
         $this->resetForm();
         $this->dispatch('media-request-saved');
+
+        if (! $editing) {
+            $this->sentId = $request->id;
+
+            return null;
+        }
+
+        $this->show = false;
 
         // People who only ask for work see it on their home screen.
         if (app(\App\Support\MediaRequests\MediaTeam::class)->isRequesterOnly($user)) {
@@ -300,7 +317,12 @@ class RequestWizard extends Component
         $canFileFor = $this->editingId === null && $team->seesArchive(auth()->user());
         $requester = ($canFileFor && $this->forEmployeeId ? \App\Models\Employee::find($this->forEmployeeId) : null) ?? auth()->user()->profile;
 
+        $sent = $this->sentId ? MediaRequest::query()->visibleTo(auth()->user())->find($this->sentId) : null;
+
         return view('livewire.media-requests.request-wizard', [
+            'sent' => $sent,
+            // Where "View request" goes: the home screen panel for people who only ask for work.
+            'sentUrl' => $sent ? ($team->isRequesterOnly(auth()->user()) ? route('media-requests.home', ['open' => $sent->id]) : route('media-requests.show', $sent)) : null,
             // Media team: people to enter a request for (asked by phone, email or in person).
             'forPeople' => $canFileFor ? \App\Models\Employee::query()->where('is_active', true)->whereHas('account')
                 ->whereKeyNot(auth()->user()->employee_id)->orderBy('first_name_en')->get() : collect(),
@@ -418,7 +440,7 @@ class RequestWizard extends Component
     private function resetForm(): void
     {
         $this->reset([
-            'step', 'editingId', 'presetDate', 'changeEventDate', 'service', 'type', 'answers', 'program_id', 'city_id', 'title',
+            'step', 'editingId', 'sentId', 'presetDate', 'changeEventDate', 'service', 'type', 'answers', 'program_id', 'city_id', 'title',
             'description', 'needed_by', 'rush_reason', 'delivery_channel', 'delivery_contact', 'forEmployeeId',
             'uploads', 'prompt', 'briefFromPrompt', 'questions', 'questionAnswers', 'assistantUsed', 'assistantMissed', 'assistantLogId',
         ]);

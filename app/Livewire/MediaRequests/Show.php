@@ -232,6 +232,8 @@ class Show extends Component
             'can' => $can,
             'isOwner' => $can('isOwner'),
             'isRequester' => $user->employee_id === $r->requester_id,
+            // The person who asked, when not on the media team: the short four-stage view.
+            'simple' => $user->employee_id === $r->requester_id && ! $team->seesArchive($user),
         ]);
     }
 

@@ -59,7 +59,15 @@ class AssistantLogTest extends TestCase
             ->call('next')
             ->call('next')
             ->call('submit')
-            ->assertHasNoErrors();
+            ->assertHasNoErrors()
+            // The window stays open and says it arrived and what comes next.
+            ->assertSet('show', true)
+            ->assertSee(__('media.sent.title'))
+            ->assertSee(__('media.sent.next'))
+            ->assertSee(__('media.jr.approve'))
+            ->call('another')
+            ->assertSet('sentId', null)
+            ->assertSet('step', 1);
 
         $log = MediaAssistantLog::sole();
         $this->assertNotNull($log->media_request_id);

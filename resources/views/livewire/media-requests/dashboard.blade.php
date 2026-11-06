@@ -291,13 +291,20 @@
                                     @if ($mine->isEmpty())
                                         <div class="wempty"><span class="ei"><x-ic n="inbox" /></span><span>{{ __('media.dash.mineNone') }}</span></div>
                                     @else
+                                        {{-- The latest request is the one people follow: it leads, with its four stages; the rest are a short list. --}}
+                                        @php($latest = $mine->sortByDesc('created_at')->first())
+                                        <a {{ $go($latest) }} class="minelead">
+                                            <x-media.name :r="$latest" class="nm" />
+                                            <x-media.journey :r="$latest" />
+                                        </a>
+                                        @php($mine = $mine->reject(fn ($r) => $r->is($latest)))
+                                        @if ($mine->isNotEmpty())<p class="minemore">{{ __('media.dash.mineOlder') }}</p>@endif
                                         <ul class="wlist">
                                             @foreach ($mine as $r)
                                                 <li @class(['done' => ! $r->isOpen()])>
                                                     <a {{ $go($r) }}>
                                                         <x-media.name :r="$r" class="nm" />
                                                         <span class="meta" style="font-size:13px"><x-media.status :r="$r" />@if ($r->needed_by)<span><x-ic n="cal" /><span class="num">{{ $r->needed_by->format('d-m-Y') }}</span></span>@endif</span>
-                                                        @if ($r->isOpen())<x-media.progress :r="$r" />@endif
                                                     </a>
                                                 </li>
                                             @endforeach
@@ -327,7 +334,7 @@
                                                          x-on:dblclick="if (! editing) $wire.pickDay('{{ $day['date']->toDateString() }}')" title="{{ __('media.cal.dblclick') }}">
                                                         <span class="cn num">{{ $day['date']->day }}</span>
                                                         @foreach ($day['items']->take(2) as $r)
-                                                            <a {{ $go($r) }} @class(['cc', 'mine' => Gate::allows('isOwner', $r), 'done' => ! $r->isOpen()]) title="{{ $r->displayName() }}"><span dir="auto">{{ $r->title ?: $r->item_code }}</span></a>
+                                                            <a {{ $go($r) }} @class(['cc', 'mine' => Gate::allows('isOwner', $r), 'done' => ! $r->isOpen()]) title="{{ $r->nameFor($user) }}"><span dir="auto">{{ $r->title ?: $r->item_code }}</span></a>
                                                         @endforeach
                                                         @if ($day['items']->count() > 2)<span class="more-n">+{{ $day['items']->count() - 2 }}</span>@endif
                                                     </div>
@@ -634,7 +641,7 @@
     {{-- A request opened from a card: shown here, over the home screen, instead of on another page. --}}
     @if ($openRequest)
         <div class="sheet-back reqpanel-back" wire:click.self="closeRequest" x-data x-on:keydown.escape.window="$wire.closeRequest()">
-            <div class="reqpanel" role="dialog" aria-modal="true" aria-label="{{ $openRequest->displayName() }}">
+            <div class="reqpanel" role="dialog" aria-modal="true" aria-label="{{ $openRequest->nameFor($user) }}">
                 <button type="button" class="iconbtn reqpanel-x" wire:click="closeRequest" aria-label="{{ __('media.close') }}"><x-ic n="x" /></button>
                 <livewire:media-requests.show :media-request="$openRequest" :embedded="true" :key="'open-'.$openRequest->id" />
             </div>
