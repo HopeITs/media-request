@@ -8,7 +8,7 @@ use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-/** The old LinkedIn form comes in as LinkedIn posts: posted ones closed with their link, recent ones open, old unposted ones left out. */
+/** The old LinkedIn form comes in as LinkedIn posts: posted ones closed with their link, recent ones open, old unposted ones cancelled. */
 class ImportLinkedInTest extends TestCase
 {
     use RefreshDatabase;
@@ -32,9 +32,12 @@ class ImportLinkedInTest extends TestCase
         unlink($file);
 
         $posts = MediaRequest::where('service', '004')->orderBy('created_at')->get();
-        $this->assertCount(2, $posts);
+        $this->assertCount(3, $posts);
 
-        [$posted, $open] = $posts->all();
+        [$posted, $never, $open] = $posts->all();
+        $this->assertSame(S::Cancelled, $never->status);
+        $this->assertStringContainsString('Not marked as posted', $never->description);
+        $this->assertSame('mine', $never->answer('photoSource'));
         $this->assertSame(S::Delivered, $posted->status);
         $this->assertSame('https://www.linkedin.com/feed/update/urn:li:activity:1', $posted->archive_link);
         $this->assertSame(['team', 'HMS'], [$posted->answer('photoSource'), $posted->answer('photoTeam')]);

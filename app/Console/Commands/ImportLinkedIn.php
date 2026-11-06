@@ -25,7 +25,7 @@ use Illuminate\Support\Str;
  *
  *   Published (ticked, a published date or a link)   posted, with the link when there is one
  *   Not published, asked in the last 45 days         open, with the media manager
- *   Not published and older                          left out (most were posted and never ticked)
+ *   Not published and older                          cancelled, with a note (many were posted and never ticked)
  *
  * Running it again skips rows already brought in (imported_from = "linkedin:<row>").
  */
@@ -98,21 +98,17 @@ class ImportLinkedIn extends Command
             $link = filter_var($v['link'], FILTER_VALIDATE_URL) ? $v['link'] : null;
             $postedOn = $this->date($v['publishedOn']);
             $posted = strtoupper($v['published']) === 'TRUE' || $postedOn !== null || $link !== null;
-            if (! $posted && $at->lt($since)) {
-                $count['oldOpen']++;
-
-                continue;
-            }
-            $count[$posted ? 'posted' : 'open']++;
+            $stale = ! $posted && $at->lt($since);
+            $count[$posted ? 'posted' : ($stale ? 'oldOpen' : 'open')]++;
 
             $program = Program::where('code', Str::before($v['project'], ' '))->first();
             if ($program === null) {
                 $unknown['program: '.$v['project']] = true;
             }
-            $plans[$n] = compact('at', 'who', 'posted', 'postedOn', 'link', 'program', 'v');
+            $plans[$n] = compact('at', 'who', 'posted', 'stale', 'postedOn', 'link', 'program', 'v');
         }
 
-        $this->table(['Posted', 'Open (recent)', 'Not posted, older: left out', 'Unreadable: left out', 'Already in'], [array_values($count)]);
+        $this->table(['Posted', 'Open (recent)', 'Not posted, older: cancelled', 'Unreadable: left out', 'Already in'], [array_values($count)]);
         $names = collect($plans)->map(fn ($p) => $p['who']['en'])->countBy()->sortKeys();
         $this->line('People who asked ('.$names->count().'): '.$names->map(fn ($c, $name) => "{$name} ({$c})")->implode(', '));
         foreach (array_keys($unknown) as $u) {
@@ -141,6 +137,7 @@ class ImportLinkedIn extends Command
                 };
                 $note = array_filter([
                     'Imported from the LinkedIn request form (row '.$n.').',
+                    $p['stale'] ? 'Not marked as posted in the form: brought in as cancelled. If it was posted, the link can be added in a comment.' : null,
                     ! in_array(mb_strtolower($v['byTeam']), ['', 'yes', 'no'], true) ? 'Photos, as written in the form: '.$v['byTeam'] : null,
                     $v['photos'] !== '' ? 'Photos uploaded with the form: '.$v['photos'] : null,
                 ]);
@@ -162,7 +159,7 @@ class ImportLinkedIn extends Command
                         'photoTeam' => $source === 'team' && in_array($city, self::TEAMS, true) ? $city : null,
                     ]),
                     'needed_by' => $done->toDateString(),
-                    'status' => $p['posted'] ? S::Delivered : S::MediaApproval,
+                    'status' => $p['posted'] ? S::Delivered : ($p['stale'] ? S::Cancelled : S::MediaApproval),
                     'status_changed_at' => $p['posted'] ? $done : $p['at'],
                     'needs_program_approval' => false,
                     'media_approver_id' => $p['posted'] ? $mm : null,
