@@ -154,10 +154,12 @@
                                             @if ($flow['waitingYou'])<span class="flowyou"><x-ic n="arrow" class="flip" />{{ trans_choice('media.flow.you', $flow['waitingYou'], ['n' => $flow['waitingYou']]) }}</span>@endif
                                         </p>
 
+                                        {{-- The stages one after another, then the two ways a request ends (delivered, or rejected or
+                                             cancelled) stacked as a fork: they are alternatives, not one more step each. --}}
                                         <ol class="flowline" role="tablist">
                                             @foreach ($flow['stages'] as $stage => $items)
-                                                @continue($stage === 'stopped' && $items->isEmpty())
-                                                <li @class(['fnone' => $items->isEmpty(), 'end' => in_array($stage, ['done', 'stopped'], true)])>
+                                                @continue(in_array($stage, ['done', 'stopped'], true))
+                                                <li @class(['fnone' => $items->isEmpty()])>
                                                     <button type="button" role="tab" class="fnode" @disabled($items->isEmpty())
                                                             x-on:click="stage = @js($stage)" :aria-selected="stage === @js($stage)" :class="{ on: stage === @js($stage) }" aria-haspopup="dialog">
                                                         <span class="fi"><x-ic :n="\App\Support\MediaRequests\RequestFlow::ICONS[$stage]" /></span>
@@ -166,6 +168,22 @@
                                                     </button>
                                                 </li>
                                             @endforeach
+                                            <li class="fork">
+                                                <div @class(['fends', 'two' => $flow['stages']['stopped']->isNotEmpty()])>
+                                                    @foreach (['done', 'stopped'] as $stage)
+                                                        @php($items = $flow['stages'][$stage])
+                                                        @continue($stage === 'stopped' && $items->isEmpty())
+                                                        <div @class(['fend', 'fnone' => $items->isEmpty()])>
+                                                            <button type="button" role="tab" class="fnode" @disabled($items->isEmpty())
+                                                                    x-on:click="stage = @js($stage)" :aria-selected="stage === @js($stage)" :class="{ on: stage === @js($stage) }" aria-haspopup="dialog">
+                                                                <span class="fi"><x-ic :n="\App\Support\MediaRequests\RequestFlow::ICONS[$stage]" /></span>
+                                                                <b class="num">{{ $items->count() }}</b>
+                                                                <span class="fl">{{ __('media.flow.stage.'.$stage) }}</span>
+                                                            </button>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            </li>
                                         </ol>
 
                                         {{-- The stage's requests: a window over the page (moved to <body>, out of the card). --}}

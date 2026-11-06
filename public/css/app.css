@@ -989,6 +989,18 @@ img[src*="hope-center.svg"]{filter:var(--logo)}
 .flowline{padding:4px 0 2px;grid-auto-columns:minmax(104px,1fr)}
 .flowline li::before{top:23px}
 .fnode{gap:6px;padding:0 8px 4px}
+/* The two endings, stacked as a fork: a dashed bracket from the last stage, each ending on its own branch. */
+.flowline li.fork{justify-content:flex-start;padding-inline-start:20px;min-width:0}
+.flowline li.fork::before{inset-inline-start:0;inset-inline-end:auto;width:20px;background:repeating-linear-gradient(90deg,var(--line-soft) 0 4px,transparent 4px 8px)}
+.fends{position:relative;display:grid;gap:10px;align-content:start}
+.fends.two::before{content:"";position:absolute;inset-inline-start:0;top:23px;bottom:23px;width:2px;background:repeating-linear-gradient(180deg,var(--line-soft) 0 4px,transparent 4px 8px)}
+.fend{position:relative;padding-inline-start:16px}
+.fend::before{content:"";position:absolute;inset-inline-start:0;top:23px;width:16px;height:2px;background:repeating-linear-gradient(90deg,var(--line-soft) 0 4px,transparent 4px 8px)}
+.fend .fnode{grid-template-columns:auto auto;grid-template-rows:auto auto;column-gap:10px;row-gap:0;justify-items:start;align-items:center;padding:0 4px}
+.fend .fnode .fi{grid-row:1 / 3}
+.fend .fnode b{align-self:end}
+.fend .fnode .fl{text-align:start;align-self:start;max-width:90px;line-height:1.25}
+.fend:not(.fnone) .fnode .fi{border-color:var(--text);color:var(--text)}
 .fnode .fi{width:46px;height:46px}
 .fnode b{font-size:20px}
 .fnode .fl{font-size:12.5px;max-width:112px}
