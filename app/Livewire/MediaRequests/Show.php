@@ -63,7 +63,42 @@ class Show extends Component
 
         $this->mediaRequest = $mediaRequest;
         $this->plannedFor = $mediaRequest->planned_for?->toDateString() ?? $mediaRequest->needed_by?->toDateString();
+        // A late request: the planned day cannot be in the past, so it starts at the earliest day the team can do it.
+        if ($this->plannedFor !== null && $this->plannedFor < today()->toDateString()) {
+            $this->plannedFor = app(\App\Support\MediaRequests\WorkCalendar::class)
+                ->earliest($mediaRequest->service, $mediaRequest->type, $mediaRequest->answers ?? [])?->toDateString() ?? today()->toDateString();
+        }
         $this->priority = $mediaRequest->priority ?? 'normal';
+
+        // Approving is one decision: the person who fits best is already chosen; the manager only changes it if they want.
+        if (Gate::allows('approveMedia', $mediaRequest)) {
+            $this->assigneeId = $this->suggestedAssignee($mediaRequest);
+        }
+    }
+
+    /**
+     * Who fits this request best: of the people whose field it is (for a shoot, the team of the place),
+     * the one with the least work in hand. Null when nobody on the team fits.
+     */
+    private function suggestedAssignee(MediaRequest $r): ?int
+    {
+        $team = app(MediaTeam::class);
+        $load = $this->openLoad();
+        $fits = $team->membersFor($r->specialty(), $r)
+            ->filter(fn ($m) => $team->onSite($r) ? $team->coversArea($m, $r) : ($r->specialty() === null || $team->hasSkill($m, $r->specialty())));
+        // The media managers last: they hand the work out, they are not the first to give it to.
+        $fits = $fits->reject(fn ($m) => $team->isManager($m))->whenEmpty(fn () => $fits);
+
+        return $fits->sortBy(fn ($m) => $load[$m->id] ?? 0)->first()?->id;
+    }
+
+    /** @return array<int, int> open requests in each team member's hands */
+    private function openLoad(): array
+    {
+        return MediaRequest::query()->whereNotNull('assignee_id')
+            ->whereIn('status', [\App\Enums\MediaRequestStatus::Assigned, \App\Enums\MediaRequestStatus::InProgress, \App\Enums\MediaRequestStatus::InternalReview,
+                \App\Enums\MediaRequestStatus::RequesterReview, \App\Enums\MediaRequestStatus::Production, \App\Enums\MediaRequestStatus::Delivery])
+            ->selectRaw('assignee_id, count(*) as n')->groupBy('assignee_id')->pluck('n', 'assignee_id')->map(fn ($n) => (int) $n)->all();
     }
 
     /** The proofreader sends the checked message back. */
@@ -243,6 +278,10 @@ class Show extends Component
             // The request's specialists first, marked, then the rest of the team; for a shoot, the team of the place first.
             'members' => $can('assign') || $can('approveMedia') ? $team->membersFor($r->specialty(), $r) : collect(),
             'specialty' => $r->specialty(),
+            'load' => $can('assign') || $can('approveMedia') ? $this->openLoad() : [],
+            // The media manager may stand in for the team member, but the steps of someone else's work
+            // are not put in front of them: they sit under "More actions".
+            'doItMyself' => $r->assignee_id === null || $r->assignee_id === $user->employee_id || ! $team->canActAsMediaManager($user),
             'team' => $team,
             'packFiles' => $r->isPack() ? $pack->find($r->pack_files ?? []) : collect(),
             'can' => $can,

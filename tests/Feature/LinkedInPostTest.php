@@ -75,6 +75,27 @@ class LinkedInPostTest extends TestCase
         $this->assertSame(4, $r->simpleStage());
     }
 
+    /** Approving is one decision with the best fit chosen; after it, someone else's steps are not put in front of the manager. */
+    public function test_the_media_manager_approves_and_assigns_in_one_step(): void
+    {
+        $w = app(MediaRequestWorkflow::class);
+        $r = $w->submit($this->user('lina'), $this->linkedInPost());
+        $fadi = $this->user('fadi');   // a designer; the photos of a post are design work
+
+        Livewire::actingAs($this->user('maya'))->test(Show::class, ['mediaRequest' => $r])
+            ->assertSet('assigneeId', $fadi->employee_id)
+            ->assertSee(__('media.fm.giveTo'))
+            ->call('approveMedia')->assertHasNoErrors();
+
+        $r->refresh();
+        $this->assertSame([S::Assigned, $fadi->employee_id, 'normal'], [$r->status, $r->assignee_id, $r->priority]);
+
+        Livewire::actingAs($this->user('maya'))->test(Show::class, ['mediaRequest' => $r])
+            ->assertDontSee(__('media.act.startBtn'))
+            ->assertSee(__('media.act.reassign'));
+        Livewire::actingAs($fadi)->test(Show::class, ['mediaRequest' => $r])->assertSee(__('media.act.startBtn'));
+    }
+
     public function test_photos_ready_first_wait_for_the_text(): void
     {
         $w = app(MediaRequestWorkflow::class);

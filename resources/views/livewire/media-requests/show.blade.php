@@ -13,7 +13,7 @@
         'changes' => 'edit', 'ready' => 'box', 'delivered' => 'check', 'packAsked' => 'box', 'packDone' => 'check', 'info' => 'alert', 'replied' => 'msg',
         'rejected' => 'x', 'hold' => 'pause', 'resumed' => 'play', 'cancelled' => 'x', 'nudged' => 'bell', 'asset' => 'clip', 'comment' => 'msg'];
     $me = auth()->user()->employee_id;
-    $sideActions = Gate::any(['askInfo', 'reject', 'hold', 'cancel'], $r);
+    $sideActions = Gate::any(['askInfo', 'reject', 'hold', 'cancel', 'assign'], $r);
 @endphp
 
 <div>
@@ -286,23 +286,11 @@
                     @endcan
 
                     @can('approveMedia', $r)
-                        <form wire:submit="approveMedia" class="stack" style="gap:12px">
-                            <p class="act-p" style="margin:0">{{ __('media.act.mm') }}</p>
-                            <fieldset class="field" style="margin:0">
-                                <legend>{{ __('media.fm.prio') }}</legend>
-                                <div class="choices">
-                                    @foreach (config('media-requests.priorities') as $p)
-                                        <label class="choice"><input type="radio" value="{{ $p }}" wire:model="priority" name="priority"><span><x-ic n="check" class="ck" />{{ __('media.prio.'.$p) }}</span></label>
-                                    @endforeach
-                                </div>
-                            </fieldset>
+                        {{-- One decision: approve and give it to the person already chosen (the best fit, least busy).
+                             The person can be changed; priority and date are set already and wait behind "Priority and date". --}}
+                        <form wire:submit="approveMedia" class="stack" style="gap:12px" x-data="{ more: @js($errors->has('plannedFor')) }">
                             <div class="field" style="margin:0">
-                                <label for="mr-planned">{{ __('media.fm.planned') }}</label>
-                                <input id="mr-planned" class="inp" type="date" min="{{ today()->toDateString() }}" wire:model="plannedFor">
-                                @error('plannedFor')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
-                            </div>
-                            <div class="field" style="margin:0">
-                                <label for="mr-assignee">{{ __('media.fm.officer') }}</label>
+                                <label for="mr-assignee">{{ __('media.fm.giveTo') }}</label>
                                 <select id="mr-assignee" class="inp" wire:model="assigneeId">
                                     <option value="">{{ __('media.fm.letClaim') }}</option>
                                     @include('livewire.media-requests.partials.assignee-options')
@@ -310,6 +298,24 @@
                                 @error('assigneeId')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
                             </div>
                             <button type="submit" class="btn btn-p btn-w" wire:loading.attr="data-loading"><span class="spin"></span><x-ic n="check" />{{ __('media.act.mmApprove') }}</button>
+                            <button type="button" class="btn-q" style="padding:0;justify-self:start" x-on:click="more = ! more" :aria-expanded="more">
+                                <x-ic n="more" />{{ __('media.fm.prioDate') }} <span class="sub">· {{ __('media.prio.'.$priority) }} · <span class="num">{{ $plannedFor ? \Illuminate\Support\Carbon::parse($plannedFor)->format('d-m-Y') : '—' }}</span></span>
+                            </button>
+                            <div x-show="more" x-cloak class="stack" style="gap:12px">
+                                <fieldset class="field" style="margin:0">
+                                    <legend>{{ __('media.fm.prio') }}</legend>
+                                    <div class="choices">
+                                        @foreach (config('media-requests.priorities') as $p)
+                                            <label class="choice"><input type="radio" value="{{ $p }}" wire:model.live="priority" name="priority"><span><x-ic n="check" class="ck" />{{ __('media.prio.'.$p) }}</span></label>
+                                        @endforeach
+                                    </div>
+                                </fieldset>
+                                <div class="field" style="margin:0">
+                                    <label for="mr-planned">{{ __('media.fm.planned') }}</label>
+                                    <input id="mr-planned" class="inp" type="date" min="{{ today()->toDateString() }}" wire:model.live="plannedFor">
+                                    @error('plannedFor')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
+                                </div>
+                            </div>
                         </form>
                     @endcan
 
@@ -318,20 +324,7 @@
                         <button type="button" class="btn btn-p btn-w" wire:click="claim" wire:loading.attr="data-loading"><span class="spin"></span><x-ic n="user" />{{ __('media.act.claim') }}</button>
                     @endcan
 
-                    @can('assign', $r)
-                        <form wire:submit="assign" class="stack" style="gap:8px">
-                            <label for="mr-assign" class="lbl">{{ __('media.act.assign') }}</label>
-                            <div style="display:flex;gap:8px">
-                                <select id="mr-assign" class="inp" wire:model="assigneeId">
-                                    <option value="">{{ __('media.o.select') }}</option>
-                                    @include('livewire.media-requests.partials.assignee-options')
-                                </select>
-                                <button type="submit" class="btn btn-o">{{ __('media.act.assign') }}</button>
-                            </div>
-                            @error('assigneeId')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
-                        </form>
-                    @endcan
-
+                    @if ($doItMyself)
                     @can('start', $r)
                         <p class="act-p" style="margin:0">{{ __('media.act.start') }}</p>
                         <button type="button" class="btn btn-p btn-w" wire:click="start" wire:loading.attr="data-loading"><span class="spin"></span><x-ic n="play" />{{ __('media.act.startBtn') }}</button>
@@ -382,6 +375,7 @@
                             @endunless
                         </form>
                     @endcan
+                    @endif
 
                     @can('reviewInternal', $r)
                         <p class="act-p" style="margin:0">{{ __('media.act.int') }}</p>
@@ -446,6 +440,7 @@
                         </form>
                     @endcan
 
+                    @if ($doItMyself)
                     @can('markReady', $r)
                         <p class="act-p" style="margin:0">{{ __('media.act.prod') }}</p>
                         <button type="button" class="btn btn-p btn-w" wire:click="markReady" wire:loading.attr="data-loading"><span class="spin"></span><x-ic n="box" />{{ __('media.act.ready') }}</button>
@@ -466,6 +461,7 @@
                             <button type="submit" class="btn btn-p btn-w" wire:loading.attr="data-loading"><span class="spin"></span><x-ic n="check" />{{ __($r->isPack() ? 'media.act.packBtn' : 'media.act.deliverBtn') }}</button>
                         </form>
                     @endcan
+                    @endif
 
                     @can('reply', $r)
                         <form wire:submit="reply" class="stack" style="gap:10px">
@@ -499,6 +495,21 @@
                     <div x-data="{ open: false }">
                         <button type="button" class="btn-q" style="padding:0" x-on:click="open = !open" :aria-expanded="open"><x-ic n="more" />{{ __('media.act.more') }}</button>
                         <div x-show="open" x-cloak class="stack" style="gap:8px;margin-top:10px">
+                            {{-- Give it to someone else: not in front, so it is not mistaken for a step still to do. --}}
+                            @can('assign', $r)
+                                <form wire:submit="assign" class="stack" style="gap:8px">
+                                    <label for="mr-assign" class="lbl">{{ __($r->assignee_id ? 'media.act.reassign' : 'media.act.assign') }}</label>
+                                    <div style="display:flex;gap:8px">
+                                        <select id="mr-assign" class="inp" wire:model="assigneeId">
+                                            <option value="">{{ __('media.o.select') }}</option>
+                                            @include('livewire.media-requests.partials.assignee-options')
+                                        </select>
+                                        <button type="submit" class="btn btn-o">{{ __('media.act.assign') }}</button>
+                                    </div>
+                                    @error('assigneeId')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
+                                </form>
+                                <div class="act-sep" style="margin:4px 0"></div>
+                            @endcan
                             <div class="field" style="margin:0">
                                 <label for="mr-side-note">{{ __('media.fm.reason') }}</label>
                                 <textarea id="mr-side-note" class="inp" rows="2" wire:model="note"></textarea>
