@@ -298,8 +298,9 @@
                                 @error('assigneeId')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
                             </div>
                             <button type="submit" class="btn btn-p btn-w" wire:loading.attr="data-loading"><span class="spin"></span><x-ic n="check" />{{ __('media.act.mmApprove') }}</button>
-                            <button type="button" class="btn-q" style="padding:0;justify-self:start" x-on:click="more = ! more" :aria-expanded="more">
-                                <x-ic n="more" />{{ __('media.fm.prioDate') }} <span class="sub">· {{ __('media.prio.'.$priority) }} · <span class="num">{{ $plannedFor ? \Illuminate\Support\Carbon::parse($plannedFor)->format('d-m-Y') : '—' }}</span></span>
+                            <button type="button" class="btn-q prio-date" style="padding:0" x-on:click="more = ! more" :aria-expanded="more">
+                                <span><x-ic n="cal" />{{ __('media.fm.prioDate') }}</span>
+                                <small>{{ __('media.prio.'.$priority) }} · <span class="num">{{ $plannedFor ? \Illuminate\Support\Carbon::parse($plannedFor)->format('d-m-Y') : '—' }}</span></small>
                             </button>
                             <div x-show="more" x-cloak class="stack" style="gap:12px">
                                 <fieldset class="field" style="margin:0">
@@ -492,36 +493,43 @@
 
                 @if ($sideActions)
                     <div class="act-sep"></div>
-                    <div x-data="{ open: false }">
-                        <button type="button" class="btn-q" style="padding:0" x-on:click="open = !open" :aria-expanded="open"><x-ic n="more" />{{ __('media.act.more') }}</button>
-                        <div x-show="open" x-cloak class="stack" style="gap:8px;margin-top:10px">
-                            {{-- Give it to someone else: not in front, so it is not mistaken for a step still to do. --}}
-                            @can('assign', $r)
-                                <form wire:submit="assign" class="stack" style="gap:8px">
-                                    <label for="mr-assign" class="lbl">{{ __($r->assignee_id ? 'media.act.reassign' : 'media.act.assign') }}</label>
-                                    <div style="display:flex;gap:8px">
-                                        <select id="mr-assign" class="inp" wire:model="assigneeId">
-                                            <option value="">{{ __('media.o.select') }}</option>
-                                            @include('livewire.media-requests.partials.assignee-options')
-                                        </select>
-                                        <button type="submit" class="btn btn-o">{{ __('media.act.assign') }}</button>
-                                    </div>
-                                    @error('assigneeId')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
-                                </form>
-                                <div class="act-sep" style="margin:4px 0"></div>
-                            @endcan
-                            <div class="field" style="margin:0">
-                                <label for="mr-side-note">{{ __('media.fm.reason') }}</label>
-                                <textarea id="mr-side-note" class="inp" rows="2" wire:model="note"></textarea>
-                                @error('note')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
-                            </div>
-                            <div class="btnline">
-                                @can('askInfo', $r)<button type="button" class="btn btn-o btn-sm" wire:click="askInfo"><x-ic n="alert" />{{ __('media.act.needInfo') }}</button>@endcan
-                                @can('hold', $r)<button type="button" class="btn btn-o btn-sm" wire:click="hold"><x-ic n="pause" />{{ __('media.act.hold') }}</button>@endcan
-                                @can('reject', $r)<button type="button" class="btn btn-o btn-sm" x-on:click="mrConfirm(@js(__('media.act.confirmReject')), { ok: @js(__('media.act.reject')), cancel: @js(__('media.confirm.back')), danger: true }).then((yes) => yes && $wire.reject())"><x-ic n="x" />{{ __('media.act.reject') }}</button>@endcan
-                                @can('cancel', $r)<button type="button" class="btn btn-o btn-sm" x-on:click="mrConfirm(@js(__('media.act.confirmCancel')), { ok: @js(__('media.act.cancel')), cancel: @js(__('media.confirm.back')), danger: true }).then((yes) => yes && $wire.cancel())"><x-ic n="x" />{{ __('media.act.cancel') }}</button>@endcan
-                            </div>
+                    {{-- The other decisions, in sight: each one asks its own question when picked (why, or what is missing),
+                         then is confirmed there. Only cancelling may go without a reason. --}}
+                    <div x-data="{ act: null }" class="sideacts">
+                        <p class="sidelab">{{ __('media.side.title') }}</p>
+                        <div class="btnline" x-show="! act">
+                            @foreach ($others as $ability => [$icon, $label])
+                                <button type="button" @class(['btn btn-o btn-sm', 'danger' => in_array($ability, ['reject', 'cancel'], true)])
+                                        x-on:click="act = '{{ $ability }}'; setTimeout(() => document.getElementById('{{ $ability === 'assign' ? 'mr-assign' : 'mr-side-'.$ability }}')?.focus(), 60)"><x-ic :n="$icon" />{{ __('media.'.$label) }}</button>
+                            @endforeach
                         </div>
+
+                        @can('assign', $r)
+                            <form x-show="act === 'assign'" x-cloak wire:submit="assign" class="stack" style="gap:8px">
+                                <label for="mr-assign" class="lbl">{{ __($r->assignee_id ? 'media.act.reassign' : 'media.act.assign') }}</label>
+                                <select id="mr-assign" class="inp" wire:model="assigneeId">
+                                    <option value="">{{ __('media.o.select') }}</option>
+                                    @include('livewire.media-requests.partials.assignee-options')
+                                </select>
+                                @error('assigneeId')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
+                                <div class="btnline">
+                                    <button type="submit" class="btn btn-p btn-sm">{{ __('media.act.assign') }}</button>
+                                    <button type="button" class="btn btn-g btn-sm" x-on:click="act = null">{{ __('media.confirm.back') }}</button>
+                                </div>
+                            </form>
+                        @endcan
+
+                        @foreach ($others->except('assign') as $ability => [$icon, $label, $question])
+                            <form x-show="act === '{{ $ability }}'" x-cloak wire:submit="{{ $ability }}" class="stack" style="gap:8px">
+                                <label for="mr-side-{{ $ability }}" class="lbl">{{ __('media.'.$question) }}@if ($ability !== 'cancel')<span class="req" aria-hidden="true">*</span>@endif</label>
+                                <textarea id="mr-side-{{ $ability }}" class="inp" rows="3" wire:model="note" @if ($ability !== 'cancel') required @endif></textarea>
+                                @error('note')<p class="err"><x-ic n="alert" />{{ $message }}</p>@enderror
+                                <div class="btnline">
+                                    <button type="submit" @class(['btn btn-sm', 'btn-p' => ! in_array($ability, ['reject', 'cancel'], true), 'btn-o danger' => in_array($ability, ['reject', 'cancel'], true)])><x-ic :n="$icon" />{{ __('media.'.$label) }}</button>
+                                    <button type="button" class="btn btn-g btn-sm" x-on:click="act = null">{{ __('media.confirm.back') }}</button>
+                                </div>
+                            </form>
+                        @endforeach
                     </div>
                 @endif
             </section>

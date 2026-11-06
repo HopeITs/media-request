@@ -279,6 +279,14 @@ class Show extends Component
             'members' => $can('assign') || $can('approveMedia') ? $team->membersFor($r->specialty(), $r) : collect(),
             'specialty' => $r->specialty(),
             'load' => $can('assign') || $can('approveMedia') ? $this->openLoad() : [],
+            // The other decisions this person may take now: ability => [icon, label, the question it asks].
+            'others' => collect([
+                'assign' => ['user', $r->assignee_id ? 'act.reassign' : 'act.assign', null],
+                'askInfo' => ['alert', 'act.needInfo', 'side.q.askInfo'],
+                'hold' => ['pause', 'act.hold', 'side.q.hold'],
+                'reject' => ['x', 'act.reject', 'side.q.reject'],
+                'cancel' => ['x', 'act.cancel', 'side.q.cancel'],
+            ])->filter(fn ($a, string $ability) => $can($ability)),
             // The media manager may stand in for the team member, but the steps of someone else's work
             // are not put in front of them: they sit under "More actions".
             'doItMyself' => $r->assignee_id === null || $r->assignee_id === $user->employee_id || ! $team->canActAsMediaManager($user),
