@@ -156,6 +156,18 @@ class DashboardLayout
         return $route && Route::has($route) ? route($route) : null;
     }
 
+    /** The card a page of the top bar becomes when it is dragged onto the home screen. */
+    private const PAGE_CARDS = [
+        'media-requests.index' => 'mine', 'media-requests.pack' => 'pack', 'media-requests.board' => 'app.board',
+        'media-requests.approvals' => 'app.approvals', 'media-requests.drive' => 'app.drive', 'media-requests.stats' => 'app.stats',
+        'media-requests.log' => 'app.log', 'media-requests.assistant' => 'app.assistant', 'people.index' => 'app.people',
+    ];
+
+    public function cardFor(string $route): ?string
+    {
+        return self::PAGE_CARDS[$route] ?? null;
+    }
+
     /** Route the shortcut opens; null for "new request" (opens the form) and HC Generator (another site). */
     public function route(string $key): ?string
     {

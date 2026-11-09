@@ -55,11 +55,37 @@
         </div>
     </section>
 
+    {{--
+        The strip: cards made small and shortcuts wait here as chips, never as icons in the grid.
+        Always drawn, even empty, so the grid never jumps when the first card is minimised or the
+        last brought back. One click opens it; while customising, × takes it off the screen.
+    --}}
+    <ul class="dock" aria-label="{{ __('media.dock.label') }}">
+        @foreach ($layout as $item)
+            @php($key = $item['key'])
+            <li x-show="shownHere('{{ $key }}') && parked('{{ $key }}')" x-cloak @class(['dockitem', 'is-app' => $cards->isApp($key)])>
+                @if ($key === 'app.new')
+                    <button type="button" class="dockchip brand" x-on:click="$dispatch('media-wizard-open')"><x-ic n="plus" />{{ $label($key) }}</button>
+                @elseif ($key === 'app.generator')
+                    <a class="dockchip" href="{{ app(\App\Support\MediaRequests\HcGenerator::class)->url() }}" target="_blank" rel="noopener"><x-ic n="wand" /><span lang="en">{{ $label($key) }}</span></a>
+                @elseif ($cards->isApp($key))
+                    <a class="dockchip" href="{{ route($cards->route($key)) }}"><x-ic :n="$cards->icon($key)" />{{ $label($key) }}</a>
+                @else
+                    @php($count = match ($key) { 'late' => count($late['items'] ?? []), 'decide' => $decisions->count(), 'waiting' => $waiting->count(), 'mine' => $mine->filter->isOpen()->count(), 'bell' => $user->unreadNotifications()->count(), default => 0 })
+                    <button type="button" class="dockchip" x-on:click="unpark('{{ $key }}')" title="{{ __('media.dock.restore') }}">
+                        <x-ic :n="$cards->icon($key)" />{{ $label($key) }}@if ($count)<span class="cnt num">{{ $count }}</span>@endif
+                    </button>
+                @endif
+                <button type="button" class="dockx" x-show="editing" x-cloak x-on:click="remove('{{ $key }}')" aria-label="{{ __('media.dash.hide') }}: {{ $label($key) }}"><x-ic n="x" /></button>
+            </li>
+        @endforeach
+    </ul>
+
     {{-- The grid. Tiles are drawn once by the server; moving, resizing and hiding only change them in place. --}}
-    <div class="hs-wrap">
+    <div class="hs-wrap" :class="{ dropping }" data-drop="{{ __('media.dock.drop') }}">
     {{-- Virtual grid: faint cells behind the tiles while editing, so you can see where a tile will sit. --}}
     <div class="hs hs-guides" x-ref="guides" x-show="editing" x-cloak aria-hidden="true"></div>
-    <div class="hs" :class="{ editing, wiggle: wiggling }" x-ref="grid"
+    <div class="hs" :class="{ editing, wiggle: wiggling, 'is-in': revealed }" x-ref="grid"
          x-on:pointerdown="press($event)" x-on:pointerup="release()" x-on:pointerleave="release()" x-on:pointercancel="release()"
          x-on:click.capture="swallowClick($event)" x-on:contextmenu="if (editing || pressed) $event.preventDefault()">
         @foreach ($layout as $item)
@@ -67,7 +93,7 @@
             <div class="tile {{ $cards->isApp($key) ? 'is-app' : 'is-widget' }}" data-key="{{ $key }}" @if (in_array($key, $empty, true)) data-empty="1" @endif
                  style="{{ $span($item['size']) }}{{ $item['hidden'] ? 'display:none;' : '' }}"
                  :style="span('{{ $key }}')"
-                 :class="{ pinned: pinned('{{ $key }}'), resizing: resizing === '{{ $key }}', mini: mini('{{ $key }}'), peek: peek === '{{ $key }}' }"
+                 :class="{ pinned: pinned('{{ $key }}'), resizing: resizing === '{{ $key }}', parked: parked('{{ $key }}'), peek: peek === '{{ $key }}' }"
                  x-show="shownHere('{{ $key }}')"
                  @if ($page = $cards->isApp($key) ? null : $cards->page(auth()->user(), $key)) data-page="{{ $page }}" x-on:dblclick="openPage($event, $el)" data-hint="dblclick" data-hint-text="{{ __('media.dash.pageOpen') }}" @endif
                  wire:key="tile-{{ $key }}">
@@ -91,6 +117,22 @@
                     </button>
                     <span class="sizebadge num" x-show="resizing === '{{ $key }}'" x-cloak x-text="resizeLabel"></span>
                 @endif
+
+                {{-- Window controls, the same on every card: keep in place, minimise to the strip,
+                     maximise in the side panel, open as a page of its own. --}}
+                @unless ($key === 'app.new')
+                    <div class="wctl" x-show="! editing && peek !== '{{ $key }}'" role="group" aria-label="{{ $label($key) }}">
+                        <button type="button" x-on:click="togglePin('{{ $key }}')" :aria-pressed="pinned('{{ $key }}')" title="{{ __('media.dash.pin') }}" aria-label="{{ __('media.dash.pin') }}: {{ $label($key) }}"><x-ic n="pin" /></button>
+                        <button type="button" x-on:click="minimise('{{ $key }}')" title="{{ __('media.dock.minimise') }}" aria-label="{{ __('media.dock.minimise') }}: {{ $label($key) }}"><x-ic n="min" /></button>
+                        @unless ($cards->isApp($key) || $key === 'clock')
+                            <button type="button" x-on:click="maximise('{{ $key }}')" title="{{ __('media.dock.maximise') }}" aria-label="{{ __('media.dock.maximise') }}: {{ $label($key) }}"><x-ic n="max" /></button>
+                        @endunless
+                        {{-- Not for people who only ask for work: they stay on this screen. --}}
+                        @if (! $here && ($page || ($cards->isApp($key) && $cards->route($key))))
+                            <a href="{{ $page ?: route($cards->route($key)) }}" target="_blank" rel="noopener" title="{{ __('media.dock.popOut') }}" aria-label="{{ __('media.dock.popOut') }}: {{ $label($key) }}"><x-ic n="out" /></a>
+                        @endif
+                    </div>
+                @endunless
 
                 @if ($cards->isApp($key))
                     {{-- App shortcut. On a computer one click shows its card in the side panel, two open the page; on a phone a tap opens the page. --}}
@@ -666,4 +708,5 @@
         </div>
     @endif
 
+    @include('livewire.media-requests.partials.workspace')
 </div>

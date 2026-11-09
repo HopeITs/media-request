@@ -23,6 +23,8 @@
     $requesterOnly = $team->isRequesterOnly($user);
     // Every page uses the whole width of a big screen, like the home screen.
     $wide = true;
+    // The card a page of the top bar becomes when dragged onto the home screen.
+    $cardFor = fn (string $route) => app(\App\Support\MediaRequests\DashboardLayout::class)->cardFor($route);
     if ($requesterOnly) {
         $nav = [];
     }
@@ -47,10 +49,12 @@
                 $occasional = ['media-requests.log', 'media-requests.assistant', 'people.index'];
                 $navMore = collect($nav)->filter(fn ($n) => in_array($n[0], $occasional, true));
             @endphp
+            {{-- A page can be dragged onto the home screen to become a card there. Livewire's wire:navigate
+                 cancels the press a drag starts with, so these links go to their page on a plain click instead. --}}
             <nav class="nav" aria-label="{{ __('media.app') }}">
                 @foreach ($nav as [$route, $label, $icon, , $active])
                     @continue(in_array($route, $occasional, true))
-                    <a href="{{ route($route) }}" wire:navigate @if (request()->routeIs(...$active)) aria-current="page" @endif>
+                    <a href="{{ route($route) }}" @if ($card = $cardFor($route)) draggable="true" data-card="{{ $card }}" x-data x-on:dragstart="$event.dataTransfer.setData('application/x-mr-page', $el.dataset.card); $event.dataTransfer.effectAllowed = 'copy'" x-on:click="if (! $event.defaultPrevented && $event.button === 0 && ! ($event.ctrlKey || $event.metaKey || $event.shiftKey || $event.altKey) && window.Livewire) { $event.preventDefault(); Livewire.navigate($el.href) }" @else wire:navigate @endif @if (request()->routeIs(...$active)) aria-current="page" @endif>
                         <x-ic :n="$icon" />{{ __('media.'.$label) }}
                     </a>
                 @endforeach
@@ -66,7 +70,9 @@
                 {{-- A popover (the top layer), so the bar's scrolling never cuts it off. --}}
                 <div id="nav-more" class="navmenu" popover>
                     @foreach ($navMore as [$route, $label, $icon, , $active])
-                        <a href="{{ route($route) }}" wire:navigate x-data x-on:click="document.getElementById('nav-more').hidePopover()" @if (request()->routeIs(...$active)) aria-current="page" @endif>
+                        <a href="{{ route($route) }}" x-data x-on:click="document.getElementById('nav-more').hidePopover(); if (! $event.defaultPrevented && $event.button === 0 && ! ($event.ctrlKey || $event.metaKey || $event.shiftKey || $event.altKey) && window.Livewire) { $event.preventDefault(); Livewire.navigate($el.href) }"
+                           @if ($card = $cardFor($route)) draggable="true" data-card="{{ $card }}" x-on:dragstart="$event.dataTransfer.setData('application/x-mr-page', $el.dataset.card); $event.dataTransfer.effectAllowed = 'copy'; document.getElementById('nav-more').hidePopover()" @endif
+                           @if (request()->routeIs(...$active)) aria-current="page" @endif>
                             <x-ic :n="$icon" />{{ __('media.'.$label) }}
                         </a>
                     @endforeach

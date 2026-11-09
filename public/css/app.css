@@ -1388,3 +1388,73 @@ h1 .beta{font-size:12px;margin-top:4px}
 /* On a short page the line sits at the bottom of the screen, not mid-way. */
 body:has(> .sitefoot){display:flex;flex-direction:column;min-height:100dvh}
 body:has(> .sitefoot) > main{flex:1 0 auto;width:100%}
+
+/* ==== Workspace and two-state cards (dashboard-workspace-ux, 2026-11-09) ==== */
+/* The scrollbar's room is kept even when nothing scrolls, so the home screen never changes width while it loads. */
+html{scrollbar-gutter:stable}
+/* Cards slide in from the side: that never makes the page scroll sideways. */
+body{overflow-x:clip}
+/* A page opened inside the home screen (a workspace tab): the page alone, without the site's own bars. */
+html.in-workspace header.top,html.in-workspace .sitefoot,html.in-workspace .tabbar,html.in-workspace .skip{display:none!important}
+html.in-workspace main#main{padding-top:20px;padding-bottom:24px}
+html.in-workspace body{padding-bottom:0}
+/* Maximised from its controls, any card opens in the side panel along the screen's end edge. */
+.tile > .w:popover-open{display:flex;position:fixed;inset:16px;inset-inline-start:auto;width:min(560px,calc(100vw - 32px));height:auto;max-height:calc(100dvh - 32px);box-shadow:0 22px 60px rgba(0,0,0,.35),0 0 0 1px var(--line);outline:none;z-index:40}
+@media (max-width:760px){.tile > .w:popover-open{inset:auto 0 0 0;width:100%;height:min(78dvh,640px);max-height:none;border-radius:20px 20px 0 0}}
+/* The strip of minimised cards: under the greeting, the line above it; always one chip tall, so the grid never jumps. */
+.dock{display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-height:36px;margin:0 0 28px;padding:12px 0 0;border-top:1px solid var(--line-soft);list-style:none}
+.dockitem{display:inline-flex;align-items:center;gap:2px}
+.dockchip{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding-inline:12px 14px;border:1px solid var(--line-soft);border-radius:999px;background:var(--card);color:var(--text);font:inherit;font-size:14px;font-weight:700;text-decoration:none;cursor:pointer;transition:background .15s,border-color .15s}
+.dockchip:hover{background:var(--hover);border-color:var(--line)}
+.dockchip:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.dockchip .ic{width:17px;height:17px;color:var(--text-2)}
+.dockchip.brand{background:var(--brand);border-color:var(--brand);color:var(--on-brand)}
+.dockchip.brand .ic{color:var(--on-brand)}
+.dockchip .cnt{position:static;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--brand);color:var(--on-brand);font-size:11.5px;display:inline-grid;place-items:center}
+.dockx{display:grid;place-items:center;width:30px;height:30px;padding:0;border:0;border-radius:999px;background:transparent;color:var(--text-2);cursor:pointer}
+.dockx:hover{background:var(--hover);color:var(--text)}
+.dockx .ic{width:15px;height:15px}
+/* A card in the strip takes no room in the grid, but stays on the page so it can still open in the side panel. */
+.hs > .tile.parked{position:absolute;inset-block-start:0;inset-inline-start:0;width:0;height:0;overflow:visible;pointer-events:none;visibility:hidden}
+.hs > .tile.parked > .w:popover-open{visibility:visible;pointer-events:auto}
+/* Opening the screen: the cards wait unseen until their places are final, then come in one after another. */
+.hs[x-ref="grid"]:not(.is-in) > .tile{opacity:0}
+@media (prefers-reduced-motion:reduce){.hs[x-ref="grid"]:not(.is-in) > .tile{opacity:1}}
+/* Window controls: the same on every card, shown when the pointer is on it or it has focus. */
+.wctl{position:absolute;top:-15px;inset-inline-end:14px;z-index:4;display:flex;gap:2px;padding:3px;border-radius:999px;background:var(--card);box-shadow:var(--shadow-sm),0 0 0 1px var(--line-soft);opacity:0;transform:translateY(-3px);transition:opacity .15s,transform .15s;pointer-events:none}
+.tile:hover > .wctl,.tile:focus-within > .wctl{opacity:1;transform:none;pointer-events:auto}
+.wctl > button,.wctl > a{display:grid;place-items:center;width:28px;height:28px;padding:0;border:0;border-radius:999px;background:transparent;color:var(--text-2);cursor:pointer}
+.wctl > button:hover,.wctl > a:hover{background:var(--hover);color:var(--text)}
+.wctl > button[aria-pressed="true"]{color:var(--brand)}
+.wctl .ic{width:15px;height:15px}
+@media (hover:none){.wctl{display:none}}
+/* A page from the top bar dragged over the screen: the cards' area says it takes it. */
+.hs-wrap.dropping{outline:2px dashed var(--text-3);outline-offset:8px;border-radius:20px}
+.hs-wrap.dropping::before{content:attr(data-drop);position:absolute;top:-44px;inset-inline-start:0;z-index:5;padding:5px 14px;border-radius:999px;background:var(--ink);color:var(--on-ink);font-size:13px;font-weight:700;pointer-events:none}
+html.page-drag iframe{pointer-events:none}
+/* The workspace: pages the home screen leads to open over it, under the top bar, as tabs. */
+.ws{position:fixed;inset:var(--ws-top,64px) 0 0 0;z-index:30;padding:16px;background:color-mix(in srgb,var(--bg) 70%,transparent);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.ws-panel{display:flex;flex-direction:column;height:100%;max-width:1600px;margin:0 auto;overflow:hidden;border:1px solid var(--line-soft);border-radius:20px;background:var(--bg);box-shadow:var(--shadow);outline:none}
+.ws-bar{display:flex;align-items:center;gap:8px;min-height:50px;padding:6px 8px;border-bottom:1px solid var(--line-soft);background:var(--card)}
+.ws-tabs{display:flex;flex:1;gap:4px;min-width:0;overflow-x:auto;scrollbar-width:none}
+.ws-tab{display:inline-flex;flex-shrink:0;align-items:center;max-width:260px;border:1px solid transparent;border-radius:999px;color:var(--text-2)}
+.ws-tab:hover{background:var(--hover)}
+.ws-tab.on{border-color:var(--line);background:var(--hover);color:var(--text)}
+.ws-tab-name{min-width:0;overflow:hidden;padding:6px 4px;padding-inline-start:14px;border:0;background:none;color:inherit;font:inherit;font-size:14px;font-weight:700;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.ws-tab-x,.ws-btn{display:grid;flex-shrink:0;place-items:center;width:28px;height:28px;padding:0;border:0;border-radius:999px;background:none;color:var(--text-2);cursor:pointer}
+.ws-btn{width:34px;height:34px}
+.ws-tab-x:hover,.ws-btn:hover{background:var(--hover);color:var(--text)}
+.ws-tab-x .ic{width:14px;height:14px}
+.ws-btn .ic{width:17px;height:17px}
+[dir="rtl"] .ws-btn .flip-rtl{transform:scaleX(-1)}
+.ws-actions{display:flex;gap:2px}
+.ws-body{position:relative;flex:1;min-height:0}
+.ws-frame{display:block;width:100%;height:100%;border:0;background:var(--bg)}
+.ws-enter{transition:opacity 320ms cubic-bezier(.16,1,.3,1),translate 420ms cubic-bezier(.16,1,.3,1)}
+.ws-leave{transition:opacity 180ms ease-in,translate 180ms ease-in}
+.ws-from{opacity:0;translate:48px 0}
+[dir="rtl"] .ws-from{translate:-48px 0}
+.ws-to{opacity:1;translate:0 0}
+html.ws-open{overflow:hidden}
+@media (max-width:760px){.ws{padding:0;bottom:calc(64px + env(safe-area-inset-bottom))}.ws-panel{border-radius:0;border-inline:0}}
+@media (prefers-reduced-motion:reduce){.ws-enter,.ws-leave{transition:none}}

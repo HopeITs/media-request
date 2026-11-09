@@ -27,6 +27,9 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
     const PHONE_SIZE = { clock: '4x1', pack: '4x1', proof: '4x4' };
     // Glides currently running, per tile element (kept outside Alpine's reactive state).
     const glides = new WeakMap();
+    // Entrances running, per tile, kept apart so a glide never cuts one short.
+    const entrances = new WeakMap();
+    const ENTER = 'cubic-bezier(.16,1,.3,1)';
 
     return {
         items: layout,
@@ -44,9 +47,13 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
         pressed: false,
         saveTimer: null,
         wiggleTimer: null,
+        revealed: false,      // the cards stay unseen until their places are final (reveal)
+        dropping: false,      // a page from the top bar is being dragged over the screen
 
         init() {
             this.readCols();
+            this.$nextTick(() => this.reveal());
+            this.acceptPages();
             window.addEventListener('resize', () => { this.readCols(); this.drawGuides(); });
             // The grid's own width decides 8 or 4 columns (a container query), so watch it too.
             if (window.ResizeObserver) new ResizeObserver(() => this.readCols()).observe(this.$refs.grid.parentElement);
@@ -179,7 +186,8 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
             // closed, so the screen starts with what has something; the saved order is not changed.
             // While customising they show whole, so they can still be moved and sized.
             const empty = (i) => ! this.editing && this.tileEl(i.key)?.dataset.empty === '1';
-            const visible = this.items.filter((i) => this.shownHere(i.key))
+            // Cards waiting in the strip take no room in the grid.
+            const visible = this.items.filter((i) => this.shownHere(i.key) && ! this.parked(i.key))
                 .map((i) => (empty(i) ? { ...i, size: Math.min(4, this.cols) + 'x1' } : (this.phone() && PHONE_SIZE[i.key] ? { ...i, size: PHONE_SIZE[i.key] } : i)));
             const full = visible.filter((i) => ! empty(i)), closed = visible.filter(empty);
             const flat = new Set(closed.map((i) => i.key));   // they stay one line: never grown taller
@@ -284,10 +292,115 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
             const [w, h] = parse(size);
             return Math.min(w, this.cols) < Math.min(c[0], this.cols) || h < c[1];
         },
-        mini(key) {
-            if (key.startsWith('app.') || (! this.editing && this.tileEl(key)?.dataset.empty === '1')) return false;
-            const p = ! this.editing && this.packed[key];
-            return this.iconish(key, p ? p.w + 'x' + p.h : this.item(key).size);
+        // Two states only: a card is open in the grid, or it waits as a chip in the strip above it.
+        // Never an icon in the grid. A card smaller than the smallest size it shows itself at
+        // (bounds.card), and a shortcut at one cell, wait in the strip, while customising too;
+        // not while its own corner is being dragged (it would vanish under the pointer).
+        parked(key) {
+            const it = this.item(key);
+            if (it.hidden || this.resizing === key) return false;
+            if (key.startsWith('app.')) { const [w, h] = parse(it.size); return w < 2 || h < 2; }
+            return this.iconish(key, it.size);
+        },
+        parkedItems() { return this.items.filter((i) => this.shownHere(i.key) && this.parked(i.key)); },
+        mini() { return false; },
+        // Back from the strip: in its place in the grid at the smallest size it shows itself at,
+        // kept at that size (fixed) rather than grown into the gaps.
+        unpark(key) {
+            const it = this.item(key);
+            const card = (this.bounds[key] || {}).card || [4, 3];
+            if (this.peek === key) this.closePeek();
+            this.flip(() => { it.size = card[0] + 'x' + card[1]; it.fixed = true; });
+            this.save();
+            this.$nextTick(() => this.tileEl(key)?.scrollIntoView({ block: 'nearest', behavior: reducedMotion() ? 'auto' : 'smooth' }));
+        },
+        // ---- window controls on every card --------------------------------
+        minimise(key) {
+            const it = this.item(key);
+            if (this.peek === key) this.closePeek();
+            this.flip(() => { it.size = '1x1'; it.fixed = true; it.pinned = false; });
+            this.save();
+        },
+        maximise(key) { this.peekOpen(key); },
+        popOut(key) {
+            const page = this.tileEl(key)?.dataset.page;
+            if (page) window.open(page, '_blank', 'noopener');
+        },
+        // A page from the top bar dropped on the screen: an open card (added, or back from the
+        // strip), with every card shown so it can be seen arriving.
+        pinPage(key) {
+            const it = key ? this.items.find((i) => i.key === key) : null;
+            if (! it) return;   // not a page this person's screen may have
+            if (it.hidden) {
+                const card = key.startsWith('app.') ? [4, 3] : ((this.bounds[key] || {}).card || [4, 3]);
+                const [w, h] = parse(it.size);
+                if (w < card[0] || h < card[1]) { it.size = card[0] + 'x' + card[1]; it.fixed = true; }
+                this.add(key);
+            } else if (this.parked(key)) {
+                this.unpark(key);
+            }
+            setTimeout(() => this.tileEl(key)?.scrollIntoView({ block: 'nearest', behavior: reducedMotion() ? 'auto' : 'smooth' }), 350);
+        },
+        // Taken anywhere on the page, not only over the cards; frames (the workspace) let the drag
+        // through while it lasts, since a frame keeps drag events to itself.
+        acceptPages() {
+            const html = document.documentElement;
+            const isPage = (e) => [...((e.dataTransfer && e.dataTransfer.types) || [])].includes('application/x-mr-page');
+            const stop = () => { html.classList.remove('page-drag'); this.dropping = false; };
+            const onStart = (e) => { if (! isPage(e) || this.editing) return; html.classList.add('page-drag'); this.dropping = true; };
+            const onOver = (e) => {
+                if (! isPage(e) || this.editing) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'copy';
+                if (! this.dropping) onStart(e);
+            };
+            const onDrop = (e) => {
+                if (! isPage(e)) return;
+                e.preventDefault();
+                stop();
+                const key = e.dataTransfer.getData('application/x-mr-page');
+                if (key && ! this.editing) this.pinPage(key);
+            };
+            // Bubbling, not capture: the link's own dragstart has put the card's key in by then.
+            document.addEventListener('dragstart', onStart);
+            document.addEventListener('dragover', onOver);
+            document.addEventListener('drop', onDrop);
+            document.addEventListener('dragend', stop);
+            document.addEventListener('livewire:navigating', () => {
+                stop();
+                document.removeEventListener('dragstart', onStart);
+                document.removeEventListener('dragover', onOver);
+                document.removeEventListener('drop', onDrop);
+                document.removeEventListener('dragend', stop);
+            }, { once: true });
+        },
+        // ---- arriving: unseen until final, then in reading order ---------
+        enter(tiles, duration = 1000) {
+            if (! tiles.length || reducedMotion()) return;
+            const from = (this.metrics().rtl ? -1 : 1) * 96;
+            const place = (t) => this.packed[t.dataset.key] || { x: 0, y: 0 };
+            const order = tiles.filter((t) => ! this.parked(t.dataset.key))
+                .sort((a, b) => place(a).y - place(b).y || place(a).x - place(b).x);
+            order.forEach((t, n) => {
+                const running = entrances.get(t);
+                if (running) running.cancel();
+                const anim = t.animate(
+                    [{ opacity: 0, transform: `translate3d(${from}px, 0, 0)` }, { opacity: 1, transform: 'translate3d(0, 0, 0)' }],
+                    { duration, delay: Math.min(640, n * 80), easing: ENTER, fill: 'backwards' },
+                );
+                entrances.set(t, anim);
+                anim.onfinish = () => { if (entrances.get(t) === anim) entrances.delete(t); };
+            });
+        },
+        async reveal() {
+            if (! this.$refs.grid) { this.revealed = true; return; }
+            // A frame, or 50ms when frames are paused (a page opened in the background).
+            const tick = () => new Promise((r) => { requestAnimationFrame(r); setTimeout(r, 50); });
+            await tick();
+            this.enter([...this.$refs.grid.querySelectorAll('.tile')].filter((t) => t.offsetParent !== null && this.shownHere(t.dataset.key)));
+            // State bound with :class, not a class set by hand: a server update rewrites the grid's
+            // attributes and would drop it, hiding every card again.
+            this.revealed = true;
         },
         /*
          * One click on the icon: the card opens in a side panel (a sheet from the bottom on a phone).
@@ -532,7 +645,8 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
          * where it is, instead of restarting from somewhere else.
          */
         flip(mutate, resizedKey = null) {
-            const visible = () => [...this.$refs.grid.querySelectorAll('.tile')].filter((t) => t.offsetParent !== null);
+            // A card waiting in the strip has no place in the grid: coming back, it enters.
+            const visible = () => [...this.$refs.grid.querySelectorAll('.tile')].filter((t) => t.offsetParent !== null && ! t.classList.contains('parked'));
             const before = new Map(visible().map((t) => [t, t.getBoundingClientRect()]));
             mutate();
             this.$nextTick(() => {
@@ -543,17 +657,20 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
                     if (running) { running.cancel(); glides.delete(t); }
                 }
                 if (reducedMotion()) return;
+                const entering = [];
                 for (const t of tiles) {
                     const a = before.get(t);
                     const b = t.getBoundingClientRect();
                     let anim = null;
                     if (! a) {
-                        anim = t.animate([{ opacity: 0, transform: 'scale(.9)' }, { opacity: 1, transform: 'none' }], { duration: 220, easing: EASE });
+                        // Shown now (added, back from the strip): it comes in like on arrival.
+                        entering.push(t);
                     } else if (t.dataset.key !== resizedKey) {
-                        // The tile being resized follows the finger cell by cell; only the others glide.
+                        // The tile being resized follows the finger cell by cell; only the others glide,
+                        // added on top of an entrance still running, so neither cuts the other short.
                         const dx = a.left - b.left, dy = a.top - b.top;
                         if (Math.abs(dx) >= 1 || Math.abs(dy) >= 1) {
-                            anim = t.animate([{ transform: `translate3d(${dx}px, ${dy}px, 0)` }, { transform: 'translate3d(0, 0, 0)' }], { duration: 240, easing: EASE });
+                            anim = t.animate([{ transform: `translate3d(${dx}px, ${dy}px, 0)` }, { transform: 'translate3d(0, 0, 0)' }], { duration: 240, easing: EASE, composite: 'add' });
                         }
                     }
                     if (anim) {
@@ -561,6 +678,7 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
                         anim.onfinish = () => { if (glides.get(t) === anim) glides.delete(t); };
                     }
                 }
+                this.enter(entering, 700);
             });
         },
 
