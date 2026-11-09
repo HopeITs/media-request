@@ -97,6 +97,27 @@ class WorkCalendar
         return $n;
     }
 
+    /** Working minutes between two moments: only working days, only between the day's start and end (Damascus). */
+    public function workMinutesBetween(Carbon $from, ?Carbon $to = null): int
+    {
+        $from = $from->copy()->setTimezone($this->tz());
+        $to = ($to ?? now())->copy()->setTimezone($this->tz());
+        [$sh, $sm] = array_map('intval', explode(':', (string) config('media-requests.work.from', '09:00')));
+        [$eh, $em] = array_map('intval', explode(':', (string) config('media-requests.work.to', '17:00')));
+        $minutes = 0;
+
+        for ($day = $from->copy()->startOfDay(); $day->lte($to) && $minutes < 100000; $day->addDay()) {
+            if (! $this->isWorkDay($day)) {
+                continue;
+            }
+            $start = max($day->copy()->setTime($sh, $sm)->timestamp, $from->timestamp);
+            $end = min($day->copy()->setTime($eh, $em)->timestamp, $to->timestamp);
+            $minutes += max(0, intdiv($end - $start, 60));
+        }
+
+        return $minutes;
+    }
+
     /** @return array<int, int> */
     private function workDays(): array
     {

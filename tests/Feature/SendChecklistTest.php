@@ -48,6 +48,48 @@ class SendChecklistTest extends TestCase
         $this->assertSame(S::InternalReview, $r->fresh()->status);
     }
 
+    /** The check of a result waits half a working day at most before the media manager is told, once. */
+    public function test_a_slow_review_alerts_the_media_manager_once(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+        Notification::fake();
+        $calendar = app(\App\Support\MediaRequests\WorkCalendar::class);
+
+        // Working time only: Friday 15:00 to Monday 11:00 is 2 + 2 hours.
+        $this->assertSame(240, $calendar->workMinutesBetween(
+            \Illuminate\Support\Carbon::parse('2026-11-06 15:00', 'Asia/Damascus'), \Illuminate\Support\Carbon::parse('2026-11-09 11:00', 'Asia/Damascus')));
+
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-11-09 09:30', 'Asia/Damascus'));
+        $r = $this->makeRequest();
+        $r->forceFill(['status' => S::InternalReview, 'status_changed_at' => now()])->save();
+        $this->assertFalse($r->fresh()->isLate());
+
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-11-09 12:00', 'Asia/Damascus'));
+        $this->artisan('media:review-alert')->assertSuccessful();
+        $this->assertNull($r->fresh()->review_alerted_at);
+
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-11-09 14:00', 'Asia/Damascus'));
+        $this->assertTrue($r->fresh()->isLate());
+        $this->artisan('media:review-alert')->assertSuccessful();
+        $this->assertNotNull($r->fresh()->review_alerted_at);
+        Notification::assertSentTo($this->user('maya'), \App\Notifications\MediaRequestUpdated::class);
+
+        $before = $r->fresh()->review_alerted_at;
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-11-09 16:00', 'Asia/Damascus'));
+        $this->artisan('media:review-alert')->assertSuccessful();
+        $this->assertEquals($before, $r->fresh()->review_alerted_at);   // once each time it is sent
+    }
+
+    private function makeRequest(): \App\Models\MediaRequest
+    {
+        return app(MediaRequestWorkflow::class)->submit($this->user('lina'), [
+            'service' => '001', 'type' => 'new', 'title' => 'Open day',
+            'program_id' => Program::where('slug', 'DISC')->value('id'), 'city_id' => City::where('slug', 'ALP')->value('id'),
+            'needed_by' => '2026-11-20',
+            'answers' => ['format' => 'poster', 'versions' => ['story'], 'langs' => ['ar']],
+        ]);
+    }
+
     private function user(string $who): User
     {
         return User::where('email', $who.'@example.test')->firstOrFail();

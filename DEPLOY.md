@@ -120,6 +120,9 @@ Laravel's scheduler does this; it needs one line in the web server user's cronta
 
 To try it by hand: `php artisan media:remind` (safe to run again: each request is reminded at most once a day).
 
+The same cron line also runs `media:review-alert` every half hour in working hours: a result that has waited half
+a working day for the media manager's check tells the media manager, once each time it is sent.
+
 **Email.** When a request is delivered, the requester and their program manager get an email with the details
 and a button that opens it (files are only shared in the app). Set the organisation's mail server in `.env`:
 

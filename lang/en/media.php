@@ -1404,6 +1404,7 @@ return [
     'ev.dueSoon' => 'Reminder: due tomorrow (:date)',
     'ev.dueToday' => 'Reminder: due today (:date)',
     'ev.overdue' => 'Late: past its needed-by date (:date)',
+    'ev.reviewWaiting' => 'Waiting for your check for half a working day',
     'cel.delivered' => 'Delivered',
     'cel.yours' => 'Your request is delivered',
     'late.mine' => '{1} You have a request past its deadline|[2,*] You have :n requests past their deadline',

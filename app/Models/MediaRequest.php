@@ -33,7 +33,7 @@ class MediaRequest extends Model implements HasMedia
         'media_approver_id', 'media_approved_at', 'assignee_id', 'priority', 'planned_for',
         'internal_ok', 'revisions', 'draft_link', 'result_link', 'archive_link', 'archive_name',
         'last_nudged_at', 'last_reminded_on', 'delivered_at', 'imported_from',
-        'text_ok_at', 'text_ok_by',
+        'text_ok_at', 'text_ok_by', 'review_alerted_at',
     ];
 
     protected $casts = [
@@ -46,6 +46,7 @@ class MediaRequest extends Model implements HasMedia
         'media_approved_at' => 'datetime',
         'last_nudged_at' => 'datetime',
         'text_ok_at' => 'datetime',
+        'review_alerted_at' => 'datetime',
         'delivered_at' => 'datetime',
         'needs_program_approval' => 'boolean',
         'internal_ok' => 'boolean',
@@ -303,10 +304,23 @@ class MediaRequest extends Model implements HasMedia
         };
     }
 
+    /** A result has waited for the media manager's check longer than half a working day. */
+    public function reviewIsSlow(?\App\Support\MediaRequests\WorkCalendar $calendar = null): bool
+    {
+        return $this->status === MediaRequestStatus::InternalReview && $this->status_changed_at !== null
+            && ($calendar ?? app(\App\Support\MediaRequests\WorkCalendar::class))->workMinutesBetween($this->status_changed_at)
+                >= (int) config('media-requests.review_alert_minutes', 240);
+    }
+
     public function isLate(): bool
     {
         if (! $this->isOpen()) {
             return false;
+        }
+
+        // The check of a result is quick: late after half a working day, not after a whole day.
+        if ($this->status === MediaRequestStatus::InternalReview) {
+            return $this->reviewIsSlow();
         }
 
         if (in_array($this->status, MediaRequestStatus::working(), true)) {

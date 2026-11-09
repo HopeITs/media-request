@@ -28,6 +28,9 @@ return [
     // An open request waiting this long with the same owner is flagged late.
     'late_after_hours' => 24,
 
+    // A result waiting this many working minutes for the media manager's check is late, and they are told (half a day).
+    'review_alert_minutes' => 240,
+
     // A reminder ("nudge") can be sent once per this many hours.
     'nudge_every_hours' => 24,
 

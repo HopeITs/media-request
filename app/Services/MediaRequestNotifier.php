@@ -45,6 +45,8 @@ class MediaRequestNotifier
             'comment' => $this->conversationPartners($r, $actor),
             // Deadline reminders (media:remind): whoever holds it; when it is late, also the assignee and the media manager.
             'dueSoon', 'dueToday' => $this->owners($r),
+            // A result has waited half a working day for the media manager's check (media:review-alert).
+            'reviewWaiting' => $this->owners($r),
             'overdue' => $this->owners($r)->merge($this->assignee($r))->merge($this->team->accounts($this->team->managers())),
             default => collect(),
         };
