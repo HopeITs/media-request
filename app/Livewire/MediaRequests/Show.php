@@ -161,9 +161,41 @@ class Show extends Component
         $this->run(fn () => $w->shareDraft(auth()->user(), $this->mediaRequest, $this->link, $this->note, $this->resultUploads), decision: false);
     }
 
+    /** The pre-send checklist the designer ticked (keys of sendChecklist()). */
+    public array $sendChecks = [];
+
     public function sendResult(MediaRequestWorkflow $w): void
     {
+        // What the review kept sending back (text, logos, names and numbers, missing sizes) is checked before it goes.
+        $missing = array_diff(array_keys($this->sendChecklist()), $this->sendChecks);
+        if ($missing !== []) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['sendChecks' => __('media.check.all')]);
+        }
+
         $this->run(fn () => $w->sendResult(auth()->user(), $this->mediaRequest, $this->link, $this->note, $this->resultUploads));
+        $this->sendChecks = [];
+    }
+
+    /**
+     * What to check before sending a design or a LinkedIn post's photos: key => label. Photos and video
+     * from a shoot go as a link and have no list. These are the corrections the review asked for most.
+     *
+     * @return array<string, string>
+     */
+    private function sendChecklist(): array
+    {
+        $r = $this->mediaRequest;
+
+        return match (true) {
+            $r->isLinkedIn() => ['logo' => __('media.check.logo'), 'photos' => __('media.check.photos')],
+            $r->service === '001' => [
+                'text' => __('media.check.text'),
+                'logo' => __('media.check.logo'),
+                'facts' => __('media.check.facts'),
+                'versions' => __('media.check.versions'),
+            ],
+            default => [],
+        };
     }
 
     public function approveInternal(MediaRequestWorkflow $w): void
@@ -279,6 +311,7 @@ class Show extends Component
             'members' => $can('assign') || $can('approveMedia') ? $team->membersFor($r->specialty(), $r) : collect(),
             'specialty' => $r->specialty(),
             'load' => $can('assign') || $can('approveMedia') ? $this->openLoad() : [],
+            'checklist' => $can('work') ? $this->sendChecklist() : [],
             // The other decisions this person may take now: ability => [icon, label, the question it asks].
             'others' => collect([
                 'assign' => ['user', $r->assignee_id ? 'act.reassign' : 'act.assign', null],

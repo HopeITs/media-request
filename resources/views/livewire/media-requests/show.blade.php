@@ -370,6 +370,23 @@
                                 <label for="mr-work-note">{{ __('media.fm.note') }}</label>
                                 <textarea id="mr-work-note" class="inp" rows="2" wire:model="note"></textarea>
                             </div>
+                            {{-- Before it goes to the review: what the review sent back most often over three years. Every line ticked;
+                                 what was asked is beside it to compare with. A draft needs none of this. --}}
+                            @if ($checklist !== [])
+                                <fieldset class="field sendcheck" style="margin:0">
+                                    <legend>{{ __('media.check.title') }}</legend>
+                                    @foreach ($checklist as $key => $label)
+                                        <label class="check"><input type="checkbox" value="{{ $key }}" wire:model="sendChecks" required>{{ $label }}</label>
+                                    @endforeach
+                                    @if ($summary !== [])
+                                        <details class="asked">
+                                            <summary>{{ __('media.check.asked') }}</summary>
+                                            <dl class="dl">@foreach ($summary as $row)<dt>{{ $row['label'] }}</dt><dd>{{ $row['value'] }}</dd>@endforeach</dl>
+                                        </details>
+                                    @endif
+                                    @error('sendChecks')<p class="err" role="alert"><x-ic n="alert" />{{ $message }}</p>@enderror
+                                </fieldset>
+                            @endif
                             <button type="submit" class="btn btn-p btn-w" wire:loading.attr="data-loading"><span class="spin"></span><x-ic n="send" class="flip" />{{ __($r->isLinkedIn() ? 'media.act.sendPhotos' : ($r->internal_ok ? 'media.act.sendReq' : 'media.act.sendInt')) }}</button>
                             @unless ($r->isLinkedIn())
                                 <button type="button" class="btn btn-o btn-w" wire:click="shareDraft"><x-ic n="eye" />{{ __('media.act.draft') }}</button>

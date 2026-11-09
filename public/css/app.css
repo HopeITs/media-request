@@ -822,6 +822,13 @@ img[src*="hope-center.svg"]{filter:var(--logo)}
 .crew-claim .job{font-size:14px;padding-inline-start:21px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .crew .ic.skill{width:13px;height:13px}
 /* One-sentence progress for the requester */
+/* The checklist before sending a design to the review. */
+.sendcheck{display:grid;gap:6px;padding:10px 12px;border:1px solid var(--line-soft);border-radius:var(--r);background:var(--field)}
+.sendcheck legend{font-weight:700;font-size:13px;padding:0 4px}
+.sendcheck .check{display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.4;cursor:pointer}
+.sendcheck .check input{margin-top:2px;flex:none}
+.sendcheck .asked summary{cursor:pointer;font-size:12px;color:var(--text-2);margin-top:2px}
+.sendcheck .asked .dl{margin-top:6px;font-size:12px}
 /* The other decisions on a request: in sight, each asking its own question when picked. */
 .sidelab{margin:0 0 8px;font-size:12px;font-weight:700;color:var(--text-3)}
 .btn.danger{color:var(--brand);border-color:var(--brand);opacity:1}
