@@ -23,14 +23,18 @@
     $requesterOnly = $team->isRequesterOnly($user);
     // Every page uses the whole width of a big screen, like the home screen.
     $wide = true;
-    // The card a page of the top bar becomes when dragged onto the home screen.
-    $cardFor = fn (string $route) => app(\App\Support\MediaRequests\DashboardLayout::class)->cardFor($route);
     if ($requesterOnly) {
         $nav = [];
     }
+    // The top bar's pages, for the home screen's choice of which open in its tabs and which as a full page
+    // (none for people with the home screen only: they have no top bar).
+    $pages = collect($nav)->reject(fn ($n) => $n[0] === 'media-requests.home')
+        ->map(fn ($n) => ['path' => rtrim(parse_url(route($n[0]), PHP_URL_PATH) ?: '/', '/'), 'label' => __('media.'.$n[1])])->values();
+    // The card a page of the top bar becomes when dragged onto the home screen.
+    $cardFor = fn (string $route) => app(\App\Support\MediaRequests\DashboardLayout::class)->cardFor($route);
 @endphp
 <!DOCTYPE html>
-<html lang="{{ $locale }}" dir="{{ $locale === 'ar' ? 'rtl' : 'ltr' }}" data-user="{{ $user->id }}" data-got-it="{{ __('media.hint.gotIt') }}">
+<html lang="{{ $locale }}" dir="{{ $locale === 'ar' ? 'rtl' : 'ltr' }}" data-user="{{ $user->id }}" data-pages="{{ $pages->toJson() }}"data-got-it="{{ __('media.hint.gotIt') }}">
 <head>
     <x-layouts.head :title="$title ?? null" />
 </head>
@@ -100,7 +104,7 @@
                 <a href="{{ route('lang', $locale === 'ar' ? 'en' : 'ar') }}" class="langbtn" lang="{{ $locale === 'ar' ? 'en' : 'ar' }}">
                     <x-ic n="globe" />{{ $locale === 'ar' ? 'EN' : 'ع' }}
                 </a>
-                <div class="me" x-data="{ open: false }" x-on:click.outside="open = false" x-on:keydown.escape="open = false">
+                <div class="me" x-data="{ open: false }" x-on:click.outside="open = false" x-on:keydown.escape="open = false" x-on:mr-ws-opened.window="open = false">
                     <button type="button" x-on:click="open = !open" :aria-expanded="open" aria-haspopup="true">
                         <span class="av" aria-hidden="true">{{ $initials }}</span><span class="wn">{{ $name }}</span><x-ic n="chev" />
                     </button>
@@ -135,7 +139,7 @@
         $second = $requesterOnly ? null : ($find('media-requests.board') ?? $find('media-requests.index'));
         $more = collect($nav)->reject(fn ($n) => in_array($n[0], ['media-requests.home', $second[0] ?? ''], true));
     @endphp
-    <nav class="tabbar" aria-label="{{ __('media.app') }}" x-data="{ more: false }" x-on:keydown.escape.window="more = false">
+    <nav class="tabbar" aria-label="{{ __('media.app') }}" x-data="{ more: false }" x-on:keydown.escape.window="more = false" x-on:mr-ws-opened.window="more = false">
         <a href="{{ route('media-requests.home') }}" wire:navigate @if (request()->routeIs('media-requests.home') && ! request('bell')) aria-current="page" @endif>
             <x-ic n="home" /><span>{{ __('media.nav.home') }}</span>
         </a>

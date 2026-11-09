@@ -699,8 +699,8 @@ textarea.notes{flex:1;min-height:0;resize:none;background:var(--soft);border-col
 @keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-.8deg)}75%{transform:rotate(.8deg)}}
 .tbtn{position:absolute;z-index:3;width:30px;height:30px;border-radius:50%;border:0;display:grid;place-items:center;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.18)}
 .tbtn .ic{width:15px;height:15px}
-.t-remove{top:-8px;inset-inline-start:-8px;background:var(--ink);color:var(--on-ink)}
-.is-app .t-remove{top:-2px;inset-inline-start:calc(50% - 40px)}
+.t-remove{top:-14px;inset-inline-start:calc(50% - 15px);background:var(--ink);color:var(--on-ink)}
+.is-app .t-remove{top:-14px;inset-inline-start:calc(50% - 15px)}
 /* Pin and resize sit inside the tile, so they never touch a neighbour's controls */
 .t-pin{top:8px;inset-inline-end:8px;width:28px;height:28px;background:var(--card);color:var(--text);box-shadow:0 0 0 1px var(--line-soft)}
 .t-pin[aria-pressed="true"]{background:var(--brand);color:#fff;box-shadow:none}
@@ -1432,29 +1432,104 @@ html.in-workspace body{padding-bottom:0}
 .hs-wrap.dropping{outline:2px dashed var(--text-3);outline-offset:8px;border-radius:20px}
 .hs-wrap.dropping::before{content:attr(data-drop);position:absolute;top:-44px;inset-inline-start:0;z-index:5;padding:5px 14px;border-radius:999px;background:var(--ink);color:var(--on-ink);font-size:13px;font-weight:700;pointer-events:none}
 html.page-drag iframe{pointer-events:none}
-/* The workspace: pages the home screen leads to open over it, under the top bar, as tabs. */
-.ws{position:fixed;inset:var(--ws-top,64px) 0 0 0;z-index:30;padding:16px;background:color-mix(in srgb,var(--bg) 70%,transparent);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
-.ws-panel{display:flex;flex-direction:column;height:100%;max-width:1600px;margin:0 auto;overflow:hidden;border:1px solid var(--line-soft);border-radius:20px;background:var(--bg);box-shadow:var(--shadow);outline:none}
-.ws-bar{display:flex;align-items:center;gap:8px;min-height:50px;padding:6px 8px;border-bottom:1px solid var(--line-soft);background:var(--card)}
-.ws-tabs{display:flex;flex:1;gap:4px;min-width:0;overflow-x:auto;scrollbar-width:none}
-.ws-tab{display:inline-flex;flex-shrink:0;align-items:center;max-width:260px;border:1px solid transparent;border-radius:999px;color:var(--text-2)}
-.ws-tab:hover{background:var(--hover)}
-.ws-tab.on{border-color:var(--line);background:var(--hover);color:var(--text)}
-.ws-tab-name{min-width:0;overflow:hidden;padding:6px 4px;padding-inline-start:14px;border:0;background:none;color:inherit;font:inherit;font-size:14px;font-weight:700;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
-.ws-tab-x,.ws-btn{display:grid;flex-shrink:0;place-items:center;width:28px;height:28px;padding:0;border:0;border-radius:999px;background:none;color:var(--text-2);cursor:pointer}
-.ws-btn{width:34px;height:34px}
-.ws-tab-x:hover,.ws-btn:hover{background:var(--hover);color:var(--text)}
-.ws-tab-x .ic{width:14px;height:14px}
-.ws-btn .ic{width:17px;height:17px}
-[dir="rtl"] .ws-btn .flip-rtl{transform:scaleX(-1)}
-.ws-actions{display:flex;gap:2px}
-.ws-body{position:relative;flex:1;min-height:0}
+/* The home screen's tabs: the home screen first, then every page opened from it. */
+.ws{margin:-6px 0 22px}
+.ws[hidden]{display:none}
+.ws-bar{display:flex;align-items:center;gap:8px;padding-bottom:10px;border-bottom:1px solid var(--line-soft)}
+.ws-tabs{display:flex;flex:1;gap:6px;min-width:0;overflow-x:auto;scrollbar-width:none;padding:2px}
+.ws-tab{display:inline-flex;flex-shrink:0;align-items:center;max-width:280px;min-height:36px;border:1px solid var(--line-soft);border-radius:999px;background:var(--card);color:var(--text-2);transition:background .15s,border-color .15s,color .15s}
+.ws-tab:hover{background:var(--hover);color:var(--text)}
+.ws-tab.on{border-color:var(--ink);background:var(--ink);color:var(--on-ink)}
+.ws-tab-name{display:inline-flex;align-items:center;gap:7px;min-width:0;overflow:hidden;padding:6px 6px;padding-inline-start:14px;border:0;background:none;color:inherit;font:inherit;font-size:14px;font-weight:700;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.ws-tab.home .ws-tab-name{padding-inline-end:14px}
+.ws-tab-name .ic{width:16px;height:16px;flex-shrink:0}
+.ws-tab-x,.ws-tab-pin,.ws-btn{display:grid;flex-shrink:0;place-items:center;width:26px;height:26px;padding:0;border:0;border-radius:999px;background:none;color:inherit;cursor:pointer;opacity:.75}
+.ws-tab-x{margin-inline-end:5px}
+.ws-tab-x:hover,.ws-tab-pin:hover{opacity:1;background:color-mix(in srgb,currentColor 14%,transparent)}
+.ws-tab-x .ic,.ws-tab-pin .ic{width:13px;height:13px}
+/* The pin shows on a kept tab, and on the others when the pointer is on them. */
+.ws-tab:not(.kept):not(:hover):not(:focus-within) .ws-tab-pin{width:0;opacity:0;overflow:hidden}
+.ws-tab.kept .ws-tab-pin{opacity:1}
+.ws-tab.kept:not(.on) .ws-tab-pin{color:var(--brand)}
+.ws-btn{width:36px;height:36px;color:var(--text-2);opacity:1}
+.ws-btn:hover{background:var(--hover);color:var(--text)}
+.ws-btn .ic{width:18px;height:18px}
+.ws-actions{display:flex;align-items:center;gap:2px}
+.ws-set{position:relative}
+.ws-menu{position:absolute;top:calc(100% + 6px);inset-inline-end:0;z-index:40;display:grid;gap:2px;width:290px;padding:12px;border:1px solid var(--line-soft);border-radius:16px;background:var(--card);box-shadow:var(--shadow)}
+.ws-menu > b{font-size:14px}
+.ws-menu > small{color:var(--text-2);font-size:12.5px;margin-bottom:6px}
+.ws-opt{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 8px;border-radius:10px;font-size:14px;cursor:pointer}
+.ws-opt:hover{background:var(--hover)}
+/* A page tab: the page fills the screen below the tabs; the home screen's own content waits. */
+.ws-body{height:calc(100dvh - var(--ws-top,180px) - 16px);min-height:420px;margin-top:14px;overflow:hidden;border:1px solid var(--line-soft);border-radius:20px;background:var(--bg)}
+.ws-body[hidden],.ws-frame[hidden]{display:none}
 .ws-frame{display:block;width:100%;height:100%;border:0;background:var(--bg)}
-.ws-enter{transition:opacity 320ms cubic-bezier(.16,1,.3,1),translate 420ms cubic-bezier(.16,1,.3,1)}
-.ws-leave{transition:opacity 180ms ease-in,translate 180ms ease-in}
-.ws-from{opacity:0;translate:48px 0}
-[dir="rtl"] .ws-from{translate:-48px 0}
-.ws-to{opacity:1;translate:0 0}
-html.ws-open{overflow:hidden}
-@media (max-width:760px){.ws{padding:0;bottom:calc(64px + env(safe-area-inset-bottom))}.ws-panel{border-radius:0;border-inline:0}}
-@media (prefers-reduced-motion:reduce){.ws-enter,.ws-leave{transition:none}}
+html.ws-page [data-home-screen]{display:none}
+html.ws-page .sitefoot{display:none}
+@media (max-width:760px){.ws-body{height:calc(100dvh - var(--ws-top,160px) - 72px - env(safe-area-inset-bottom));border-radius:14px}}
+/* A switch: a checkbox drawn as an on/off toggle. */
+.switch{appearance:none;-webkit-appearance:none;position:relative;flex-shrink:0;width:38px;height:22px;margin:0;border-radius:999px;background:var(--line);cursor:pointer;transition:background .15s}
+.switch::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:inset-inline-start .15s}
+.switch:checked{background:var(--brand)}
+.switch:checked::after{inset-inline-start:19px}
+.switch:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.cardlist .galitem{cursor:pointer}
+/* ==== Customising, kept simple (2026-11-09) ====
+   No wiggle and no dark handles: each card gets a quiet dashed outline; its edges and corners
+   are the handles (the cursor says so), and a small mark shows at each corner on hover. Its
+   two buttons (pin, remove) sit together, light, inside the top corner. */
+.hs.wiggle .tile:not(.pinned){animation:none}
+.hs-guides i{border:0;border-radius:16px;background:color-mix(in srgb,var(--text) 4%,transparent)}
+.hs.editing .tile > .w,.hs.editing .tile > .appcard{outline:1.5px dashed var(--line);outline-offset:3px;transition:outline-color .15s}
+.hs.editing .tile:hover > .w,.hs.editing .tile:hover > .appcard,.hs.editing .tile.resizing > .w{outline-color:var(--text-2)}
+.hs.editing .tile.pinned > .w{outline:1.5px solid var(--text)}
+.tile.resizing .w{outline:1.5px solid var(--text);outline-offset:3px}
+/* The two buttons: light, side by side in the top end corner. */
+.tbtn{width:28px;height:28px;border:1px solid var(--line-soft);background:var(--card);color:var(--text-2);box-shadow:none;transition:background .15s,color .15s}
+.tbtn:hover{background:var(--hover);color:var(--text)}
+.tbtn .ic{width:14px;height:14px}
+.t-remove,.is-app .t-remove,.tile.mini .t-remove{top:8px;inset-inline-start:auto;inset-inline-end:8px;background:var(--card);color:var(--text-2)}
+.t-remove:hover{background:var(--brand);border-color:var(--brand);color:#fff}
+.t-pin{top:8px;inset-inline-end:40px;box-shadow:none}
+.t-pin[aria-pressed="true"]{background:var(--text);border-color:var(--text);color:var(--bg)}
+.t-style{top:8px;inset-inline-end:72px;box-shadow:none;border:1px solid var(--line-soft)}
+.hs.editing .wh{padding-inline-end:76px}
+/* Handles: invisible strips along each edge and squares at each corner. */
+.rz,.grip{position:absolute;z-index:3;padding:0;border:0;background:none;box-shadow:none;touch-action:none}
+.grip svg{display:none}
+.grip::before,.rz::before{content:none}
+.rz-start-mid,.rz-end-mid{left:14px;right:14px;width:auto;height:12px;cursor:ns-resize}
+.tile .rz-start-mid{left:14px;inset-inline-start:auto}
+.rz-start-mid{top:-6px}
+.rz-end-mid{bottom:-6px}
+.rz-mid-start,.rz-mid-end{top:14px;bottom:14px;width:12px;height:auto;cursor:ew-resize}
+.rz-mid-start{inset-inline-start:-6px}
+.rz-mid-end{inset-inline-end:-6px}
+.rz-start-start,.rz-start-end,.rz-end-start,.grip{width:22px;height:22px;border-radius:0}
+.rz-start-start{top:-7px;inset-inline-start:-7px}
+.rz-start-end{top:-7px;inset-inline-end:-7px}
+.rz-end-start{bottom:-7px;inset-inline-start:-7px}
+.grip{bottom:-7px;inset-inline-end:-7px;border-radius:0}
+.rz-start-start,.grip{cursor:nwse-resize}
+.rz-start-end,.rz-end-start{cursor:nesw-resize}
+[dir="rtl"] .rz-start-start,[dir="rtl"] .grip{cursor:nesw-resize}
+[dir="rtl"] .rz-start-end,[dir="rtl"] .rz-end-start{cursor:nwse-resize}
+/* The corner marks: a short L, shown on the card the pointer is on (and while resizing). */
+.rz-start-start::after,.rz-start-end::after,.rz-end-start::after,.grip::after{content:"";position:absolute;width:10px;height:10px;border:0 solid var(--text);opacity:0;transition:opacity .15s}
+.rz-start-start::after{top:5px;inset-inline-start:5px;border-top-width:2.5px;border-inline-start-width:2.5px;border-start-start-radius:6px}
+.rz-start-end::after{top:5px;inset-inline-end:5px;border-top-width:2.5px;border-inline-end-width:2.5px;border-start-end-radius:6px}
+.rz-end-start::after{bottom:5px;inset-inline-start:5px;border-bottom-width:2.5px;border-inline-start-width:2.5px;border-end-start-radius:6px}
+.grip::after{bottom:5px;inset-inline-end:5px;border-bottom-width:2.5px;border-inline-end-width:2.5px;border-end-end-radius:6px}
+.hs.editing .tile:hover .rz::after,.hs.editing .tile:hover .grip::after,.tile.resizing .rz::after,.tile.resizing .grip::after,.grip:focus-visible::after{opacity:1}
+/* An edge under the pointer shows as a line along it. */
+.rz-start-mid:hover,.rz-end-mid:hover,.rz-mid-start:hover,.rz-mid-end:hover{background:linear-gradient(var(--text-2),var(--text-2)) center/100% 2px no-repeat}
+.rz-mid-start:hover,.rz-mid-end:hover{background-size:2px 100%}
+.grip:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.sizebadge{padding:4px 12px;font-size:15px;box-shadow:var(--shadow-sm)}
+.cardsheet-body{overflow-y:auto;min-height:0;padding-top:12px}
+.cardsheet-body .gal{overflow:visible;padding-top:0}
+.pagelist{margin:8px 10px 14px;padding-top:16px;border-top:1px solid var(--line-soft);display:grid;gap:2px}
+.pagelist h3{margin:0;padding:0 8px;font-size:15px}
+.pagelist .pre-lead{margin:2px 0 8px;padding:0 8px}
+.pagelist .ws-opt{padding:9px 8px}

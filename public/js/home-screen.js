@@ -39,6 +39,7 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
         editing: false,
         gallery: false,
         presets: false,       // the ready layouts sheet
+        cardsSheet: false,    // the list of every card, each with a show/hide switch
         wiggling: false,
         resizing: null,       // key of the tile being resized
         resizeLabel: '',
@@ -54,9 +55,19 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
             this.readCols();
             this.$nextTick(() => this.reveal());
             this.acceptPages();
-            window.addEventListener('resize', () => { this.readCols(); this.drawGuides(); });
+            // Everything this screen listens to outside itself, removed when it is replaced (Reset, a
+            // ready layout: the server sends a new screen while the old one may still be customising)
+            // or left, so an old copy never answers a click or a drop.
+            const off = [];
+            const on = (target, type, fn) => { target.addEventListener(type, fn); off.push(() => target.removeEventListener(type, fn)); };
+            this.windowCleanup = () => { off.forEach((f) => f()); off.length = 0; };
+            on(window, 'resize', () => { this.readCols(); this.drawGuides(); });
             // The grid's own width decides 8 or 4 columns (a container query), so watch it too.
-            if (window.ResizeObserver) new ResizeObserver(() => this.readCols()).observe(this.$refs.grid.parentElement);
+            if (window.ResizeObserver) {
+                const ro = new ResizeObserver(() => this.readCols());
+                ro.observe(this.$refs.grid.parentElement);
+                off.push(() => ro.disconnect());
+            }
             if (window.Sortable) {
                 this.sortable = Sortable.create(this.$refs.grid, {
                     disabled: true,
@@ -80,7 +91,8 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
                     ghostClass: 'tile-ghost',
                     chosenClass: 'tile-chosen',
                     dragClass: 'tile-drag',
-                    onStart: () => { this.stopWiggle(); this.$refs.grid.classList.add('dragging'); },
+                    // A card being moved gives up the cell a resize gave it, and flows with the others.
+                    onStart: (evt) => { this.stopWiggle(); this.unplace(evt.item.dataset.key); this.$refs.grid.classList.add('dragging'); },
                     // Tiles are placed by number, so moving one in the list moves nothing by itself:
                     // follow the new order at once, and the others glide to where they will end up.
                     onChange: () => this.flip(() => this.followDom()),
@@ -102,13 +114,13 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
             // Both the press and the click must be outside, so ending a drag or a resize never counts.
             const outside = (t) => t instanceof Element && ! t.closest('.tile, button, a, input, select, textarea, label, dialog, .sheet-back');
             let downOut = false;
-            window.addEventListener('pointerdown', (e) => {
+            on(window, 'pointerdown', (e) => {
                 downOut = this.editing && outside(e.target);
                 // A press outside the open panel closes it; on another icon, that icon shows its card instead.
                 if (this.peek && e.target instanceof Element
                     && ! e.target.closest(':popover-open, .tile.mini > .wmini, .tile.is-app > a.app, dialog, .swal2-container, .mrhint')) this.closePeek();
             });
-            window.addEventListener('click', (e) => {
+            on(window, 'click', (e) => {
                 if (this.editing && downOut && outside(e.target) && ! this.gallery && ! this.presets) { this.done(); window.mrHints.used('editOut'); }
                 downOut = false;
             });
@@ -222,9 +234,24 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
                 if (n) fill[it.key] = Math.min(max, w + n <= cols ? Math.max(w, cols - n) : cols);
             });
 
+            // A card resized from a top or start edge holds its own cell (at = [x, y]): placed there
+            // first, and the others flow around it. One that no longer fits there (a narrower
+            // screen, another card already on that cell) flows like the rest.
+            const placed = new Set();
+            for (const it of list) {
+                if (! Array.isArray(it.at) || flat.has(it.key)) continue;
+                const [w, h] = parse(it.size);
+                const [x, y] = it.at;
+                if (! (x >= 0 && y >= 0) || w > cols || ! free(x, y, w, h)) continue;
+                take(x, y, w, h);
+                out[it.key] = { x, y, w, h };
+                placed.add(it.key);
+            }
+
             let floor = null;   // the closed cards start below everything else, not in a gap above
             let row = 0;        // a shortcut goes on from where the tile before it went, never back up into a gap
             for (const it of list) {
+                if (placed.has(it.key)) continue;
                 let [w, h] = parse(it.size);
                 w = Math.min(fill[it.key] || w, cols);
                 if (flat.has(it.key) && floor === null) floor = used.length;
@@ -274,7 +301,7 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
             }
 
             // A card the person sized by hand keeps that size; the others grow into the gaps.
-            const fixed = new Set(list.filter((it) => it.fixed).map((it) => it.key));
+            const fixed = new Set([...list.filter((it) => it.fixed).map((it) => it.key), ...placed]);
             const cards = Object.keys(out).filter((k) => ! icons.has(k) && ! fixed.has(k));
             for (const k of cards) while (grow(k, 1, 0));
             for (const k of cards) if (! flat.has(k)) while (grow(k, 0, 1));
@@ -309,16 +336,23 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
         unpark(key) {
             const it = this.item(key);
             const card = (this.bounds[key] || {}).card || [4, 3];
+            // The size it had before it was minimised, if it is still big enough to be a card; else its smallest.
+            const was = it.was && ! (key.startsWith('app.') ? parse(it.was).some((n) => n < 2) : this.iconish(key, it.was)) ? it.was : null;
             if (this.peek === key) this.closePeek();
-            this.flip(() => { it.size = card[0] + 'x' + card[1]; it.fixed = true; });
+            this.flip(() => { it.size = was || card[0] + 'x' + card[1]; it.fixed = true; delete it.was; });
             this.save();
             this.$nextTick(() => this.tileEl(key)?.scrollIntoView({ block: 'nearest', behavior: reducedMotion() ? 'auto' : 'smooth' }));
         },
         // ---- window controls on every card --------------------------------
+        // Minimised, a card remembers the size it was shown at (was), to come back at it.
         minimise(key) {
             const it = this.item(key);
+            const p = this.packed[key];
             if (this.peek === key) this.closePeek();
-            this.flip(() => { it.size = '1x1'; it.fixed = true; it.pinned = false; });
+            this.flip(() => {
+                if (p) it.was = p.w + 'x' + p.h;
+                it.size = '1x1'; it.fixed = true; it.pinned = false; delete it.at;
+            });
             this.save();
         },
         maximise(key) { this.peekOpen(key); },
@@ -359,20 +393,35 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
                 e.preventDefault();
                 stop();
                 const key = e.dataTransfer.getData('application/x-mr-page');
-                if (key && ! this.editing) this.pinPage(key);
+                if (! key || this.editing) return;
+                // Dropped while a page tab is in front: back to the cards, to see it arrive.
+                const ws = document.querySelector('[data-ws-panel]');
+                try { if (ws && window.Alpine.$data(ws).active) window.Alpine.$data(ws).goHome(); } catch (err) {}
+                this.$nextTick(() => this.pinPage(key));
             };
             // Bubbling, not capture: the link's own dragstart has put the card's key in by then.
             document.addEventListener('dragstart', onStart);
             document.addEventListener('dragover', onOver);
             document.addEventListener('drop', onDrop);
             document.addEventListener('dragend', stop);
-            document.addEventListener('livewire:navigating', () => {
+            // Removed when this screen is replaced (Reset, a ready layout) or left, so an old
+            // copy never answers a drop with its stale layout.
+            this.dropCleanup = () => {
                 stop();
                 document.removeEventListener('dragstart', onStart);
                 document.removeEventListener('dragover', onOver);
                 document.removeEventListener('drop', onDrop);
                 document.removeEventListener('dragend', stop);
-            }, { once: true });
+            };
+            document.addEventListener('livewire:navigating', () => this.dropCleanup && this.dropCleanup(), { once: true });
+        },
+        dropCleanup: null,
+        windowCleanup: null,
+        destroy() {
+            if (this.dropCleanup) this.dropCleanup();
+            if (this.windowCleanup) this.windowCleanup();
+            if (this.sortable) { try { this.sortable.destroy(); } catch (e) {} this.sortable = null; }
+            this.closePeek();
         },
         // ---- arriving: unseen until final, then in reading order ---------
         enter(tiles, duration = 1000) {
@@ -508,7 +557,7 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
         bake() {
             const p = this.packed;
             const at = (i) => (p[i.key] ? p[i.key].y * 1000 + p[i.key].x : Infinity);
-            this.items.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || at(a) - at(b));
+            this.items.sort((a, b) => at(a) - at(b));
             for (const it of this.items) {
                 if (p[it.key]) it.size = p[it.key].w + 'x' + p[it.key].h;
             }
@@ -558,6 +607,9 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
             this.flip(() => {
                 const [it] = this.items.splice(i, 1);
                 it.hidden = false;
+                // Added, it arrives open: a card saved smaller than its minimum comes at that minimum.
+                const card = (this.bounds[key] || {}).card;
+                if (card && ! key.startsWith('app.') && this.iconish(key, it.size)) { it.size = card[0] + 'x' + card[1]; it.fixed = true; }
                 this.items.push(it);
                 const el = this.tileEl(key);
                 if (el) this.$refs.grid.appendChild(el);
@@ -565,17 +617,53 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
             if (this.hiddenItems().length === 0) this.gallery = false;
             this.save();
         },
+        // The pin keeps a card where it is, at the size it is shown: it holds that cell, and the
+        // others flow around it. Unpinned, it flows again (its place in the order is unchanged).
         togglePin(key) {
             const it = this.item(key);
+            const p = this.packed[key];
             this.flip(() => {
                 it.pinned = ! it.pinned;
-                const el = this.tileEl(key);
-                if (it.pinned && el) this.$refs.grid.prepend(el);
+                if (it.pinned && p) { it.at = [p.x, p.y]; it.size = p.w + 'x' + p.h; it.fixed = true; }
+                else delete it.at;
             });
-            this.syncOrder();
+            this.save();
         },
+        // Resized from a top or start side: the card's cell moves by what it gained or lost on that
+        // side (never past the grid's first row or column), so its far edges stay where they were.
+        setCellsFrom(key, c, r, cell, baseC, baseR, block, inline) {
+            const it = this.item(key);
+            if (inline === 'start') c = Math.min(c, baseC + cell.x);
+            if (block === 'start') r = Math.min(r, baseR + cell.y);
+            [c, r] = this.clamp(key, c, r);
+            const x = inline === 'start' ? cell.x - (c - baseC) : cell.x;
+            const y = block === 'start' ? cell.y - (r - baseR) : cell.y;
+            const size = c + 'x' + r;
+            if (size === it.size && Array.isArray(it.at) && it.at[0] === x && it.at[1] === y) return false;
+            // Nothing gained or lost (already at the first row or column): it keeps flowing as it was.
+            if (size === it.size && ! Array.isArray(it.at) && x === cell.x && y === cell.y) return false;
+            // Another card holds its own cell there: stop at it rather than jump back into the flow.
+            if (this.cellTaken(it, x, y, c, r)) return false;
+            this.flip(() => { it.size = size; it.fixed = true; it.at = [x, y]; }, key);
+            return true;
+        },
+        // Whether another shown card holds its own cell (at) somewhere in this rectangle.
+        cellTaken(it, x, y, c, r) {
+            const packed = this.packed;
+            return this.items.some((o) => o !== it && ! o.hidden && Array.isArray(o.at) && packed[o.key]
+                && x < o.at[0] + packed[o.key].w && o.at[0] < x + c && y < o.at[1] + packed[o.key].h && o.at[1] < y + r);
+        },
+        // Moved by dragging: the card gives up the cell a resize gave it and flows again.
+        unplace(key) { const it = this.items.find((i) => i.key === key); if (it) delete it.at; },
         setCells(key, c, r) {
             [c, r] = this.clamp(key, c, r);
+            const it = this.item(key);
+            // A card holding its own cell grows only as far as the grid's last column, and stops
+            // at another card's cell, so it never loses its place and drops into the flow.
+            if (Array.isArray(it.at)) {
+                c = Math.max(1, Math.min(c, this.cols - it.at[0]));
+                if (this.cellTaken(it, it.at[0], it.at[1], c, r)) return false;
+            }
             const size = c + 'x' + r;
             if (size === this.item(key).size) return false;
             this.flip(() => { this.item(key).size = size; this.item(key).fixed = true; }, key);
@@ -583,7 +671,14 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
         },
 
         // ---- resize: drag the corner grip, cell by cell -----------------
-        resizeStart(e, key) {
+        /*
+         * Resize from any corner or edge, cell by cell. block / inline say which side the handle
+         * is on: 'start' (top; left in English, right in Arabic), 'end', or null (that side does
+         * not move, for an edge). Growing from the end sides only changes the size; growing from
+         * a start side moves the card's own cell by what it gained there (setCellsFrom), so the
+         * far edges stay where they were.
+         */
+        resizeStart(e, key, block = 'end', inline = 'end') {
             if (e.button > 0) return;
             e.preventDefault();
             e.stopPropagation();
@@ -591,6 +686,13 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
             const m = this.metrics();
             const rect = tile.getBoundingClientRect();
             const start = { x: e.clientX, y: e.clientY, w: rect.width, h: rect.height };
+            const [sw, sh] = parse(this.item(key).size);
+            const p = this.packed[key] || { x: 0, y: 0, w: sw, h: sh };
+            const cell = { x: p.x, y: p.y };
+            const fromStart = block === 'start' || inline === 'start';
+            // Grown from a start side, it starts from exactly what is on screen.
+            if (fromStart) { this.item(key).size = p.w + 'x' + p.h; }
+            const baseC = p.w, baseR = p.h;
             let changed = false;
 
             this.stopWiggle();
@@ -599,16 +701,20 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
             e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId);
 
             const move = (ev) => {
-                // The grip sits at the end corner: dragging outward (right in English, left in Arabic) grows the tile.
+                // Dragging away from the card grows it on that side (right in English, left in Arabic for the end side).
                 const dx = (ev.clientX - start.x) * (m.rtl ? -1 : 1);
                 const dy = ev.clientY - start.y;
-                const rawC = (start.w + dx + m.gap) / (m.colW + m.gap);
-                const rawR = (start.h + dy + m.gap) / (m.rowH + m.gap);
+                const wantW = inline === 'end' ? start.w + dx : inline === 'start' ? start.w - dx : start.w;
+                const wantH = block === 'end' ? start.h + dy : block === 'start' ? start.h - dy : start.h;
+                const rawC = (wantW + m.gap) / (m.colW + m.gap);
+                const rawR = (wantH + m.gap) / (m.rowH + m.gap);
                 // A margin around each cell edge: the size changes only once the pointer is
                 // clearly into the next cell, so it never flickers between two sizes.
                 const [curC, curR] = parse(this.item(key).size);
                 const step = (raw, cur) => (raw > cur + 0.6 ? Math.floor(raw + 0.4) : raw < cur - 0.6 ? Math.ceil(raw - 0.4) : cur);
-                if (this.setCells(key, step(rawC, Math.min(curC, this.cols)), step(rawR, curR))) changed = true;
+                const c = inline ? step(rawC, Math.min(curC, this.cols)) : Math.min(curC, this.cols);
+                const r = block ? step(rawR, curR) : curR;
+                if (fromStart ? this.setCellsFrom(key, c, r, cell, baseC, baseR, block, inline) : this.setCells(key, c, r)) changed = true;
                 this.resizeLabel = this.sizeText(key);
             };
             const up = () => {
@@ -645,6 +751,8 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
          * where it is, instead of restarting from somewhere else.
          */
         flip(mutate, resizedKey = null) {
+            // A screen already replaced (its grid gone): just the change, nothing to animate.
+            if (! this.$refs.grid || ! this.$refs.grid.isConnected) { mutate(); return; }
             // A card waiting in the strip has no place in the grid: coming back, it enters.
             const visible = () => [...this.$refs.grid.querySelectorAll('.tile')].filter((t) => t.offsetParent !== null && ! t.classList.contains('parked'));
             const before = new Map(visible().map((t) => [t, t.getBoundingClientRect()]));
@@ -690,7 +798,6 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
         followDom() {
             const order = [...this.$refs.grid.querySelectorAll('.tile')].map((t) => t.dataset.key);
             this.items.sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key));
-            this.items.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
         },
 
         save() {

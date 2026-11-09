@@ -28,8 +28,10 @@
 @endphp
 
 <div>
+{{-- The tabs: the home screen first, then the pages opened from it. --}}
+@include('livewire.media-requests.partials.workspace')
 {{-- wire:key: when the server sends a different layout (reset), the home screen starts fresh. --}}
-<div wire:key="home-{{ md5(json_encode($layout)) }}"
+<div wire:key="home-{{ md5(json_encode($layout)) }}" data-home-screen
      x-data="mrHomeScreen(@js($layout), @js($bounds), @js($looks))"
      data-hint-press="{{ __('media.hint.longpress') }}" data-hint-out="{{ __('media.hint.editOut') }}"
      x-on:keydown.escape.window="peek ? closePeek() : done()">
@@ -41,6 +43,9 @@
             <p class="lead" :class="{ quiet: ! editing }" @if ($here) x-show="editing" x-cloak @endif x-text="editing ? @js(__('media.dash.editLead')) : @js(__('media.dash.lead'))">{{ __('media.dash.lead') }}</p>
         </div>
         <div class="btnline">
+            <template x-if="! editing">
+                <button type="button" class="btn btn-o hs-custom" x-on:click="cardsSheet = true" aria-label="{{ __('media.dash.cards') }}" title="{{ __('media.dash.cards') }}"><x-ic n="eye" /><span class="bl">{{ __('media.dash.cards') }}</span></button>
+            </template>
             <template x-if="! editing">
                 <button type="button" class="btn btn-o hs-custom" x-on:click="startEdit()" aria-label="{{ __('media.dash.customise') }}" title="{{ __('media.dash.customise') }}"><x-ic n="layers" /><span class="bl">{{ __('media.dash.customise') }}</span></button>
             </template>
@@ -115,6 +120,11 @@
                             title="{{ __('media.dash.resizeHint') }}">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.5 8.5v9h-9" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </button>
+                    {{-- The other corners and the four edges, for the pointer (the grip above serves the keyboard). --}}
+                    @foreach ([['start', 'start'], ['start', 'end'], ['end', 'start'], ['start', null], ['end', null], [null, 'start'], [null, 'end']] as [$b, $i])
+                        <span class="rz rz-{{ $b ?? 'mid' }}-{{ $i ?? 'mid' }}" x-show="editing" x-cloak aria-hidden="true"
+                              x-on:pointerdown="resizeStart($event, '{{ $key }}', {{ $b ? "'$b'" : 'null' }}, {{ $i ? "'$i'" : 'null' }})"></span>
+                    @endforeach
                     <span class="sizebadge num" x-show="resizing === '{{ $key }}'" x-cloak x-text="resizeLabel"></span>
                 @endif
 
@@ -621,6 +631,41 @@
         </div>
     </div>
 
+    {{-- What shows on the screen: every card this person may have, each with a switch. --}}
+    <div class="sheet-back" x-show="cardsSheet" x-cloak x-transition.opacity x-on:click.self="cardsSheet = false" x-on:keydown.escape.window="cardsSheet = false">
+        <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="cards-t" x-show="cardsSheet" x-transition:enter="sheet-in" x-transition:leave="sheet-out">
+            <div class="sheet-h">
+                <h2 id="cards-t">{{ __('media.dash.cards') }}</h2>
+                <button type="button" class="iconbtn" x-on:click="cardsSheet = false" aria-label="{{ __('media.close') }}"><x-ic n="x" /></button>
+            </div>
+            {{-- One scrolling area for both lists, so neither is squeezed. --}}
+            <div class="cardsheet-body">
+            <p class="pre-lead">{{ __('media.dash.cardsLead') }}</p>
+            <div class="gal cardlist">
+                @foreach ($layout as $item)
+                    @php($key = $item['key'])
+                    <label class="galitem">
+                        <span @class(['appicon', 'brand' => $key === 'app.new'])><x-ic :n="$cards->icon($key)" /></span>
+                        <span><b>{{ $label($key) }}</b><small>{{ __($cards->isApp($key) ? 'media.dash.kindApp' : 'media.dash.kindWidget') }}</small></span>
+                        <input type="checkbox" class="switch" :checked="! hidden('{{ $key }}')" x-on:change="$event.target.checked ? add('{{ $key }}') : remove('{{ $key }}')" aria-label="{{ $label($key) }}">
+                    </label>
+                @endforeach
+            </div>
+            {{-- Which pages of the top bar open in a tab here, and which as a full page (kept by the tabs, public/js/workspace.js). --}}
+            <div class="pagelist" x-data="{ ws: null }" x-init="ws = Alpine.$data(document.querySelector('[data-ws-panel]'))" x-show="ws && ws.pages.length">
+                <h3>{{ __('media.ws.insideTitle') }}</h3>
+                <p class="pre-lead">{{ __('media.ws.insideLead') }}</p>
+                <template x-for="p in (ws ? ws.pages : [])" :key="p.path">
+                    <label class="ws-opt">
+                        <span x-text="p.label"></span>
+                        <input type="checkbox" class="switch" :checked="ws.opensInside(p.path)" x-on:change="ws.setInside(p.path, $event.target.checked)">
+                    </label>
+                </template>
+            </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Ready layouts: each drawn small as it will look; picking one replaces the screen, which is then changed as before. --}}
     <div class="sheet-back" x-show="presets" x-cloak x-transition.opacity x-on:click.self="presets = false">
         <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pre-t" x-show="presets" x-transition:enter="sheet-in" x-transition:leave="sheet-out">
@@ -708,5 +753,4 @@
         </div>
     @endif
 
-    @include('livewire.media-requests.partials.workspace')
 </div>

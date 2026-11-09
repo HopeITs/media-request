@@ -256,8 +256,8 @@ class DashboardLayout
 
     /**
      * Keep only known, allowed items with sizes inside their bounds; add any
-     * new item at the end (hidden if it is not shown by default); pinned items
-     * first, keeping their relative order.
+     * new item at the end (hidden if it is not shown by default); the person's
+     * own order otherwise.
      *
      * @return array<int, array{key: string, size: string, pinned: bool, hidden: bool}>
      */
@@ -283,6 +283,8 @@ class DashboardLayout
                 'pinned' => (bool) ($item['pinned'] ?? false),
                 'hidden' => (bool) ($item['hidden'] ?? false),
             ] + (! empty($item['fixed']) ? ['fixed' => true] : [])   // sized by the person: shown at exactly that size, never grown
+              + $this->cell($item['at'] ?? null)   // resized from a top or start edge: the cell it holds
+              + (isset($item['was']) && is_string($item['was']) ? ['was' => $this->size($key, $item['was'])] : [])   // minimised: the size it comes back at
               + $this->look($key, $item['style'] ?? null);
         }
 
@@ -298,10 +300,9 @@ class DashboardLayout
         }
         $out = $first + $out;
 
-        $out = array_values($out);
-        usort($out, fn (array $a, array $b): int => (int) $b['pinned'] <=> (int) $a['pinned']);
-
-        return $out;
+        // The person's own order, pinned cards included: a pin keeps a card in its cell (at),
+        // not first in the list, so unpinning it never leaves it at the top.
+        return array_values($out);
     }
 
     /** A dropped shortcut someone had on their screen becomes its card, in the same place and size. */
@@ -322,6 +323,22 @@ class DashboardLayout
         }
 
         return $out;
+    }
+
+    /**
+     * The grid cell a card holds ([column, row] from 0), kept only when it is two small whole
+     * numbers; the screen places it there when it fits and lets it flow otherwise.
+     *
+     * @return array{at?: array{0: int, 1: int}}
+     */
+    private function cell(mixed $at): array
+    {
+        if (! is_array($at) || count($at) !== 2 || ! array_is_list($at)) {
+            return [];
+        }
+        [$x, $y] = $at;
+
+        return is_int($x) && is_int($y) && $x >= 0 && $x < 12 && $y >= 0 && $y < 200 ? ['at' => [$x, $y]] : [];
     }
 
     /** Cards that come in more than one look: key => allowed looks, the first is the default. */

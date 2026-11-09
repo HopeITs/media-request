@@ -127,6 +127,31 @@ class DashboardTest extends TestCase
         $this->assertArrayNotHasKey('fixed', $saved['notes']);
     }
 
+    /** Resized from a top or start edge, a card keeps the cell it holds; anything odd is dropped and it flows. */
+    public function test_a_card_resized_from_its_start_keeps_its_cell(): void
+    {
+        $rami = $this->user('rami');
+        $layout = app(DashboardLayout::class)->defaults($rami);
+        foreach ($layout as &$item) {
+            $item = match ($item['key']) {
+                'calendar' => ['size' => '4x4', 'fixed' => true, 'at' => [2, 3]] + $item,
+                'clock' => ['at' => [-1, 'x']] + $item,
+                'notes' => ['at' => [40, 1], 'was' => '99x2'] + $item,   // a minimised card's size to come back at, kept in bounds
+                default => $item,
+            };
+        }
+        unset($item);
+
+        Livewire::actingAs($rami)->test(Dashboard::class)->call('saveLayout', $layout);
+        $saved = collect($this->layoutOf($rami))->keyBy('key');
+
+        $this->assertSame([2, 3], $saved['calendar']['at']);
+        $this->assertArrayNotHasKey('at', $saved['clock']);
+        $this->assertArrayNotHasKey('at', $saved['notes']);
+        $this->assertSame('12x2', $saved['notes']['was']);
+        $this->assertArrayNotHasKey('was', $saved['calendar']);
+    }
+
     public function test_a_big_shortcut_shows_its_data_as_a_card(): void
     {
         $this->assertSame([4, 4], app(DashboardLayout::class)->bounds('app.stats')['max']);
@@ -245,7 +270,8 @@ class DashboardTest extends TestCase
         Livewire::actingAs($rami)->test(Dashboard::class)->call('saveLayout', $sent);
 
         $saved = collect($this->layoutOf($rami))->keyBy('key');
-        $this->assertSame('calendar', $this->layoutOf($rami)[0]['key']);   // pinned first
+        $this->assertSame('clock', $this->layoutOf($rami)[0]['key']);   // the order as sent: a pin keeps a card in its cell, not first
+        $this->assertTrue($saved['calendar']['pinned']);
         $this->assertSame('6x5', $saved['calendar']['size']);
         $this->assertSame('12x6', $saved['clock']['size']);
         $this->assertSame('1x1', $saved['notes']['size']);

@@ -30,6 +30,14 @@
         mark();
         new MutationObserver(mark).observe(root, { attributes: true, attributeFilter: ['class'] });
         document.addEventListener('livewire:navigated', mark);
+        // Esc in the page, with nothing of its own open (a window, a menu), goes back to the home screen's cards.
+        window.addEventListener('keydown', function (e) {
+            if (e.key !== 'Escape' || e.defaultPrevented) return;
+            try {
+                var open = Array.prototype.some.call(document.querySelectorAll('[aria-modal="true"], [role="dialog"], .menu, [popover]'), function (el) { return el.offsetParent !== null || (el.matches('[popover]') && el.matches(':popover-open')); });
+                if (! open) window.parent.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+            } catch (err) {}
+        });
     })();
 </script>
 <title>{{ isset($title) && $title ? $title.' · ' : '' }}{{ __('media.app') }}</title>
