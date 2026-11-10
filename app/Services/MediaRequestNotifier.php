@@ -99,16 +99,31 @@ class MediaRequestNotifier
         return $this->team->accounts(collect([$r->assignee]));
     }
 
-    /** A message from the requester goes to the team side; one from the team goes to the requester. */
+    /**
+     * A message from the requester goes to whoever has the request; one from the team goes to the
+     * requester (and the assignee, when someone else on the team wrote). The media manager and the
+     * requester's program manager are told of every message either way, so nothing said on a
+     * request passes them by.
+     */
     private function conversationPartners(MediaRequest $r, ?User $actor): Collection
     {
-        if ($actor && $actor->employee_id === $r->requester_id) {
-            return $r->assignee_id
-                ? $this->assignee($r)
-                : $this->team->accounts($this->team->managers());
-        }
+        $side = $actor && $actor->employee_id === $r->requester_id
+            ? $this->assignee($r)
+            : $this->requester($r)->merge($this->assignee($r));
 
-        return $this->requester($r)->merge($this->assignee($r));
+        return $side->merge($this->mediaManagers())
+            ->merge($this->team->accounts($this->team->programManagers($r->program)));
+    }
+
+    /**
+     * The media managers' accounts; when none of them has one, whoever stands in for them
+     * (super-admin, MediaTeam::canActAsMediaManager), so the message still reaches someone.
+     */
+    private function mediaManagers(): Collection
+    {
+        $managers = $this->team->accounts($this->team->managers());
+
+        return $managers->isNotEmpty() ? $managers : User::query()->where('role', 'super-admin')->get();
     }
 
     /** @param  Collection<int, Employee>  $employees */

@@ -14,6 +14,9 @@
         'rejected' => 'x', 'hold' => 'pause', 'resumed' => 'play', 'cancelled' => 'x', 'nudged' => 'bell', 'asset' => 'clip', 'comment' => 'msg'];
     $me = auth()->user()->employee_id;
     $sideActions = Gate::any(['askInfo', 'reject', 'hold', 'cancel', 'assign'], $r);
+    // Who the messages go to, as the writer sees it: the requester writes to whoever has it (or the
+    // team, before anyone does); everyone else writes to the requester.
+    $talkTo = $isRequester ? ($r->assignee ? $name($r->assignee) : __('media.cm.team')) : $name($r->requester);
 @endphp
 
 <div>
@@ -39,6 +42,9 @@
             <span><x-ic n="cal" /><span class="num">{{ $r->created_at->format('d-m-Y') }}</span></span>
             @can('update', $r)
                 <button type="button" class="btn-q" x-on:click="$dispatch('media-wizard-open', { id: {{ $r->id }} })"><x-ic n="edit" />{{ __('media.ew.btn') }}</button>
+            @endcan
+            @can('comment', $r)
+                <button type="button" class="btn-q" x-on:click="$dispatch('mr-talk')"><x-ic n="msg" />{{ __('media.cm.talk', ['name' => $talkTo]) }}@if ($r->comments->isNotEmpty())<span class="cnt num">{{ $r->comments->count() }}</span>@endif</button>
             @endcan
         </div>
     </header>
@@ -128,7 +134,10 @@
 
     <div class="dgrid">
         {{-- Details, conversation, history --}}
-        <div class="stack" x-data="{ tab: 'overview' }">
+        {{-- #talk (a message notification, the button above) opens the conversation, ready to write. --}}
+        <div class="stack" x-data="{ tab: location.hash === '#talk' ? 'conversation' : 'overview',
+                talk() { this.tab = 'conversation'; this.$nextTick(() => { this.$refs.talk?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); document.getElementById('mr-body')?.focus({ preventScroll: true }); }); } }"
+             x-on:mr-talk.window="talk()">
             <div class="tabs" role="tablist">
                 @foreach (['overview' => ['tab.overview', 'list'], 'conversation' => ['tab.conversation', 'msg'], 'history' => ['tab.activity', 'clock']] as $key => [$label, $icon])
                     <button type="button" role="tab" x-on:click="tab = '{{ $key }}'" :aria-selected="tab === '{{ $key }}'">
@@ -221,7 +230,8 @@
                 </section>
             </div>
 
-            <section x-show="tab === 'conversation'" x-cloak class="card">
+            <section x-show="tab === 'conversation'" x-cloak class="card" x-ref="talk">
+                <p class="sub talkwho"><x-ic n="eye" />{{ __('media.cm.who') }}</p>
                 @if ($r->comments->isEmpty())
                     <p class="sub" style="margin-bottom:14px">{{ __('media.cm.none') }}</p>
                 @else
@@ -239,7 +249,7 @@
                     <form wire:submit="comment" class="composer">
                         <label for="mr-body" class="vh">{{ __('media.cm.label') }}</label>
                         <div class="row">
-                            <textarea id="mr-body" class="inp" rows="2" wire:model="body" placeholder="{{ __('media.cm.ph') }}" x-data="mrTypewriter(@js(__('media.ex.comment')))"></textarea>
+                            <textarea id="mr-body" class="inp" rows="2" wire:model="body" placeholder="{{ __('media.cm.ph', ['name' => $talkTo]) }}" x-data="mrTypewriter(@js(__($isRequester ? 'media.ex.comment' : 'media.ex.commentTeam')))"></textarea>
                             <button type="submit" class="btn btn-p" aria-label="{{ __('media.cm.send') }}"><x-ic n="send" class="flip" /></button>
                         </div>
                         <button type="button" class="btn-q proofbtn" x-on:click="$dispatch('media-proofread-open', { text: document.getElementById('mr-body').value, target: 'body' })"><x-ic n="check" />{{ __('media.proof.check') }}</button>

@@ -59,13 +59,13 @@ class DashboardLayout
      * grows the cards into the extra columns). Anyone may pick one in Customise and then
      * change it as they like; a new screen, and "Reset", start from the one for what the
      * person does (KIND). A card the person may not use is left out. Only what is listed
-     * shows; everything else waits in "Add a card". No shortcut to a page the top bar
-     * already links to (HC Generator is another site, so it stays).
+     * shows; everything else waits, switched off, in the Cards sheet. No shortcut to what the top bar
+     * already has (its pages, the bell), except HC Generator, kept beside New request.
      */
     public const PRESETS = [
-        // Asks for work: their requests and what came back, ways to ask, ready files.
-        'simple' => [['ask', '6x1'], ['app.new', '1x1'], ['app.generator', '1x1'], ['decide', '4x3'], ['mine', '4x3'],
-            ['bell', '4x2'], ['pack', '4x2'], ['showcase', '4x3'], ['proof', '4x3']],
+        // Asks for work: as little as possible. A way to ask, their requests, and what needs their
+        // answer (shown only when something does). Everything else waits in the Cards sheet.
+        'simple' => [['ask', '6x1'], ['app.new', '1x1'], ['app.generator', '1x1'], ['decide', '8x2'], ['mine', '8x4']],
         // Manages programs: what waits for their approval, and how the requests move.
         'programs' => [['late', '12x1'], ['ask', '6x1'], ['app.new', '1x1'], ['app.generator', '1x1'], ['decide', '4x3'], ['waiting', '4x3'],
             ['flow', '8x3'], ['showcase', '4x3'], ['pack', '4x3']],
@@ -222,7 +222,7 @@ class DashboardLayout
 
     /**
      * A ready layout for this person: its cards in its order and sizes, then everything else
-     * they may use, hidden, so "Add a card" still offers it.
+     * they may use, hidden, so the Cards sheet still offers it.
      *
      * @return array<int, array{key: string, size: string, pinned: bool, hidden: bool}>
      */

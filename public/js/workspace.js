@@ -1,19 +1,19 @@
 /*
  * The home screen's tabs: the person's work stays on the home screen.
  *
- * A row of tabs at the top of the home screen. The first is the home screen itself (its
- * cards); every page the person opens from it (a card's link, a shortcut, the top bar, a
- * request) becomes a tab beside it instead of taking them away. Each page keeps its own
+ * Every page the person opens from the home screen (a card's link, a shortcut, the top bar,
+ * a request) becomes a tab in a row above the cards instead of taking them away; the row
+ * shows only while there are tabs, and with no tab in front the cards show. Each page keeps its own
  * server checks: it is the page itself, in a frame of this site (data-ws-frame;
  * layouts/head.blade.php hides the site's own header inside it, and SecurityHeaders lets
  * the site frame itself and nobody else).
  *
  *  - a page already open is brought to the front; up to 10 tabs;
  *  - the address bar follows (?ws=/media-requests/board): a refresh reopens it, Back
- *    goes to the tab before, Esc goes to the home tab;
+ *    goes to the tab before; Esc, Home, or the tab in front clicked again go to the cards;
  *  - the pin on a tab keeps it: kept tabs are there again the next time the home screen
  *    opens (on this device), loaded only when they are opened;
- *  - the gear chooses which pages of the top bar open here and which as a full page;
+ *  - the Cards sheet chooses which pages of the top bar open here and which as a full page;
  *  - what has to leave stays a normal link: downloads, files, other sites, a new tab,
  *    sign-out, the language switch;
  *  - a page that is not a page of the app (the sign-in page after a session ended)
@@ -33,7 +33,6 @@
         home: '/',
         pages: [],        // the top bar's pages: { path, label }
         outside: [],      // paths of the pages that open as a full page
-        settings: false,  // the gear's menu
 
         init() {
             this.home = new URL(this.$el.dataset.home || '/', location.href).pathname.replace(/\/+$/, '');
@@ -52,7 +51,6 @@
             window.addEventListener('popstate', onPop);
             const onKey = (e) => {
                 if (e.key !== 'Escape' || e.defaultPrevented) return;
-                if (this.settings) { this.settings = false; return; }
                 if (this.active) this.goHome();
             };
             window.addEventListener('keydown', onKey);
@@ -192,14 +190,12 @@
         show(id, push = true) {
             this.closeMenus();
             this.active = id;
-            this.settings = false;
             this.address(push);
             window.scrollTo({ top: 0 });
         },
         goHome(push = true) {
             this.closeMenus();
             this.active = null;
-            this.settings = false;
             this.address(push);
         },
         close(id) {

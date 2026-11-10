@@ -263,6 +263,58 @@ class MediaRequestWorkflowTest extends TestCase
         $this->assertFalse($this->requester->can('nudge', $r->fresh()));
     }
 
+    /**
+     * The request's conversation: whoever has it and the requester write to each other; the
+     * program manager and the media manager read along (and may write); nobody else sees it.
+     */
+    public function test_the_assignee_and_the_requester_talk_on_the_request(): void
+    {
+        $w = app(MediaRequestWorkflow::class);
+        $r = $w->submit($this->requester, $this->certificateRequest());
+        $w->approveProgram($this->programManager, $r);
+        $w->approveMedia($this->mediaManager, $r, 'normal', today()->addDays(5)->toDateString());
+        $w->claim($this->designer, $r);
+        Notification::fake();
+
+        // The assignee asks; the requester is told, and the link opens the conversation.
+        $w->comment($this->designer, $r, 'Is the date still the 15th?');
+        Notification::assertSentTo($this->requester, MediaRequestUpdated::class,
+            fn ($n) => $n->event === 'comment' && str_ends_with($n->toArray($this->requester)['url'], '#talk'));
+        Notification::assertNotSentTo($this->designer, MediaRequestUpdated::class);
+        Notification::assertSentTo($this->mediaManager, MediaRequestUpdated::class, fn ($n) => $n->event === 'comment');
+        Notification::assertSentTo($this->programManager, MediaRequestUpdated::class, fn ($n) => $n->event === 'comment');
+
+        // The requester answers; it goes to the assignee, and the media manager hears of it too.
+        Notification::fake();
+        $w->comment($this->requester, $r, 'Yes, the 15th.');
+        Notification::assertSentTo($this->designer, MediaRequestUpdated::class, fn ($n) => $n->event === 'comment');
+        Notification::assertSentTo($this->mediaManager, MediaRequestUpdated::class, fn ($n) => $n->event === 'comment');
+        Notification::assertSentTo($this->programManager, MediaRequestUpdated::class, fn ($n) => $n->event === 'comment');
+        Notification::assertNotSentTo($this->requester, MediaRequestUpdated::class);   // never about their own message
+        $this->assertSame(['Is the date still the 15th?', 'Yes, the 15th.'], $r->comments()->pluck('body')->all());
+
+        // Their managers read along.
+        foreach ([$this->programManager, $this->mediaManager] as $reader) {
+            $this->assertTrue($reader->can('view', $r));
+            Livewire::actingAs($reader)->test(Show::class, ['mediaRequest' => $r->fresh()])
+                ->assertSee('Is the date still the 15th?')->assertSee('Yes, the 15th.');
+        }
+
+        // No media manager with an account: whoever stands in for them (super-admin) is told instead.
+        $admin = $this->person('Admin', ['media_role' => null, 'programs' => []], 'super-admin');
+        $this->mediaManager->forceFill(['employee_id' => null])->save();
+        app(MediaTeam::class)->flush();
+        Notification::fake();
+        $w->comment($this->requester, $r->fresh(), 'One more thing.');
+        Notification::assertSentTo($admin, MediaRequestUpdated::class, fn ($n) => $n->event === 'comment');
+
+        // Someone outside the program never does.
+        $outsider = $this->person('Outsider', $this->position('PRG', 8, $this->otherProgram()));
+        $this->assertFalse($outsider->can('view', $r));
+        $this->expectException(AuthorizationException::class);
+        $w->comment($outsider, $r, 'Hello');
+    }
+
     public function test_every_media_request_livewire_action_is_classified(): void
     {
         $mapped = config('access-control.livewire');

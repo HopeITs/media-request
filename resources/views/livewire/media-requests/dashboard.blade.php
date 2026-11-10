@@ -34,7 +34,8 @@
 <div wire:key="home-{{ md5(json_encode($layout)) }}" data-home-screen
      x-data="mrHomeScreen(@js($layout), @js($bounds), @js($looks))"
      data-hint-press="{{ __('media.hint.longpress') }}" data-hint-out="{{ __('media.hint.editOut') }}"
-     x-on:keydown.escape.window="peek ? closePeek() : done()">
+     x-on:media-request-saved.window="$wire.$refresh()"
+     x-on:keydown.escape.window="cardsSheet || presets ? (cardsSheet = presets = false) : (peek ? closePeek() : done())">
 
     <section class="hello">
         <div>
@@ -53,7 +54,8 @@
                 <span class="btnline">
                     <button type="button" class="btn btn-g" x-on:click="mrConfirm(@js(__('media.dash.resetConfirm')), { ok: @js(__('media.dash.reset')), cancel: @js(__('media.confirm.back')) }).then((yes) => yes && $wire.resetLayout())"><x-ic n="reset" />{{ __('media.dash.reset') }}</button>
                     <button type="button" class="btn btn-o" x-on:click="presets = true"><x-ic n="layers" />{{ __('media.dash.presets') }}</button>
-                    <button type="button" class="btn btn-o" x-on:click="gallery = true" :disabled="hiddenItems().length === 0"><x-ic n="plus" />{{ __('media.dash.add') }}</button>
+                    {{-- The same Cards sheet as outside customising: one place to switch a card on or off. --}}
+                    <button type="button" class="btn btn-o" x-on:click="cardsSheet = true"><x-ic n="eye" />{{ __('media.dash.cards') }}</button>
                     <button type="button" class="btn btn-p" x-on:click="done()"><x-ic n="check" />{{ __('media.dash.done') }}</button>
                 </span>
             </template>
@@ -90,7 +92,7 @@
     <div class="hs-wrap" :class="{ dropping }" data-drop="{{ __('media.dock.drop') }}">
     {{-- Virtual grid: faint cells behind the tiles while editing, so you can see where a tile will sit. --}}
     <div class="hs hs-guides" x-ref="guides" x-show="editing" x-cloak aria-hidden="true"></div>
-    <div class="hs" :class="{ editing, wiggle: wiggling, 'is-in': revealed }" x-ref="grid"
+    <div class="hs" :class="{ editing, 'is-in': revealed }" x-ref="grid"
          x-on:pointerdown="press($event)" x-on:pointerup="release()" x-on:pointerleave="release()" x-on:pointercancel="release()"
          x-on:click.capture="swallowClick($event)" x-on:contextmenu="if (editing || pressed) $event.preventDefault()">
         @foreach ($layout as $item)
@@ -99,7 +101,7 @@
                  style="{{ $span($item['size']) }}{{ $item['hidden'] ? 'display:none;' : '' }}"
                  :style="span('{{ $key }}')"
                  :class="{ pinned: pinned('{{ $key }}'), resizing: resizing === '{{ $key }}', parked: parked('{{ $key }}'), peek: peek === '{{ $key }}' }"
-                 x-show="shownHere('{{ $key }}')"
+                 x-show="shownHere('{{ $key }}') && ! resting('{{ $key }}')"
                  @if ($page = $cards->isApp($key) ? null : $cards->page(auth()->user(), $key)) data-page="{{ $page }}" x-on:dblclick="openPage($event, $el)" data-hint="dblclick" data-hint-text="{{ __('media.dash.pageOpen') }}" @endif
                  wire:key="tile-{{ $key }}">
 
@@ -108,7 +110,7 @@
                 @unless ($cards->isApp($key))
                     <button type="button" class="tbtn t-pin" x-show="editing" x-cloak x-on:click="togglePin('{{ $key }}')" :aria-pressed="pinned('{{ $key }}')" aria-label="{{ __('media.dash.pin') }}: {{ $label($key) }}"><x-ic n="pin" /></button>
                     @if (isset($looks[$key]))
-                        <button type="button" class="tbtn t-style" x-show="editing" x-cloak x-on:click="cycleStyle('{{ $key }}')" aria-label="{{ __('media.dash.style') }}: {{ $label($key) }}" title="{{ __('media.dash.style') }}"><x-ic n="clock" /><span x-text="styleOf('{{ $key }}') === 'analog' ? @js(__('media.dash.look.digital')) : @js(__('media.dash.look.analog'))"></span></button>
+                        <button type="button" class="tbtn t-style" x-show="editing && ! phone()" x-cloak x-on:click="cycleStyle('{{ $key }}')" aria-label="{{ __('media.dash.style') }}: {{ $label($key) }}" title="{{ __('media.dash.style') }}"><x-ic n="clock" /><span x-text="styleOf('{{ $key }}') === 'analog' ? @js(__('media.dash.look.digital')) : @js(__('media.dash.look.analog'))"></span></button>
                     @endif
                 @endunless
                 @if ($cards->canResize($key))
@@ -611,28 +613,8 @@
     </div>
     </div>
 
-    {{-- Gallery: what can be added back. A bottom sheet on phones, a panel on larger screens. --}}
-    <div class="sheet-back" x-show="gallery" x-cloak x-transition.opacity x-on:click.self="gallery = false">
-        <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="gal-t" x-show="gallery" x-transition:enter="sheet-in" x-transition:leave="sheet-out">
-            <div class="sheet-h">
-                <h2 id="gal-t">{{ __('media.dash.add') }}</h2>
-                <button type="button" class="iconbtn" x-on:click="gallery = false" aria-label="{{ __('media.close') }}"><x-ic n="x" /></button>
-            </div>
-            <div class="gal">
-                @foreach ($layout as $item)
-                    @php($key = $item['key'])
-                    <button type="button" class="galitem" x-show="hidden('{{ $key }}')" x-on:click="add('{{ $key }}')">
-                        <span @class(['appicon', 'brand' => $key === 'app.new'])><x-ic :n="$cards->icon($key)" /></span>
-                        <span><b>{{ $label($key) }}</b><small>{{ __($cards->isApp($key) ? 'media.dash.kindApp' : 'media.dash.kindWidget') }}</small></span>
-                        <x-ic n="plus" />
-                    </button>
-                @endforeach
-            </div>
-        </div>
-    </div>
-
     {{-- What shows on the screen: every card this person may have, each with a switch. --}}
-    <div class="sheet-back" x-show="cardsSheet" x-cloak x-transition.opacity x-on:click.self="cardsSheet = false" x-on:keydown.escape.window="cardsSheet = false">
+    <div class="sheet-back" x-show="cardsSheet" x-cloak x-transition.opacity x-on:click.self="cardsSheet = false">
         <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="cards-t" x-show="cardsSheet" x-transition:enter="sheet-in" x-transition:leave="sheet-out">
             <div class="sheet-h">
                 <h2 id="cards-t">{{ __('media.dash.cards') }}</h2>
@@ -646,7 +628,7 @@
                     @php($key = $item['key'])
                     <label class="galitem">
                         <span @class(['appicon', 'brand' => $key === 'app.new'])><x-ic :n="$cards->icon($key)" /></span>
-                        <span><b>{{ $label($key) }}</b><small>{{ __($cards->isApp($key) ? 'media.dash.kindApp' : 'media.dash.kindWidget') }}</small></span>
+                        <span><b>{{ $label($key) }}</b><small x-show="! hidden('{{ $key }}') && parked('{{ $key }}')" x-cloak>{{ __('media.dash.inStrip') }}</small><small x-show="! hidden('{{ $key }}') && ! parked('{{ $key }}') && resting('{{ $key }}')" x-cloak>{{ __('media.dash.resting') }}</small></span>
                         <input type="checkbox" class="switch" :checked="! hidden('{{ $key }}')" x-on:change="$event.target.checked ? add('{{ $key }}') : remove('{{ $key }}')" aria-label="{{ $label($key) }}">
                     </label>
                 @endforeach

@@ -8,11 +8,29 @@
 @endphp
 
 <div>
-    <div class="mback" x-data="{ show: @entangle('show') }" x-show="show" x-cloak
+    {{--
+        On the home screen of a computer the form is a card docked to one side (html.wz-dock): the
+        cards move over beside it and stay usable, and a click on them does not close it. Elsewhere,
+        and on a phone, it is the usual window over the page.
+    --}}
+    <div class="mback" x-data="{
+            show: @entangle('show'),
+            docked: false,
+            dock() {
+                const html = document.documentElement;
+                this.docked = this.show && !! document.querySelector('[data-home-screen]')
+                    && ! html.classList.contains('in-workspace') && matchMedia('(min-width: 1100px)').matches;
+                html.classList.toggle('wz-dock', this.docked);
+            },
+            // Finished: the home screen shows the new request at once; any other page reloads as before.
+            finish() { if (this.docked) { $wire.close(); } else { location.reload(); } },
+         }"
+         x-init="$watch('show', () => dock()); dock()" x-on:resize.window="dock()"
+         x-show="show" x-cloak
          x-on:keydown.escape.window="if (show) $wire.close()"
          x-transition:enter="transition-opacity" x-transition.opacity.duration.150ms
-         role="dialog" aria-modal="true" aria-labelledby="wz-title">
-        <form class="modal" wire:submit="{{ $sent ? 'another' : ($step === 4 ? 'submit' : 'next') }}" x-on:click.outside="{{ $sent ? 'location.reload()' : '$wire.close()' }}">
+         role="dialog" :aria-modal="(! docked).toString()" aria-labelledby="wz-title">
+        <form class="modal" wire:submit="{{ $sent ? 'another' : ($step === 4 ? 'submit' : 'next') }}" x-on:click.outside="if (! docked) {{ $sent ? 'finish()' : '$wire.close()' }}">
             <div class="mh">
                 <h2 id="wz-title"><x-media.bi :k="$editingId ? 'media.wz.edit' : 'media.wz.title'" /></h2>
                 <button type="button" class="iconbtn" wire:click="close" aria-label="{{ __('media.close') }}"><x-ic n="x" /></button>
@@ -34,7 +52,7 @@
                     <button type="button" class="btn btn-o" wire:click="another"><x-ic n="plus" />{{ __('media.sent.another') }}</button>
                     <span style="display:flex;gap:8px">
                         <a href="{{ $sentUrl }}" class="btn btn-o">{{ __('media.sent.view') }}</a>
-                        <button type="button" class="btn btn-p" x-on:click="location.reload()"><x-ic n="check" />{{ __('media.sent.done') }}</button>
+                        <button type="button" class="btn btn-p" x-on:click="finish()"><x-ic n="check" />{{ __('media.sent.done') }}</button>
                     </span>
                 </div>
             @else

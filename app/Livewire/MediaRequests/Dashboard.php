@@ -128,6 +128,10 @@ class Dashboard extends Component
         $this->bellOpen = false;
         if ($requestId = $n->data['media_request_id'] ?? null) {
             $this->openRequest((int) $requestId);
+            // A message: the request opens on its conversation, ready to answer.
+            if (($n->data['event'] ?? null) === 'comment') {
+                $this->dispatch('mr-talk');
+            }
         }
     }
 

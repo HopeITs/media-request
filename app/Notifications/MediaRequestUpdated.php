@@ -49,7 +49,8 @@ class MediaRequestUpdated extends Notification
                 'en' => $body('en'),
                 'ar' => $body('ar'),
             ],
-            'url' => route('media-requests.show', $r, false),   // a path, so it opens on whatever address the app runs at
+            // A path, so it opens on whatever address the app runs at; a message opens the conversation.
+            'url' => route('media-requests.show', $r, false).($this->event === 'comment' ? '#talk' : ''),
             'media_request_id' => $r->id,
             'event' => $this->event,
         ];

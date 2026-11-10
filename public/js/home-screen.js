@@ -4,13 +4,14 @@
  * A grid of cells (8 columns on a computer, 4 on a phone). Each tile is
  * C×R cells. Everything the person does happens in the browser straight away:
  *
- *   - long-press (or "Customise") starts editing: the tiles wiggle briefly
- *     and a faint grid of the cells appears behind them;
+ *   - long-press (or "Customise") starts editing: a faint grid of the cells
+ *     appears behind the tiles;
  *   - drag a tile to move it (SortableJS; the others slide aside);
- *   - drag the handle in a tile's corner to resize it cell by cell, between
+ *   - drag any edge or corner of a tile to resize it cell by cell, between
  *     the card's own minimum and maximum; a label shows "2×3" while dragging;
- *     with the keyboard, focus the handle and use the arrow keys;
- *   - "×" removes, the pin keeps a tile first, "+" adds from the gallery.
+ *     with the keyboard, focus the corner handle and use the arrow keys;
+ *   - "×" removes, the pin keeps a tile in its place; the "Cards" sheet
+ *     switches every card on or off.
  *
  * Changes to the grid animate (FLIP): tiles glide from their old place to
  * the new one. The layout is saved in the background (saveLayout is
@@ -25,6 +26,8 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
     // On a phone these cards take a fixed, light size whatever was saved: one row for the clock and
     // the HC_PACK search, room for the proofreader's box and button.
     const PHONE_SIZE = { clock: '4x1', pack: '4x1', proof: '4x4' };
+    // Cards that are only a notice: with nothing to say they are not shown (see resting).
+    const QUIET = ['late', 'decide', 'waiting'];
     // Glides currently running, per tile element (kept outside Alpine's reactive state).
     const glides = new WeakMap();
     // Entrances running, per tile, kept apart so a glide never cuts one short.
@@ -37,19 +40,17 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
         looks: looks,
         cols: 8,
         editing: false,
-        gallery: false,
         presets: false,       // the ready layouts sheet
         cardsSheet: false,    // the list of every card, each with a show/hide switch
-        wiggling: false,
         resizing: null,       // key of the tile being resized
         resizeLabel: '',
         sortable: null,
         pressTimer: null,
         pressed: false,
         saveTimer: null,
-        wiggleTimer: null,
         revealed: false,      // the cards stay unseen until their places are final (reveal)
         dropping: false,      // a page from the top bar is being dragged over the screen
+        emptyTick: 0,         // bumped when the server marks a card empty or not, so the grid follows
 
         init() {
             this.readCols();
@@ -68,6 +69,10 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
                 ro.observe(this.$refs.grid.parentElement);
                 off.push(() => ro.disconnect());
             }
+            // A server update that fills or empties a card (data-empty) is followed at once.
+            const mo = new MutationObserver(() => { this.emptyTick++; });
+            mo.observe(this.$refs.grid, { attributes: true, attributeFilter: ['data-empty'], subtree: true });
+            off.push(() => mo.disconnect());
             if (window.Sortable) {
                 this.sortable = Sortable.create(this.$refs.grid, {
                     disabled: true,
@@ -92,7 +97,7 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
                     chosenClass: 'tile-chosen',
                     dragClass: 'tile-drag',
                     // A card being moved gives up the cell a resize gave it, and flows with the others.
-                    onStart: (evt) => { this.stopWiggle(); this.unplace(evt.item.dataset.key); this.$refs.grid.classList.add('dragging'); },
+                    onStart: (evt) => { this.unplace(evt.item.dataset.key); this.$refs.grid.classList.add('dragging'); },
                     // Tiles are placed by number, so moving one in the list moves nothing by itself:
                     // follow the new order at once, and the others glide to where they will end up.
                     onChange: () => this.flip(() => this.followDom()),
@@ -121,7 +126,7 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
                     && ! e.target.closest(':popover-open, .tile.mini > .wmini, .tile.is-app > a.app, dialog, .swal2-container, .mrhint')) this.closePeek();
             });
             on(window, 'click', (e) => {
-                if (this.editing && downOut && outside(e.target) && ! this.gallery && ! this.presets) { this.done(); window.mrHints.used('editOut'); }
+                if (this.editing && downOut && outside(e.target) && ! this.cardsSheet && ! this.presets) { this.done(); window.mrHints.used('editOut'); }
                 downOut = false;
             });
             this.$watch('editing', (on) => {
@@ -165,7 +170,6 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
         item(key) { return this.items.find((i) => i.key === key) || { size: '1x1', hidden: true, pinned: false }; },
         hidden(key) { return this.item(key).hidden; },
         pinned(key) { return this.item(key).pinned; },
-        hiddenItems() { return this.items.filter((i) => i.hidden); },
         tileEl(key) { return this.$refs.grid.querySelector('[data-key="' + key + '"]'); },
         // Columns never exceed the grid (a wide card on a phone takes the full width).
         // An object, so only these two properties are set and x-show keeps control of display.
@@ -191,16 +195,27 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
         // A phone (4 columns) keeps the screen light: no slideshow, no New request shortcut (the
         // + is in the bottom bar), and a small digital clock. The saved layout is not changed.
         phone() { return this.cols <= 4; },
+        // On a phone every card takes the full width, one under the other in the person's order:
+        // a width or a held cell chosen on a computer would only leave a gap beside it here.
+        onPhone(i) {
+            if (i.key.startsWith('app.')) return i;
+            return { ...i, at: null, size: PHONE_SIZE[i.key] || (this.cols + 'x' + parse(i.size)[1]) };
+        },
+        // Nothing in the card right now (marked by the server): shown closed, one line high.
+        isEmpty(key) { void this.emptyTick; return this.tileEl(key)?.dataset.empty === '1'; },
+        // The cards that only say "nothing is late / waits for you" stay off the screen while they
+        // have nothing, and come back by themselves when they do. While customising they show.
+        resting(key) { return ! this.editing && QUIET.includes(key) && this.isEmpty(key); },
         shownHere(key) { return ! this.hidden(key) && ! (this.phone() && ['showcase', 'app.new'].includes(key)); },
         clockLook() { return this.phone() ? 'digital' : this.styleOf('clock'); },
         get packed() {
             // Cards with nothing in them right now (marked by the server) go last, one line high and
             // closed, so the screen starts with what has something; the saved order is not changed.
             // While customising they show whole, so they can still be moved and sized.
-            const empty = (i) => ! this.editing && this.tileEl(i.key)?.dataset.empty === '1';
+            const empty = (i) => ! this.editing && this.isEmpty(i.key);
             // Cards waiting in the strip take no room in the grid.
-            const visible = this.items.filter((i) => this.shownHere(i.key) && ! this.parked(i.key))
-                .map((i) => (empty(i) ? { ...i, size: Math.min(4, this.cols) + 'x1' } : (this.phone() && PHONE_SIZE[i.key] ? { ...i, size: PHONE_SIZE[i.key] } : i)));
+            const visible = this.items.filter((i) => this.shownHere(i.key) && ! this.parked(i.key) && ! this.resting(i.key))
+                .map((i) => (empty(i) ? { ...i, size: Math.min(4, this.cols) + 'x1' } : (this.phone() ? this.onPhone(i) : i)));
             const full = visible.filter((i) => ! empty(i)), closed = visible.filter(empty);
             const flat = new Set(closed.map((i) => i.key));   // they stay one line: never grown taller
             // Always the person's own order: moving the shortcuts into gaps between the cards
@@ -330,7 +345,6 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
             return this.iconish(key, it.size);
         },
         parkedItems() { return this.items.filter((i) => this.shownHere(i.key) && this.parked(i.key)); },
-        mini() { return false; },
         // Back from the strip: in its place in the grid at the smallest size it shows itself at,
         // kept at that size (fixed) rather than grown into the gaps.
         unpark(key) {
@@ -541,10 +555,6 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
                 const root = this.$refs.grid.closest('[data-hint-press]'), t = root.dataset, at = root.querySelector('.hello .btn-p');
                 (! byPress && window.mrHints.show('longpress', at, t.hintPress)) || window.mrHints.show('editOut', at, t.hintOut);
             }, 450));
-            // The tiles wiggle for about a second to show they can move, then rest.
-            this.wiggling = true;
-            clearTimeout(this.wiggleTimer);
-            this.wiggleTimer = setTimeout(() => { this.wiggling = false; }, 1150);
             // A short buzz on phones, only after a real tap (browsers refuse it otherwise).
             try { if (navigator.vibrate && navigator.userActivation && navigator.userActivation.isActive) navigator.vibrate(12); } catch (e) {}
         },
@@ -559,16 +569,17 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
             const at = (i) => (p[i.key] ? p[i.key].y * 1000 + p[i.key].x : Infinity);
             this.items.sort((a, b) => at(a) - at(b));
             for (const it of this.items) {
-                if (p[it.key]) it.size = p[it.key].w + 'x' + p[it.key].h;
+                // A card closed because it is empty keeps its own size: taking the one line it is
+                // shown at would send it to the strip.
+                // Nor on a phone, where every card is shown full width whatever its own size.
+                if (p[it.key] && ! this.isEmpty(it.key) && ! this.phone()) it.size = p[it.key].w + 'x' + p[it.key].h;
             }
             for (const it of this.items) {
                 const el = this.tileEl(it.key);
                 if (el) this.$refs.grid.appendChild(el);
             }
         },
-        // Any movement ends the wiggle at once, so it never fights a drag or a resize.
-        stopWiggle() { clearTimeout(this.wiggleTimer); this.wiggling = false; },
-        done() { this.flip(() => { this.editing = false; }); this.gallery = false; this.presets = false; this.stopWiggle(); },
+        done() { this.flip(() => { this.editing = false; }); this.cardsSheet = false; this.presets = false; },
 
         // Double-click on a card that has a page opens it (not while editing, nor on its own controls).
         // A card with a search form (HC_PACK) opens with what is typed.
@@ -614,7 +625,6 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
                 const el = this.tileEl(key);
                 if (el) this.$refs.grid.appendChild(el);
             });
-            if (this.hiddenItems().length === 0) this.gallery = false;
             this.save();
         },
         // The pin keeps a card where it is, at the size it is shown: it holds that cell, and the
@@ -682,6 +692,8 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
             if (e.button > 0) return;
             e.preventDefault();
             e.stopPropagation();
+            // On a phone a card is always full width: only its height changes, from the bottom.
+            if (this.phone()) { if (block !== 'end') return; inline = null; }
             const tile = this.tileEl(key);
             const m = this.metrics();
             const rect = tile.getBoundingClientRect();
@@ -695,7 +707,6 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
             const baseC = p.w, baseR = p.h;
             let changed = false;
 
-            this.stopWiggle();
             this.resizing = key;
             this.resizeLabel = this.sizeText(key);
             e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId);
@@ -734,7 +745,7 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
             const [c, r] = parse(this.item(key).size);
             const grow = getComputedStyle(this.$refs.grid).direction === 'rtl' ? -1 : 1;
             const step = { ArrowRight: [grow, 0], ArrowLeft: [-grow, 0], ArrowDown: [0, 1], ArrowUp: [0, -1] }[e.key];
-            if (! step) return;
+            if (! step || (this.phone() && step[0])) return;
             e.preventDefault();
             if (this.setCells(key, c + step[0], r + step[1])) this.save();
         },

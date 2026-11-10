@@ -7,6 +7,10 @@
 --}}
 <div x-data="mrWorkspace" data-home="{{ route('media-requests.home') }}" data-ws-panel wire:ignore class="ws" :class="{ paged: active }" :hidden="! tabs.length" role="region" aria-label="{{ __('media.ws.label') }}">
     <div class="ws-bar">
+        {{-- Back to the cards, for whoever has no Home in the top bar: shown while a page is in front. --}}
+        <button type="button" class="ws-btn" :hidden="! active" x-on:click="goHome()" title="{{ __('media.ws.home') }}" aria-label="{{ __('media.ws.home') }}">
+            <x-ic n="back" class="flip" />
+        </button>
         <div class="ws-tabs" role="tablist" aria-label="{{ __('media.ws.tabs') }}">
             <template x-for="tab in tabs" :key="tab.id">
                 <div class="ws-tab" :class="{ on: tab.id === active, kept: tab.keep }">

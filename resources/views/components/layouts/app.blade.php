@@ -48,7 +48,8 @@
                 <span class="app">{{ __('media.app') }}<small class="beta">Beta</small></span>
             </a>
 
-            {{-- The everyday pages in the bar; the occasional ones (log, teaching, people) under "More". --}}
+            {{-- The everyday pages in the bar, as icons: the name opens out beside one under the pointer
+                 or the keyboard (.nl); the occasional ones (log, teaching, people) under "More". --}}
             @php
                 $occasional = ['media-requests.log', 'media-requests.assistant', 'people.index'];
                 $navMore = collect($nav)->filter(fn ($n) => in_array($n[0], $occasional, true));
@@ -58,15 +59,15 @@
             <nav class="nav" aria-label="{{ __('media.app') }}">
                 @foreach ($nav as [$route, $label, $icon, , $active])
                     @continue(in_array($route, $occasional, true))
-                    <a href="{{ route($route) }}" @if ($card = $cardFor($route)) draggable="true" data-card="{{ $card }}" x-data x-on:dragstart="$event.dataTransfer.setData('application/x-mr-page', $el.dataset.card); $event.dataTransfer.effectAllowed = 'copy'" x-on:click="if (! $event.defaultPrevented && $event.button === 0 && ! ($event.ctrlKey || $event.metaKey || $event.shiftKey || $event.altKey) && window.Livewire) { $event.preventDefault(); Livewire.navigate($el.href) }" @else wire:navigate @endif @if (request()->routeIs(...$active)) aria-current="page" @endif>
-                        <x-ic :n="$icon" />{{ __('media.'.$label) }}
+                    <a href="{{ route($route) }}" @if ($card = $cardFor($route)) draggable="true" data-card="{{ $card }}" x-data x-on:dragstart="$event.dataTransfer.setData('application/x-mr-page', $el.dataset.card); $event.dataTransfer.effectAllowed = 'copy'" x-on:click="if (! $event.defaultPrevented && $event.button === 0 && ! ($event.ctrlKey || $event.metaKey || $event.shiftKey || $event.altKey) && window.Livewire) { $event.preventDefault(); Livewire.navigate($el.href) }" @else wire:navigate @endif @if (request()->routeIs(...$active)) aria-current="page" @endif title="{{ __('media.'.$label) }}">
+                        <x-ic :n="$icon" /><span class="nl">{{ __('media.'.$label) }}</span>
                     </a>
                 @endforeach
                 @if ($navMore->isNotEmpty())
                     <button type="button" class="navmore" popovertarget="nav-more" @if ($navMore->contains(fn ($n) => request()->routeIs(...$n[4]))) aria-current="page" @endif
                             x-data x-on:click="const r = $el.getBoundingClientRect(), m = document.getElementById('nav-more'); m.style.top = (r.bottom + 4) + 'px';
                                 requestAnimationFrame(() => { const w = m.offsetWidth, rtl = document.dir === 'rtl'; m.style.left = Math.max(8, Math.min(innerWidth - w - 8, rtl ? r.right - w : r.left)) + 'px'; })">
-                        <x-ic n="more" />{{ __('media.nav.more') }}
+                        <x-ic n="more" /><span class="nl">{{ __('media.nav.more') }}</span>
                     </button>
                 @endif
             </nav>
