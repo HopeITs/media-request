@@ -31,12 +31,14 @@
 {{-- The tabs: the home screen first, then the pages opened from it. --}}
 @include('livewire.media-requests.partials.workspace')
 {{-- wire:key: when the server sends a different layout (reset), the home screen starts fresh. --}}
-<div wire:key="home-{{ md5(json_encode($layout)) }}" data-home-screen
+<div wire:key="home-{{ md5(json_encode($layout)) }}" data-home-screen @if ($only) data-only="{{ $only }}" @endif
      x-data="mrHomeScreen(@js($layout), @js($bounds), @js($looks))"
      data-hint-press="{{ __('media.hint.longpress') }}" data-hint-out="{{ __('media.hint.editOut') }}"
      x-on:media-request-saved.window="$wire.$refresh()"
      x-on:keydown.escape.window="cardsSheet || presets ? (cardsSheet = presets = false) : (peek ? closePeek() : done())">
 
+    {{-- One card alone (?card=…, a card floating outside the browser): no greeting, no strip. --}}
+    @unless ($only)
     <section class="hello">
         <div>
             <h1><small>{{ __('media.home.hi', ['name' => $first]) }}</small>{{ $waiting->count() ? trans_choice('media.home.waiting', $waiting->count(), ['n' => $waiting->count()]) : ($onTeam ? __('media.home.clear') : __('media.home.help')) }}</h1>
@@ -61,12 +63,14 @@
             </template>
         </div>
     </section>
+    @endunless
 
     {{--
         The strip: cards made small and shortcuts wait here as chips, never as icons in the grid.
         Always drawn, even empty, so the grid never jumps when the first card is minimised or the
         last brought back. One click opens it; while customising, × takes it off the screen.
     --}}
+    @unless ($only)
     <ul class="dock" aria-label="{{ __('media.dock.label') }}">
         @foreach ($layout as $item)
             @php($key = $item['key'])
@@ -87,6 +91,7 @@
             </li>
         @endforeach
     </ul>
+    @endunless
 
     {{-- The grid. Tiles are drawn once by the server; moving, resizing and hiding only change them in place. --}}
     <div class="hs-wrap" :class="{ dropping }" data-drop="{{ __('media.dock.drop') }}">
@@ -97,6 +102,7 @@
          x-on:click.capture="swallowClick($event)" x-on:contextmenu="if (editing || pressed) $event.preventDefault()">
         @foreach ($layout as $item)
             @php($key = $item['key'])
+            @continue($only && $key !== $only)
             <div class="tile {{ $cards->isApp($key) ? 'is-app' : 'is-widget' }}" data-key="{{ $key }}" @if (in_array($key, $empty, true)) data-empty="1" @endif
                  style="{{ $span($item['size']) }}{{ $item['hidden'] ? 'display:none;' : '' }}"
                  :style="span('{{ $key }}')"
@@ -139,9 +145,11 @@
                         @unless ($cards->isApp($key) || $key === 'clock')
                             <button type="button" x-on:click="maximise('{{ $key }}')" title="{{ __('media.dock.maximise') }}" aria-label="{{ __('media.dock.maximise') }}: {{ $label($key) }}"><x-ic n="max" /></button>
                         @endunless
-                        {{-- Not for people who only ask for work: they stay on this screen. --}}
-                        @if (! $here && ($page || ($cards->isApp($key) && $cards->route($key))))
-                            <a href="{{ $page ?: route($cards->route($key)) }}" target="_blank" rel="noopener" title="{{ __('media.dock.popOut') }}" aria-label="{{ __('media.dock.popOut') }}: {{ $label($key) }}"><x-ic n="out" /></a>
+                        {{-- Out of the browser: the card's page; for a card with no page, or for someone who only
+                             asks for work (their pages lead back here), the card itself alone (?card=). --}}
+                        @php($popUrl = ! $here && ($page || ($cards->isApp($key) && $cards->route($key))) ? ($page ?: route($cards->route($key))) : ($cards->isApp($key) ? null : route('media-requests.home', ['card' => $key])))
+                        @if ($popUrl)
+                            <a href="{{ $popUrl }}" target="_blank" rel="noopener" data-ws-skip x-on:click="if (! ($event.ctrlKey || $event.metaKey || $event.shiftKey)) { $event.preventDefault(); popOut('{{ $key }}', $el.href) }" title="{{ __('media.dock.popOut') }}" aria-label="{{ __('media.dock.popOut') }}: {{ $label($key) }}"><x-ic n="out" /></a>
                         @endif
                     </div>
                 @endunless

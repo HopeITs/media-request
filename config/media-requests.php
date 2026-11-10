@@ -28,6 +28,11 @@ return [
     // An open request waiting this long with the same owner is flagged late.
     'late_after_hours' => 24,
 
+    // While the app is being tried out (temporary): a rating after each action, and a "report"
+    // button on every page that sends a screenshot and a note. Read on /feedback by administrators.
+    // MEDIA_FEEDBACK=false switches all of it off; nothing else depends on it.
+    'feedback' => (bool) env('MEDIA_FEEDBACK', true),
+
     // A result waiting this many working minutes for the media manager's check is late, and they are told (half a day).
     'review_alert_minutes' => 240,
 

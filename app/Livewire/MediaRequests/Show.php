@@ -351,6 +351,9 @@ class Show extends Component
 
         $this->dispatch('notification-created');
 
+        // While the app is being tried out: how did that step go? (named after the action just run)
+        \App\Support\BetaFeedback::ask($this, debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['function'] ?? 'step');
+
         // Delivered: a short celebration for whoever delivered it.
         if ($this->mediaRequest->status === \App\Enums\MediaRequestStatus::Delivered) {
             $r = $this->mediaRequest;

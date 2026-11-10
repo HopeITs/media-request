@@ -18,6 +18,8 @@
         ['media-requests.log', 'nav.log', 'list', $isMediaTeam && $user->hasActivePermission('media-requests.view-log'), ['media-requests.log']],
         ['media-requests.assistant', 'nav.assistant', 'spark', $isMediaTeam && $user->hasActivePermission('media-requests.view-log'), ['media-requests.assistant']],
         ['people.index', 'nav.people', 'users', $user->hasActivePermission('people.manage'), ['people.index']],
+        // While the app is being tried out: what people reported and how they rated it.
+        ['feedback.index', 'nav.feedback', 'bug', config('media-requests.feedback') && $team->isAdministrator($user), ['feedback.index']],
     ], fn ($item) => $item[3]);
     // People who only ask for work have the home screen only: no page links, and the bell is a card there.
     $requesterOnly = $team->isRequesterOnly($user);
@@ -60,6 +62,10 @@
                 @endforeach
             </nav>
             <div class="tools">
+                {{-- While the app is being tried out: report a problem or an idea (public/js/feedback.js). --}}
+                @if (config('media-requests.feedback'))
+                    <button type="button" class="iconbtn" data-fbk-open title="{{ __('media.fb.reportTitle') }}" aria-label="{{ __('media.fb.reportTitle') }}"><x-ic n="bug" /></button>
+                @endif
                 @if ($user->hasActivePermission('media-requests.create'))
                     <a href="{{ app(\App\Support\MediaRequests\HcGenerator::class)->url() }}" target="_blank" rel="noopener" class="iconbtn" title="HC Generator" aria-label="HC Generator">
                         <x-ic n="wand" />
@@ -155,6 +161,9 @@
                         </div>
                     @endif
                     <div class="tb-rows">
+                        @if (config('media-requests.feedback'))
+                            <button type="button" data-fbk-open x-on:click="more = false"><x-ic n="bug" />{{ __('media.fb.reportTitle') }}</button>
+                        @endif
                         <button type="button" x-data="{ dark: document.documentElement.dataset.theme ? document.documentElement.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches }"
                                 x-on:click="dark = ! dark; document.documentElement.dataset.theme = dark ? 'dark' : 'light'; try { localStorage.setItem('mr-theme', dark ? 'dark' : 'light') } catch (e) {}">
                             <x-ic n="moon" x-show="! dark" /><x-ic n="sun" x-show="dark" x-cloak />{{ __('media.theme.dark') }}
@@ -176,5 +185,20 @@
     @stack('scripts')
     {{-- The proofreader, opened from the home screen card or a form field (event media-proofread-open). --}}
     <livewire:media-requests.proofreader-panel />
+    {{-- While the app is being tried out: report a problem from any page, rate an action after it
+         (public/js/feedback.js). data-next: a rating asked by the action that led to this page. --}}
+    @if (config('media-requests.feedback'))
+        <div id="mr-fbk" hidden data-post="{{ route('feedback.store') }}" @if (session('mr-rate')) data-next="{{ json_encode(session('mr-rate')) }}" @endif
+             data-t="{{ json_encode([
+                 'report' => __('media.fb.btn'), 'reportTitle' => __('media.fb.reportTitle'), 'reportLead' => __('media.fb.reportLead'),
+                 'reportPh' => __('media.fb.reportPh'), 'withShot' => __('media.fb.withShot'), 'noShot' => __('media.fb.noShot'), 'shot' => __('media.fb.col.shot'),
+                 'needNote' => __('media.fb.needNote'), 'failed' => __('media.fb.failed'), 'send' => __('media.cm.send'), 'close' => __('media.close'),
+                 'rateQ' => __('media.fb.rateQ'), 'rate1' => __('media.fb.rate.1'), 'rate2' => __('media.fb.rate.2'), 'rate3' => __('media.fb.rate.3'),
+                 'ratePh' => __('media.fb.ratePh'), 'ratePhBad' => __('media.fb.ratePhBad'), 'skip' => __('media.fb.skip'), 'thanks' => __('media.fb.thanks'),
+             ]) }}">
+            @foreach (['bug', 'x', 'send', 'frown', 'meh', 'smile'] as $ic)<template data-ic="{{ $ic }}"><x-ic :n="$ic" /></template>@endforeach
+        </div>
+        <script src="{{ asset('js/feedback.js') }}?v={{ filemtime(public_path('js/feedback.js')) }}" defer></script>
+    @endif
 </body>
 </html>

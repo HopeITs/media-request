@@ -52,7 +52,10 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
         dropping: false,      // a page from the top bar is being dragged over the screen
         emptyTick: 0,         // bumped when the server marks a card empty or not, so the grid follows
 
+        only: null,           // one card alone (?card=, a card floating outside the browser): never customised
+
         init() {
+            this.only = this.$el.dataset.only || null;
             this.readCols();
             this.$nextTick(() => this.reveal());
             this.acceptPages();
@@ -370,9 +373,38 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
             this.save();
         },
         maximise(key) { this.peekOpen(key); },
-        popOut(key) {
-            const page = this.tileEl(key)?.dataset.page;
-            if (page) window.open(page, '_blank', 'noopener');
+        /*
+         * Out of the browser: the card's page in a small window that floats on top of every other
+         * program and stays there while the person works elsewhere (Document Picture-in-Picture,
+         * Chrome and Edge). The page sits in a frame marked data-ws-frame, so it shows without the
+         * site's header (layouts/head.blade.php). Where the browser has no such window, a small
+         * window of its own instead. One floating window at a time: a new one replaces it.
+         */
+        async popOut(key, url = null) {
+            const tile = this.tileEl(key);
+            const page = url || tile?.dataset.page;
+            if (! page) return;
+            const r = tile?.getBoundingClientRect();
+            const width = Math.round(Math.max(380, Math.min(720, r?.width || 480)));
+            const height = Math.round(Math.max(460, Math.min(900, (r?.height || 520) + 120)));
+            const title = (tile?.querySelector('.wh h2, .appname')?.textContent || '').trim() || document.title;
+            if (window.documentPictureInPicture) {
+                try {
+                    const pip = await window.documentPictureInPicture.requestWindow({ width, height });
+                    const d = pip.document;
+                    d.title = title;
+                    d.documentElement.style.cssText = 'height:100%;color-scheme:light dark';
+                    d.body.style.cssText = 'margin:0;height:100%;background:' + getComputedStyle(document.body).backgroundColor;
+                    const frame = d.createElement('iframe');
+                    frame.setAttribute('data-ws-frame', '');
+                    frame.title = title;
+                    frame.style.cssText = 'display:block;width:100%;height:100%;border:0';
+                    frame.src = page;
+                    d.body.append(frame);
+                    return;
+                } catch (e) { /* refused (no click behind it, or not allowed): a window instead */ }
+            }
+            window.open(page, 'mr-pop-' + key, 'popup,noopener,width=' + width + ',height=' + height);
         },
         // A page from the top bar dropped on the screen: an open card (added, or back from the
         // strip), with every card shown so it can be seen arriving.
@@ -546,6 +578,7 @@ window.mrHomeScreen = function (layout, bounds, looks = {}) {
 
         // ---- editing ----------------------------------------------------
         startEdit(byPress = false) {
+            if (this.only) return;
             this.closePeek();
             this.flip(() => { this.bake(); this.editing = true; });
             // One tip for this moment: how to start next time (if they used the button), else how to finish.

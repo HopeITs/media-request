@@ -38,6 +38,25 @@ class DashboardTest extends TestCase
         $this->assertContains('app.board', $maya);
     }
 
+    /** A card taken out of the browser: the home screen draws only that card (?card=), for anyone. */
+    public function test_a_card_can_be_drawn_alone_to_float_outside_the_browser(): void
+    {
+        $rami = $this->user('rami');
+        $home = Livewire::actingAs($rami)->test(Dashboard::class);
+        $home->assertSeeHtml(e(route('media-requests.home', ['card' => 'clock'])));   // a card with no page of its own
+
+        Livewire::actingAs($rami)->withQueryParams(['card' => 'mine'])->test(Dashboard::class)
+            ->assertSeeHtml('data-only="mine"')
+            ->assertSeeHtml('data-key="mine"')
+            ->assertDontSeeHtml('data-key="ask"')
+            ->assertDontSeeHtml('class="dock"');
+
+        // Not a card of this person's screen: the whole screen, as usual.
+        Livewire::actingAs($rami)->withQueryParams(['card' => 'team'])->test(Dashboard::class)
+            ->assertDontSeeHtml('data-only=')
+            ->assertSeeHtml('class="dock"');
+    }
+
     public function test_a_card_opens_only_a_page_the_person_may_see(): void
     {
         $cards = app(DashboardLayout::class);

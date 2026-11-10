@@ -26,6 +26,7 @@ class PackQuick extends Component
     public function requestFiles(MediaRequestWorkflow $workflow)
     {
         $request = $workflow->requestPack(auth()->user(), $this->selected, '');
+        \App\Support\BetaFeedback::askNext('packRequest');
 
         return $this->redirectRoute('media-requests.show', $request);
     }

@@ -1532,3 +1532,70 @@ html.wz-dock .mf .btn-p{min-width:0}
 .talkwho{display:flex;align-items:center;gap:8px;margin:0 0 14px;font-size:13px}
 .talkwho .ic{width:15px;height:15px;flex:none}
 .dh .meta .btn-q .cnt{margin-inline-start:2px}
+/* One card alone (?card=…, a card floating outside the browser): it fills the window, whatever its
+   size, place or state on the home screen (minimised, empty, hidden by the grid), without its window
+   controls. */
+[data-home-screen][data-only] .hs{display:block}
+[data-home-screen][data-only] .hs > .tile{display:block!important;position:relative;width:auto;height:calc(100dvh - 44px);min-height:240px;visibility:visible;pointer-events:auto;overflow:hidden}
+[data-home-screen][data-only] .hs > .tile > .w{display:flex!important;height:100%}
+[data-home-screen][data-only] .wctl,[data-home-screen][data-only] .hs-guides,[data-home-screen][data-only] .wmini{display:none!important}
+html.in-workspace:has([data-only]) main#main{padding-block:10px}
+/* ==== Feedback while the app is being tried out (temporary; public/js/feedback.js) ==== */
+.fbk-panel,.fbk-rate{position:fixed;z-index:46;top:calc(var(--top-h,64px) + 12px);width:min(380px,calc(100vw - 32px));padding:14px 16px 16px;border:1px solid var(--line-soft);border-radius:16px;background:var(--card);color:var(--text);box-shadow:var(--shadow);display:grid;gap:10px}
+.fbk-panel{inset-inline-end:18px;max-height:calc(100dvh - var(--top-h,64px) - 28px);overflow:auto}
+/* At the top, under the bar, in the middle: never over a form's buttons, which sit at the bottom. */
+.fbk-rate{left:50%;transform:translateX(-50%);width:min(340px,calc(100vw - 32px))}
+/* The new request docked on one side: over the cards' half, not the form's title. */
+html.wz-dock .fbk-rate{left:calc((100vw - var(--wz-w) - 24px) / 2)}
+html.wz-dock[dir="rtl"] .fbk-rate{left:calc(var(--wz-w) + 24px + (100vw - var(--wz-w) - 24px) / 2)}
+.fbk-h{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.fbk-h b,.fbk-q{margin:0;font-size:15px;font-weight:700;line-height:1.35}
+.fbk-x{display:grid;place-items:center;flex:none;width:28px;height:28px;margin:-4px;margin-inline-end:-6px;padding:0;border:0;border-radius:999px;background:none;color:var(--text-2);cursor:pointer}
+.fbk-x:hover{background:var(--hover);color:var(--text)}
+.fbk-x .ic{width:15px;height:15px}
+.fbk-lead,.fbk-note{margin:0;font-size:13px;color:var(--text-2)}
+.fbk-err{margin:0;font-size:13px;color:var(--brand);font-weight:600}
+.fbk-shot{margin:0;border:1px solid var(--line-soft);border-radius:10px;overflow:hidden;background:var(--soft)}
+.fbk-shot img{display:block;width:100%;max-height:200px;object-fit:cover;object-position:top}
+.fbk-shot.off{opacity:.35}
+.fbk-keep{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-2);cursor:pointer}
+.fbk-panel textarea,.fbk-more textarea{width:100%;resize:vertical;font-size:14px}
+.fbk-b{display:flex;justify-content:flex-end;gap:8px}
+.fbk-faces{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.fbk-face{display:grid;justify-items:center;gap:4px;padding:8px 4px;border:1px solid var(--line-soft);border-radius:12px;background:none;color:var(--text-2);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+.fbk-face .ic{width:24px;height:24px}
+.fbk-face:hover{background:var(--hover);color:var(--text)}
+.fbk-face[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--on-ink)}
+.fbk-face.f1[aria-pressed="true"]{border-color:var(--brand);background:var(--brand);color:var(--on-brand)}
+.fbk-more{display:grid;gap:8px}
+.fbk-thanks{position:fixed;z-index:47;bottom:24px;left:50%;transform:translateX(-50%);padding:9px 16px;border-radius:999px;background:var(--ink);color:var(--on-ink);font-size:14px;font-weight:600;box-shadow:var(--shadow);transition:opacity .3s}
+.fbk-thanks.out{opacity:0}
+@media (max-width:760px){
+  .fbk-panel,.fbk-rate{top:68px;inset-inline:16px;width:auto;left:auto;transform:none}
+  .fbk-thanks{bottom:calc(140px + env(safe-area-inset-bottom))}
+}
+.fbk-busy{opacity:.55;cursor:progress}
+@media print{.fbk-panel,.fbk-rate{display:none}}
+/* The feedback page. */
+.fb-actions{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.fb-actions li{display:grid;grid-template-columns:minmax(140px,1.2fr) 2fr auto;align-items:center;gap:12px;font-size:14px}
+.fb-bar{display:flex;gap:2px;height:10px;border-radius:999px;overflow:hidden;background:var(--soft)}
+.fb-bar i{display:block;min-width:4px}
+.fb-good{background:var(--ink)}
+.fb-meh{background:var(--text-3)}
+.fb-bad{background:var(--brand)}
+.fb-face{display:inline-flex;align-items:center;gap:6px;font-weight:700}
+.fb-face .ic{width:18px;height:18px}
+.fb-face.fb-bad,.fb-face.fb-good,.fb-face.fb-meh{background:none}
+.fb-face.fb-bad{color:var(--brand)}
+.fb-face.fb-meh{color:var(--text-2)}
+.fb-shot{display:block;width:120px;border:1px solid var(--line-soft);border-radius:8px;overflow:hidden}
+.fb-shot img{display:block;width:100%;height:80px;object-fit:cover;object-position:top}
+tr.fb-done td{opacity:.55}
+@media (max-width:640px){.fb-actions li{grid-template-columns:1fr;gap:4px}}
+/* A report's screenshot, large over the feedback page. */
+.fb-view{position:fixed;inset:0;z-index:70;display:grid;place-items:center;padding:56px 24px 24px;background:var(--backdrop)}
+.fb-view img{max-width:100%;max-height:100%;border-radius:12px;box-shadow:var(--shadow);background:var(--card)}
+.fb-view-x{position:absolute;top:12px;inset-inline-end:12px;background:var(--card);color:var(--text)}
+.fb-fix{display:flex;gap:6px;align-items:flex-start;margin-top:8px;padding:6px 8px;border-radius:8px;background:var(--soft);color:var(--text-2);font-size:13px;white-space:normal}
+.fb-fix .ic{width:14px;height:14px;flex:none;margin-top:2px}

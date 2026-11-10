@@ -48,6 +48,14 @@ class Dashboard extends Component
     /** How many request groups the notifications list shows; "show more" adds to it. */
     public int $bellShown = 8;
 
+    /**
+     * One card alone (?card=decide): the home screen draws only that card, filling the window. A card
+     * taken out of the browser floats in this (home-screen.js popOut). Only a card of this person's own
+     * layout; anything else draws the whole screen as usual. It only chooses what is drawn.
+     */
+    #[Url(as: 'card', except: null)]
+    public ?string $card = null;
+
     public function mount(): void
     {
         $this->notes = (string) $this->record()->notes;
@@ -180,8 +188,10 @@ class Dashboard extends Component
         $cards = app(DashboardLayout::class);
         $layout = $cards->clean($user, $this->record()->layout);
         $keys = array_column($layout, 'key');
+        $only = is_string($this->card) && in_array($this->card, $keys, true) && ! $cards->isApp($this->card) ? $this->card : null;
 
         $view = [
+            'only' => $only,
             'layout' => $layout,
             'cards' => $cards,
             // Always counted: the greeting says how many wait on you, even with the card hidden.

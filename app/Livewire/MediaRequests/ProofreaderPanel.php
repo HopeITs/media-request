@@ -114,6 +114,7 @@ class ProofreaderPanel extends Component
             'result' => collect($this->result)->except(['original', 'corrected'])->all(),
         ]);
         $this->savedId = $saved->id;
+        \App\Support\BetaFeedback::ask($this, 'proofread');
 
         // Keep the newest checks only.
         MediaProofread::where('user_id', auth()->id())->latest('id')->skip(MediaProofread::KEEP)->take(1000)->pluck('id')

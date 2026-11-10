@@ -105,5 +105,8 @@ return [
         'account.security' => ['confirmPassword'],
         'notifications.index' => ['markAllRead'],
         'people.index' => ['create', 'cancel', 'forgetPassword'],
+        // Feedback while the app is being tried out: the component allows administrators only, in
+        // mount and again in each action (Feedback\Index::allowed).
+        'feedback.index' => ['setShow', 'toggleDone'],
     ],
 ];

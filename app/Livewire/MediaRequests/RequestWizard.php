@@ -298,6 +298,7 @@ class RequestWizard extends Component
         $editing = (bool) $this->editingId;
         $this->resetForm();
         $this->dispatch('media-request-saved');
+        \App\Support\BetaFeedback::ask($this, $editing ? 'editRequest' : 'submit');
 
         if (! $editing) {
             $this->sentId = $request->id;

@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\BetaFeedbackController;
 use App\Http\Controllers\MediaRequestFileController;
+use App\Livewire\Feedback\Index as BetaFeedbackIndex;
 use App\Livewire\Account\Security;
 use App\Livewire\Auth\Login;
 use App\Livewire\MediaRequests;
@@ -31,6 +33,12 @@ Route::middleware('auth')->group(function () {
     })->name('logout');
 
     Route::get('/account/security', Security::class)->name('account.security');
+
+    // Feedback while the app is being tried out (config media-requests.feedback): anyone sends
+    // their own; administrators read it all (the page and the screenshots check that themselves).
+    Route::post('/feedback', [BetaFeedbackController::class, 'store'])->middleware('throttle:30,1')->name('feedback.store');
+    Route::get('/feedback', BetaFeedbackIndex::class)->name('feedback.index');
+    Route::get('/feedback/{feedback}/shot', [BetaFeedbackController::class, 'shot'])->middleware('throttle:120,1')->name('feedback.shot');
     Route::get('/notifications', Notifications::class)->name('notifications.index');
     Route::get('/people', People::class)->middleware('active_permission:people.manage')->name('people.index');
 
