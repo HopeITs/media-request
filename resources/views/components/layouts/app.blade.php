@@ -48,42 +48,17 @@
                 <span class="app">{{ __('media.app') }}<small class="beta">Beta</small></span>
             </a>
 
-            {{-- The everyday pages in the bar, as icons: the name opens out beside one under the pointer
-                 or the keyboard (.nl); the occasional ones (log, teaching, people) under "More". --}}
-            @php
-                $occasional = ['media-requests.log', 'media-requests.assistant', 'people.index'];
-                $navMore = collect($nav)->filter(fn ($n) => in_array($n[0], $occasional, true));
-            @endphp
-            {{-- A page can be dragged onto the home screen to become a card there. Livewire's wire:navigate
-                 cancels the press a drag starts with, so these links go to their page on a plain click instead. --}}
+            {{-- Every page in the bar, as an icon: its name opens out beside it under the pointer or the
+                 keyboard (.nl). A page can be dragged onto the home screen to become a card there.
+                 Livewire's wire:navigate cancels the press a drag starts with, so these links go to
+                 their page on a plain click instead. --}}
             <nav class="nav" aria-label="{{ __('media.app') }}">
                 @foreach ($nav as [$route, $label, $icon, , $active])
-                    @continue(in_array($route, $occasional, true))
                     <a href="{{ route($route) }}" @if ($card = $cardFor($route)) draggable="true" data-card="{{ $card }}" x-data x-on:dragstart="$event.dataTransfer.setData('application/x-mr-page', $el.dataset.card); $event.dataTransfer.effectAllowed = 'copy'" x-on:click="if (! $event.defaultPrevented && $event.button === 0 && ! ($event.ctrlKey || $event.metaKey || $event.shiftKey || $event.altKey) && window.Livewire) { $event.preventDefault(); Livewire.navigate($el.href) }" @else wire:navigate @endif @if (request()->routeIs(...$active)) aria-current="page" @endif title="{{ __('media.'.$label) }}">
                         <x-ic :n="$icon" /><span class="nl">{{ __('media.'.$label) }}</span>
                     </a>
                 @endforeach
-                @if ($navMore->isNotEmpty())
-                    <button type="button" class="navmore" popovertarget="nav-more" @if ($navMore->contains(fn ($n) => request()->routeIs(...$n[4]))) aria-current="page" @endif
-                            x-data x-on:click="const r = $el.getBoundingClientRect(), m = document.getElementById('nav-more'); m.style.top = (r.bottom + 4) + 'px';
-                                requestAnimationFrame(() => { const w = m.offsetWidth, rtl = document.dir === 'rtl'; m.style.left = Math.max(8, Math.min(innerWidth - w - 8, rtl ? r.right - w : r.left)) + 'px'; })">
-                        <x-ic n="more" /><span class="nl">{{ __('media.nav.more') }}</span>
-                    </button>
-                @endif
             </nav>
-            @if ($navMore->isNotEmpty())
-                {{-- A popover (the top layer), so the bar's scrolling never cuts it off. --}}
-                <div id="nav-more" class="navmenu" popover>
-                    @foreach ($navMore as [$route, $label, $icon, , $active])
-                        <a href="{{ route($route) }}" x-data x-on:click="document.getElementById('nav-more').hidePopover(); if (! $event.defaultPrevented && $event.button === 0 && ! ($event.ctrlKey || $event.metaKey || $event.shiftKey || $event.altKey) && window.Livewire) { $event.preventDefault(); Livewire.navigate($el.href) }"
-                           @if ($card = $cardFor($route)) draggable="true" data-card="{{ $card }}" x-on:dragstart="$event.dataTransfer.setData('application/x-mr-page', $el.dataset.card); $event.dataTransfer.effectAllowed = 'copy'; document.getElementById('nav-more').hidePopover()" @endif
-                           @if (request()->routeIs(...$active)) aria-current="page" @endif>
-                            <x-ic :n="$icon" />{{ __('media.'.$label) }}
-                        </a>
-                    @endforeach
-                </div>
-            @endif
-
             <div class="tools">
                 @if ($user->hasActivePermission('media-requests.create'))
                     <a href="{{ app(\App\Support\MediaRequests\HcGenerator::class)->url() }}" target="_blank" rel="noopener" class="iconbtn" title="HC Generator" aria-label="HC Generator">

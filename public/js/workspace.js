@@ -75,8 +75,8 @@
             const mark = () => {
                 const tab = this.current();
                 const path = tab ? new URL(tab.url, location.href).pathname.replace(/\/+$/, '') : this.home;
-                // Each menu on its own: the top bar, its More menu, and the phone's bottom bar.
-                for (const menu of document.querySelectorAll('header.top nav.nav, #nav-more, nav.tabbar')) {
+                // Each menu on its own: the top bar and the phone's bottom bar.
+                for (const menu of document.querySelectorAll('header.top nav.nav, nav.tabbar')) {
                     const links = [...menu.querySelectorAll(':scope > a[href]')]
                         .map((a) => [a, new URL(a.href).pathname.replace(/\/+$/, ''), new URL(a.href).search]);
                     // The closest match only: /media-requests (My requests) must not light up for /media-requests/board.
@@ -86,8 +86,6 @@
                         if (best && a === best[0]) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
                     }
                 }
-                const more = document.querySelector('header.top .navmore');
-                if (more) { if (document.querySelector('#nav-more a[aria-current]')) more.setAttribute('aria-current', 'page'); else more.removeAttribute('aria-current'); }
             };
             this.$watch('active', (id) => {
                 mark();
@@ -239,7 +237,7 @@
                 // else by its title (most pages share the app's title).
                 // A request's heading: its name only, without the archive code (.mrc) or kind.
                 const h1 = win.document.querySelector('#main h1 .mrt') || win.document.querySelector('#main h1');
-                const here = win.document.querySelector('header.top a[aria-current="page"], .navmenu a[aria-current="page"]');
+                const here = win.document.querySelector('header.top a[aria-current="page"]');
                 const name = (h1 && h1.textContent.trim()) || (here && here.textContent.trim()) || (win.document.title || '').split(' · ')[0].trim();
                 tab.title = (name || tab.title).replace(/\s+/g, ' ').slice(0, 60);
                 if (tab.keep) this.write();

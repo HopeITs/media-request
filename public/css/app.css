@@ -89,21 +89,14 @@ img{max-width:100%}
 .nav a{min-height:64px;padding:0 12px;border-bottom:3px solid transparent;font-weight:600;color:var(--text-2);text-decoration:none;display:flex;align-items:center;white-space:nowrap}
 /* Icons only; a page's name opens out beside its icon under the pointer or the keyboard. */
 .nav .nl{display:inline-block;max-width:0;margin-inline-start:0;overflow:hidden;opacity:0;vertical-align:middle;transition:max-width .22s ease,margin .22s ease,opacity .15s ease}
-.nav a:hover .nl,.nav a:focus-visible .nl,.navmore:hover .nl,.navmore:focus-visible .nl{max-width:180px;margin-inline-start:8px;opacity:1}
-@media (prefers-reduced-motion:reduce){.nav .nl{transition:none}}
+.nav a:hover .nl,.nav a:focus-visible .nl{max-width:180px;margin-inline-start:8px;opacity:1}
+/* Only once the pointer rests on an icon (a passing pointer opens nothing, so the bar never
+   jumps about), then a calm opening; it closes at once when the pointer leaves. */
+.nav a:hover .nl{transition:max-width .32s ease .45s,margin .32s ease .45s,opacity .25s ease .5s}
+@media (prefers-reduced-motion:reduce){.nav .nl,.nav a:hover .nl{transition:none}}
 .nav a:hover{color:var(--text);background:var(--hover)}
 .nav a[aria-current="page"]{color:var(--text);border-bottom-color:var(--brand)}
 .nav .ic{width:1.1em;height:1.1em}
-/* "More": the occasional pages, in a small menu under the bar. */
-.navmore{min-height:64px;padding:0 12px;border:0;border-bottom:3px solid transparent;background:none;font:inherit;font-weight:600;color:var(--text-2);display:flex;align-items:center;white-space:nowrap;cursor:pointer}
-.navmore:hover{color:var(--text);background:var(--hover)}
-.navmore[aria-current="page"]{color:var(--text);border-bottom-color:var(--brand)}
-.navmenu{position:fixed;inset:auto;margin:0;padding:6px;min-width:200px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--card);color:var(--text);box-shadow:var(--shadow)}
-.navmenu:popover-open{display:grid;gap:2px}
-.navmenu a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--text);text-decoration:none;font-weight:600}
-.navmenu a:hover{background:var(--hover)}
-.navmenu a[aria-current="page"]{color:var(--brand)}
-.navmenu .ic{width:1.1em;height:1.1em;color:var(--text-2)}
 .tools{margin-inline-start:auto;display:flex;gap:6px;align-items:center}
 .iconbtn{position:relative;min-width:44px;min-height:44px;border:0;background:none;border-radius:8px;display:grid;place-items:center;cursor:pointer;color:var(--text-2);text-decoration:none}
 .iconbtn:hover{background:var(--hover);color:var(--text)}
